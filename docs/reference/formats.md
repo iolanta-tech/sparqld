@@ -44,6 +44,24 @@ description: File formats recognized by sparqld and their implementation status.
 
 </div>
 
+## :material-currency-usd: Dollar keyword aliases
+
+`sparqld` automatically applies the canonical
+[JSON-LD dollar-convenience context](https://json-ld.org/contexts/dollar-convenience.jsonld)
+to JSON-LD, YAML-LD, and Markdown-LD. Their document bodies can use aliases such
+as `$id`, `$type`, and `$graph` without declaring the context or fetching it over
+the network:
+
+{{ example_data('alpha-centauri.yamlld') }}
+
+`@context` is the one JSON-LD keyword that cannot be aliased. Keywords used
+inside a context definition cannot be aliased either, so contexts must continue
+to use literal `"@context"`, `"@id"`, `"@type"`, and related keywords.
+
+The built-in aliases have the lowest precedence. See
+[Context files](context-files.md) for directory inheritance and inline-context
+precedence.
+
 ## :material-progress-wrench: In development
 
 <div class="grid cards" markdown>
