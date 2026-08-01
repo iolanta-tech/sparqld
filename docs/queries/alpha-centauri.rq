@@ -1,10 +1,11 @@
 PREFIX dbo: <http://dbpedia.org/ontology/>
 PREFIX schema: <https://schema.org/>
 
-SELECT ?constellationName ?description
+SELECT ?constellation ?description
 WHERE {
   ?star schema:name "Alpha Centauri" ;
-        dbo:constellation ?constellation ;
+        dbo:constellation ?constellationResource ;
         schema:description ?description .
-  ?constellation schema:name ?constellationName .
+
+  ?constellationResource schema:name ?constellation .
 }
