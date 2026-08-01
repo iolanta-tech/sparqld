@@ -58,7 +58,9 @@ for changes. Use `--host` or `--port` to change the listening address, or
 
 ### :material-database-search-outline: Query the endpoint
 
-Use any SPARQL client. This query finds names together with their source graphs:
+Use any
+[compatible SPARQL client](reference/clients/index.md). This query finds names
+together with their source graphs:
 
 {{ query_data('names.rq') }}
 
@@ -68,7 +70,7 @@ Run it with :material-database-search: [`sq`](https://github.com/ktk/sq):
 
 The live endpoint returns results from YAML-LD, Markdown-LD, and JSON-LD:
 
-{{ example_data('results/names.tsv', title='Result') }}
+{{ result_data('names.tsv') }}
 
 Queries are read-only, so exploring the dataset cannot modify your files.
 
@@ -85,7 +87,7 @@ Queries are read-only, so exploring the dataset cannot modify your files.
 
     {{ query_data('alpha-centauri.rq', indent=4) }}
 
-    {{ example_data('results/alpha-centauri.tsv', indent=4, title='Result') }}
+    {{ result_data('alpha-centauri.tsv', indent=4) }}
 
 !!! success ":material-robot-happy-outline: Agent"
 
