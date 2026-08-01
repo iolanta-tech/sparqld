@@ -67,7 +67,13 @@ A directory may define `context.jsonld` or `context.yamlld` for JSON-LD,
 YAML-LD, Markdown-LD, and other JSON-LD-inspired formats. The context
 is inherited by nested directories until a nearer context file replaces it.
 When both context formats exist in one directory, `context.jsonld` takes
-precedence.
+precedence. Inline `@context` values are supported, but `@context` references
+to remote URLs or local files are not resolved.
+
+The canonical JSON-LD dollar-convenience context is built in and applied to
+every JSON-LD-derived source, so document bodies may use `$id`, `$type`, and
+the other `$` keyword aliases without declaring the context. Literal JSON-LD
+keywords are still required inside `@context` definitions.
 
 The `sparqld:` named graph is a file catalog. It describes every source graph
 as an NFO `FileDataObject`, represents directories as NFO `Folder` resources,
@@ -102,8 +108,8 @@ WHERE {
 Changes are debounced to accommodate editors that emit several filesystem events
 for one save. Ordinary file changes reload only that source. Context changes
 reload sources below the context's directory because inherited terms may affect
-every descendant. If affected sources cannot be parsed, `sparqld` reports the
-error and continues serving their last valid graphs.
+every descendant. If an affected source cannot be parsed, `sparqld` reports the
+error and empties that source's named graph.
 
 Pass `--no-watch` to load the directory once and disable live updates.
 
