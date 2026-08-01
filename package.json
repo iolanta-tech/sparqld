@@ -1,0 +1,7 @@
+{
+  "name": "sparqld-documentation",
+  "private": true,
+  "devDependencies": {
+    "@comunica/query-sparql": "5.3.0"
+  }
+}
