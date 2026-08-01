@@ -44,6 +44,35 @@ The context applies to JSON-LD, YAML-LD, and Markdown-LD sources. An `@context`
 inside an individual source is applied afterward, so its term definitions take
 precedence.
 
+All JSON-LD-derived sources also receive the built-in
+[dollar keyword aliases](formats.md#dollar-keyword-aliases) before the directory
+and inline contexts are applied.
+
+## :material-check-circle-outline: Supported context forms
+
+- Inline contexts in JSON-LD, YAML-LD, and Markdown-LD sources.
+- A dedicated `context.jsonld` or `context.yamlld` file containing an inline
+  `@context`. `sparqld` injects it automatically according to the inheritance
+  rules above.
+- The built-in [dollar keyword aliases](formats.md#dollar-keyword-aliases).
+
+## :material-close-circle-outline: Referenced contexts
+
+An `@context` value that points to another document is not currently supported.
+This includes both remote URLs and relative local file references:
+
+```json
+{"@context": "https://example.org/context.jsonld"}
+```
+
+```json
+{"@context": "../context.jsonld"}
+```
+
+Use an inline context or a dedicated context file named exactly
+`context.jsonld` or `context.yamlld` instead. This restriction also applies to
+the `@context` inside a dedicated context file.
+
 ## :material-link-variant: Relative IRIs
 
 Each source uses the internal IRI of its containing directory as the JSON-LD
