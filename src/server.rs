@@ -301,6 +301,99 @@ mod tests {
     }
 
     #[test]
+    fn serializes_graph_queries_as_turtle() {
+        let response = request(
+            Method::POST,
+            "/",
+            Some("application/sparql-query"),
+            "CONSTRUCT WHERE { ?s ?p ?o }",
+        );
+
+        assert_eq!(response.status(), StatusCode::OK);
+        assert_eq!(
+            response.headers().get(CONTENT_TYPE).unwrap(),
+            RDF_MEDIA_TYPE
+        );
+    }
+
+    #[test]
+    fn accepts_content_type_parameters() {
+        let response = request(
+            Method::POST,
+            "/",
+            Some("application/sparql-query; charset=utf-8"),
+            "ASK {}",
+        );
+
+        assert_eq!(response.status(), StatusCode::OK);
+    }
+
+    #[test]
+    fn rejects_a_missing_query_parameter() {
+        let response = request(Method::GET, "/?format=json", None, "");
+
+        assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+        assert_eq!(
+            response.into_body().to_string().unwrap(),
+            "Missing query parameter"
+        );
+    }
+
+    #[test]
+    fn rejects_a_repeated_query_parameter() {
+        let response = request(
+            Method::GET,
+            "/?query=ASK%20%7B%7D&query=ASK%20%7B%7D",
+            None,
+            "",
+        );
+
+        assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+        assert_eq!(
+            response.into_body().to_string().unwrap(),
+            "The query parameter must not be repeated"
+        );
+    }
+
+    #[test]
+    fn rejects_a_post_without_a_content_type() {
+        let response = request(Method::POST, "/", None, "ASK {}");
+
+        assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+        assert_eq!(
+            response.into_body().to_string().unwrap(),
+            "Missing Content-Type"
+        );
+    }
+
+    #[test]
+    fn rejects_an_unsupported_content_type() {
+        let response = request(Method::POST, "/", Some("application/json"), "{}");
+
+        assert_eq!(response.status(), StatusCode::UNSUPPORTED_MEDIA_TYPE);
+        assert_eq!(
+            response.into_body().to_string().unwrap(),
+            "Unsupported Content-Type: application/json"
+        );
+    }
+
+    #[test]
+    fn rejects_an_oversized_query() {
+        let response = request(
+            Method::POST,
+            "/",
+            Some("application/sparql-query"),
+            "x".repeat(MAX_QUERY_SIZE + 1),
+        );
+
+        assert_eq!(response.status(), StatusCode::PAYLOAD_TOO_LARGE);
+        assert_eq!(
+            response.into_body().to_string().unwrap(),
+            "Query is too large"
+        );
+    }
+
+    #[test]
     fn rejects_updates() {
         let response = request(
             Method::POST,
@@ -320,21 +413,29 @@ mod tests {
         assert_eq!(response.status(), StatusCode::NOT_FOUND);
     }
 
-    fn request(
+    #[test]
+    fn rejects_other_http_methods() {
+        let response = request(Method::DELETE, "/", None, "");
+
+        assert_eq!(response.status(), StatusCode::METHOD_NOT_ALLOWED);
+        assert_eq!(response.headers().get(ALLOW).unwrap(), "GET, POST");
+    }
+
+    fn request<B: Into<Body>>(
         method: Method,
         uri: &str,
         content_type: Option<&str>,
-        body: &'static str,
+        body: B,
     ) -> Response<Body> {
         request_on(&Store::new().unwrap(), method, uri, content_type, body)
     }
 
-    fn request_on(
+    fn request_on<B: Into<Body>>(
         dataset: &Store,
         method: Method,
         uri: &str,
         content_type: Option<&str>,
-        body: &'static str,
+        body: B,
     ) -> Response<Body> {
         let mut request = Request::builder().method(method).uri(uri);
         if let Some(content_type) = content_type {
