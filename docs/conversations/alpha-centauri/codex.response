@@ -1,0 +1,19 @@
+Alpha Centauri is in the constellation **Centaurus**. The knowledge base describes it as:
+
+> “The closest star system to the Solar System.”
+
+Query used:
+
+```sparql
+PREFIX dbo: <http://dbpedia.org/ontology/>
+PREFIX schema: <https://schema.org/>
+
+SELECT ?constellation ?description
+WHERE {
+  ?star schema:name "Alpha Centauri" ;
+        dbo:constellation ?constellationResource ;
+        schema:description ?description .
+
+  ?constellationResource schema:name ?constellation .
+}
+```
