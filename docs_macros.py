@@ -16,6 +16,7 @@ from urllib.request import Request, urlopen
 ROOT_DIR = Path(__file__).resolve().parent
 EXAMPLES_DIR = ROOT_DIR / 'docs' / 'examples'
 CLIENTS_DIR = ROOT_DIR / 'docs' / 'reference' / 'clients'
+CONVERSATIONS_DIR = ROOT_DIR / 'docs' / 'conversations'
 LIBRARY_EXAMPLES_DIR = ROOT_DIR / 'docs' / 'reference' / 'libraries'
 QUERIES_DIR = ROOT_DIR / 'docs' / 'queries'
 RESULTS_DIR = ROOT_DIR / 'docs' / 'results'
@@ -322,6 +323,42 @@ def define_env(env):
             Path('docs/reference/clients') / name,
             indent,
             title,
+        )
+
+    @env.macro
+    def agent_conversation(name):
+        directory = CONVERSATIONS_DIR / name
+        prompt_path = directory / 'user.prompt'
+        response_path = directory / 'codex.response'
+        if not prompt_path.is_file() or not response_path.is_file():
+            raise ValueError(f'Agent conversation does not exist: {name}')
+
+        repo_url = env.conf.get('repo_url') or REPO_URL
+        prompt_url = _github_url(
+            Path('docs/conversations') / name / prompt_path.name,
+            repo_url,
+        )
+        response_url = _github_url(
+            Path('docs/conversations') / name / response_path.name,
+            repo_url,
+        )
+        prompt_heading = (
+            '**You**'
+            '<span class="agent-message__source" markdown>'
+            f'[`{prompt_path.name}`]({prompt_url})'
+            '</span>'
+        )
+        response_heading = (
+            '**Codex**'
+            '<span class="agent-message__source" markdown>'
+            f'[`{response_path.name}`]({response_url})'
+            '</span>'
+        )
+        prompt = _indent_block(prompt_path.read_text().strip(), 4)
+        response = _indent_block(response_path.read_text().strip(), 4)
+        return (
+            f'!!! agent-user "{prompt_heading}"\n\n{prompt}\n\n'
+            f'!!! agent-codex "{response_heading}"\n\n{response}\n'
         )
 
     @env.macro
