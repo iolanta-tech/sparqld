@@ -1,0 +1,7 @@
+default = "sparqld"
+
+[endpoints.sparqld]
+url = "http://127.0.0.1:7737/"
+
+[prefixes]
+nfo = "http://www.semanticdesktop.org/ontologies/2007/03/22/nfo#"
