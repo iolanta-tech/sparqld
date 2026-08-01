@@ -6,6 +6,7 @@ import shutil
 import socket
 import subprocess
 import sys
+import tempfile
 import time
 from datetime import date
 from pathlib import Path
@@ -14,7 +15,10 @@ from urllib.request import Request, urlopen
 
 ROOT_DIR = Path(__file__).resolve().parent
 EXAMPLES_DIR = ROOT_DIR / 'docs' / 'examples'
+CLIENTS_DIR = ROOT_DIR / 'docs' / 'reference' / 'clients'
+LIBRARY_EXAMPLES_DIR = ROOT_DIR / 'docs' / 'reference' / 'libraries'
 QUERIES_DIR = ROOT_DIR / 'docs' / 'queries'
+RESULTS_DIR = ROOT_DIR / 'docs' / 'results'
 REPO_URL = 'https://github.com/iolanta-tech/sparqld'
 DISPLAY_ENDPOINT = 'http://127.0.0.1:7737/'
 
@@ -55,6 +59,7 @@ _EXAMPLE_SYNTAXES = {
     '.md': 'markdown',
     '.rq': 'sparql',
     '.sh': 'console',
+    '.toml': 'toml',
     '.tsv': 'text',
     '.txt': 'text',
     '.yaml': 'yaml',
@@ -100,14 +105,14 @@ def _command(name, fallback=None):
     )
 
 
-def _run(command, expected=None, environment=None):
+def _run(command, expected=None, environment=None, cwd=ROOT_DIR):
     try:
         result = subprocess.run(
             command,
             capture_output=True,
             text=True,
             check=True,
-            cwd=ROOT_DIR,
+            cwd=cwd,
             env=environment,
         )
     except FileNotFoundError as error:
@@ -230,7 +235,9 @@ def _result_text(content_type, body):
     variables = result['head']['vars']
     rows = ['\t'.join(variables)]
     for binding in result['results']['bindings']:
-        rows.append('\t'.join(binding.get(name, {}).get('value', '') for name in variables))
+        rows.append(
+            '\t'.join(binding.get(name, {}).get('value', '') for name in variables)
+        )
     return 'text', '\n'.join(rows)
 
 
@@ -263,19 +270,13 @@ def _adr_metadata(value_date, status):
 def define_env(env):
     """Register documentation macros."""
 
-    @env.macro
-    def adr_metadata(date, status):
-        return _adr_metadata(date, status)
-
-    @env.macro
-    def example_data(name, indent=0, title='Source'):
-        path = _example_path(name)
+    def source_data(path, repository_path, indent, title):
         if not path.is_file():
-            raise ValueError(f'Example file does not exist: {name}')
+            raise ValueError(f'Documentation source does not exist: {path}')
         source = path.read_text().rstrip('\n')
         syntax = _EXAMPLE_SYNTAXES.get(path.suffix.lower(), 'text')
         github_url = _github_url(
-            Path('docs/examples') / name,
+            repository_path,
             env.conf.get('repo_url') or REPO_URL,
         )
         heading = (
@@ -287,6 +288,40 @@ def define_env(env):
         return (
             f'!!! example "{heading}"\n\n'
             f'{_indent_block(body, indent + 4)}\n'
+        )
+
+    @env.macro
+    def adr_metadata(date, status):
+        return _adr_metadata(date, status)
+
+    @env.macro
+    def example_data(name, indent=0, title='Source'):
+        path = _example_path(name)
+        return source_data(
+            path,
+            Path('docs/examples') / name,
+            indent,
+            title,
+        )
+
+    @env.macro
+    def result_data(name, indent=0, title='Result'):
+        path = RESULTS_DIR / name
+        return source_data(
+            path,
+            Path('docs/results') / name,
+            indent,
+            title,
+        )
+
+    @env.macro
+    def client_data(name, indent=0, title='Configuration'):
+        path = CLIENTS_DIR / name
+        return source_data(
+            path,
+            Path('docs/reference/clients') / name,
+            indent,
+            title,
         )
 
     @env.macro
@@ -341,28 +376,61 @@ def define_env(env):
         examples = [
             (
                 'GET',
-                [curl, '--silent', '--show-error', '--fail-with-body', '--get', endpoint,
-                 '--data-urlencode', f'query={query}'],
-                f"curl --get '{DISPLAY_ENDPOINT}' \\\n  --data-urlencode 'query={query}'",
+                [
+                    curl,
+                    '--silent',
+                    '--show-error',
+                    '--fail-with-body',
+                    '--get',
+                    endpoint,
+                    '--data-urlencode',
+                    f'query={query}',
+                ],
+                (
+                    f"curl --get '{DISPLAY_ENDPOINT}' \\\n"
+                    f"  --data-urlencode 'query={query}'"
+                ),
             ),
             (
                 'POST query body',
-                [curl, '--silent', '--show-error', '--fail-with-body', endpoint,
-                 '--header', 'Content-Type: application/sparql-query',
-                 '--data-binary', query],
-                f"curl '{DISPLAY_ENDPOINT}' \\\n  --header 'Content-Type: application/sparql-query' \\\n  --data-binary '{query}'",
+                [
+                    curl,
+                    '--silent',
+                    '--show-error',
+                    '--fail-with-body',
+                    endpoint,
+                    '--header',
+                    'Content-Type: application/sparql-query',
+                    '--data-binary',
+                    query,
+                ],
+                (
+                    f"curl '{DISPLAY_ENDPOINT}' \\\n"
+                    "  --header 'Content-Type: application/sparql-query' \\\n"
+                    f"  --data-binary '{query}'"
+                ),
             ),
             (
                 'POST form',
-                [curl, '--silent', '--show-error', '--fail-with-body', endpoint,
-                 '--data-urlencode', f'query={query}'],
+                [
+                    curl,
+                    '--silent',
+                    '--show-error',
+                    '--fail-with-body',
+                    endpoint,
+                    '--data-urlencode',
+                    f'query={query}',
+                ],
                 f"curl '{DISPLAY_ENDPOINT}' \\\n  --data-urlencode 'query={query}'",
             ),
         ]
         tabs = []
         for title, command, display in examples:
             output = json.dumps(json.loads(_run(command)), indent=2)
-            body = f'```console\n{display}\n```\n\n```json title="Response"\n{output}\n```'
+            body = (
+                f'```console\n{display}\n```\n\n'
+                f'```json title="Response"\n{output}\n```'
+            )
             tabs.append(f'=== "{title}"\n\n{_indent_block(body, 4)}')
         return '\n\n'.join(tabs)
 
@@ -372,23 +440,30 @@ def define_env(env):
         examples = [
             (
                 ':simple-python: Python',
-                'libraries/python.py',
-                [sys.executable, str(_example_path('libraries/python.py')), endpoint],
+                'python.py',
+                [sys.executable, str(LIBRARY_EXAMPLES_DIR / 'python.py'), endpoint],
                 'python',
             ),
             (
                 ':simple-javascript: JavaScript',
-                'libraries/javascript.mjs',
-                [_command('node'), str(_example_path('libraries/javascript.mjs')), endpoint],
+                'javascript.mjs',
+                [
+                    _command('node'),
+                    str(LIBRARY_EXAMPLES_DIR / 'javascript.mjs'),
+                    endpoint,
+                ],
                 'javascript',
             ),
         ]
         tabs = []
         for title, name, command, syntax in examples:
-            path = _example_path(name)
+            path = LIBRARY_EXAMPLES_DIR / name
             output = _run(command, expected='CONSTRUCT: Alpha Centauri')
             source = path.read_text().rstrip('\n')
-            body = f'```{syntax}\n{source}\n```\n\n```text title="Live result"\n{output}\n```'
+            body = (
+                f'```{syntax}\n{source}\n```\n\n'
+                f'```text title="Live result"\n{output}\n```'
+            )
             tabs.append(f'=== "{title}"\n\n{_indent_block(body, 4)}')
         return '\n\n'.join(tabs)
 
@@ -406,15 +481,44 @@ def define_env(env):
                 [
                     (['-e', endpoint, 'graphs'], 'sparqld:alpha-centauri.yamlld'),
                     (['-e', endpoint, '-f', str(query_files['ask'])], 'true'),
-                    (['-e', endpoint, '-f', str(query_files['construct'])], 'Alpha Centauri'),
+                    (
+                        ['-e', endpoint, '-f', str(query_files['construct'])],
+                        'Alpha Centauri',
+                    ),
                 ],
             ),
             'rsparql': (
-                _command('rsparql'),
+                _command(
+                    'rsparql',
+                    next(
+                        iter(
+                            sorted(
+                                (ROOT_DIR / '.tools').glob(
+                                    'apache-jena-*/bin/rsparql'
+                                )
+                            )
+                        ),
+                        None,
+                    ),
+                ),
                 [
-                    (['--service', endpoint, '--query', str(query_files['select'])], 'Alpha Centauri'),
-                    (['--service', endpoint, '--query', str(query_files['ask'])], 'true'),
-                    (['--service', endpoint, '--query', str(query_files['construct'])], 'Alpha Centauri'),
+                    (
+                        ['--service', endpoint, '--query', str(query_files['select'])],
+                        'Alpha Centauri',
+                    ),
+                    (
+                        ['--service', endpoint, '--query', str(query_files['ask'])],
+                        'Yes',
+                    ),
+                    (
+                        [
+                            '--service',
+                            endpoint,
+                            '--query',
+                            str(query_files['construct']),
+                        ],
+                        'Alpha Centauri',
+                    ),
                 ],
             ),
             'comunica-sparql': (
@@ -423,30 +527,64 @@ def define_env(env):
                     ROOT_DIR / 'node_modules' / '.bin' / 'comunica-sparql',
                 ),
                 [
-                    ([f'sparql@{endpoint}', '-f', str(query_files['select'])], 'Alpha Centauri'),
+                    (
+                        [f'sparql@{endpoint}', '-f', str(query_files['select'])],
+                        'Alpha Centauri',
+                    ),
                     ([f'sparql@{endpoint}', '-f', str(query_files['ask'])], 'true'),
-                    ([f'sparql@{endpoint}', '-f', str(query_files['construct'])], 'Alpha Centauri'),
+                    (
+                        [f'sparql@{endpoint}', '-f', str(query_files['construct'])],
+                        'Alpha Centauri',
+                    ),
                 ],
             ),
             'sparqlquery': (
                 _command('sparqlquery'),
                 [
-                    ([endpoint, '--queryfile', str(query_files['select'])], 'Alpha Centauri'),
+                    (
+                        [endpoint, '--queryfile', str(query_files['select'])],
+                        'Alpha Centauri',
+                    ),
                     ([endpoint, '--queryfile', str(query_files['ask'])], 'true'),
-                    ([endpoint, '--queryfile', str(query_files['construct'])], 'Alpha Centauri'),
+                    (
+                        [endpoint, '--queryfile', str(query_files['construct'])],
+                        'Alpha Centauri',
+                    ),
                 ],
             ),
         }
         for _, (executable, checks) in clients.items():
             for arguments, expected in checks:
                 _run([executable, *arguments], expected=expected)
-        return '<!-- sq, rsparql, Comunica, and sparqlquery passed live compatibility checks. -->'
+
+        sq = clients['sq'][0]
+        config = (CLIENTS_DIR / 'sq' / 'sq.toml').read_text().replace(
+            DISPLAY_ENDPOINT,
+            endpoint,
+        )
+        with tempfile.TemporaryDirectory(prefix='sparqld-docs-sq-') as directory:
+            config_directory = Path(directory)
+            (config_directory / '.sq.toml').write_text(config)
+            _run(
+                [sq, 'graphs'],
+                expected='data:alpha-centauri.yamlld',
+                cwd=directory,
+            )
+            _run(
+                [sq, '-f', str(QUERIES_DIR / 'sq-named-graph.rq')],
+                expected='Alpha Centauri',
+                cwd=directory,
+            )
+        return (
+            '<!-- sq, rsparql, Comunica, and sparqlquery passed '
+            'live compatibility checks. -->'
+        )
 
     @env.macro
     def command(value, indent=0):
         body = f'```console\n{value}\n```'
         return (
-            '!!! example ":material-console: Command"\n\n'
+            '!!! command "Command"\n\n'
             f'{_indent_block(body, indent + 4)}\n'
         )
 
