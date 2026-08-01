@@ -7,6 +7,8 @@ theme:
   name: material
   features:
     - content.code.copy
+    - navigation.indexes
+    - navigation.sections
     - navigation.tabs
     - navigation.top
   palette:
@@ -34,28 +36,17 @@ markdown_extensions:
   - admonition
   - attr_list
   - md_in_html
+  - pymdownx.tabbed:
+      alternate_style: true
   - pymdownx.superfences
   - pymdownx.emoji:
       emoji_index: !!python/name:material.extensions.emoji.twemoji
       emoji_generator: !!python/name:material.extensions.emoji.to_svg
 
 plugins:
+  - awesome-pages:
+      collapse_single_pages: true
   - macros:
       module_name: docs_macros
       on_error_fail: true
   - search
-
-nav:
-  - Quickstart: index.md
-  - Reference:
-      - Command: reference/index.md
-      - HTTP API: reference/api/index.md
-      - Clients: reference/clients/index.md
-      - Libraries: reference/libraries/index.md
-      - SPARQL cheat sheet: reference/sparql/index.md
-      - File formats: reference/formats.md
-      - Named graphs: reference/named-graphs.md
-      - Context files: reference/context-files.md
-  - Project:
-      - Decisions:
-          - Implement sparqld in Rust: project/decisions/implement-sparqld-in.md
