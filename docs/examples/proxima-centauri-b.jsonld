@@ -1,0 +1,8 @@
+{
+  "@id": "dbr:Proxima_Centauri_b",
+  "@type": "dbo:Planet",
+  "name": "Proxima Centauri b",
+  "description": "The closest known exoplanet to Earth, orbiting in Proxima Centauri's habitable zone.",
+  "discovered": "2016-08-24",
+  "star": "dbr:Proxima_Centauri"
+}
