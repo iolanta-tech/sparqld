@@ -2,7 +2,7 @@ mod loader;
 mod server;
 mod watcher;
 
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 use std::error::Error;
 use std::io;
 use std::net::ToSocketAddrs;
@@ -19,6 +19,7 @@ type SharedDataset = Arc<RwLock<Store>>;
 
 struct DatasetLoad {
     loaded_sources: BTreeSet<PathBuf>,
+    load_errors: BTreeMap<PathBuf, String>,
     ignored_files: usize,
     triples: usize,
 }
@@ -26,6 +27,7 @@ struct DatasetLoad {
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(crate) struct DatasetStats {
     loaded_files: usize,
+    failed_files: usize,
     ignored_files: usize,
     triples: usize,
 }
@@ -91,6 +93,7 @@ impl DatasetLoad {
     fn stats(&self) -> DatasetStats {
         DatasetStats {
             loaded_files: self.loaded_sources.len(),
+            failed_files: self.load_errors.len(),
             ignored_files: self.ignored_files,
             triples: self.triples,
         }
@@ -106,6 +109,7 @@ fn reload_dataset(directory: &Path, dataset: &RwLock<Store>) -> SparqldResult<Da
         .map_err(|error| io::Error::other(error.to_string()))? = fresh_dataset;
     Ok(DatasetLoad {
         loaded_sources: load.loaded_sources,
+        load_errors: load.load_errors,
         ignored_files: load.ignored_files,
         triples,
     })
@@ -121,9 +125,11 @@ fn log_serving(directory: &Path, host: &str, port: u16) {
 
 fn dataset_summary(stats: DatasetStats) -> String {
     format!(
-        "Dataset: {} source file{} loaded; {} file{} ignored; {} triple{} total",
+        "Dataset: {} source file{} loaded; {} source file{} failed; {} file{} ignored; {} triple{} total",
         stats.loaded_files,
         plural_suffix(stats.loaded_files),
+        stats.failed_files,
+        plural_suffix(stats.failed_files),
         stats.ignored_files,
         plural_suffix(stats.ignored_files),
         stats.triples,
@@ -185,18 +191,20 @@ mod tests {
         assert_eq!(
             dataset_summary(DatasetStats {
                 loaded_files: 3,
+                failed_files: 2,
                 ignored_files: 6,
                 triples: 24,
             }),
-            "Dataset: 3 source files loaded; 6 files ignored; 24 triples total"
+            "Dataset: 3 source files loaded; 2 source files failed; 6 files ignored; 24 triples total"
         );
         assert_eq!(
             dataset_summary(DatasetStats {
                 loaded_files: 1,
+                failed_files: 1,
                 ignored_files: 1,
                 triples: 1,
             }),
-            "Dataset: 1 source file loaded; 1 file ignored; 1 triple total"
+            "Dataset: 1 source file loaded; 1 source file failed; 1 file ignored; 1 triple total"
         );
     }
 }
