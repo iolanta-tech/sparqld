@@ -44,6 +44,25 @@ mod nfo {
     pub const FOLDER: NamedNodeRef<'_> = term!("Folder");
 }
 
+mod rlog {
+    use oxigraph::model::NamedNodeRef;
+
+    macro_rules! term {
+        ($local_name:literal) => {
+            NamedNodeRef::new_unchecked(concat!(
+                "http://persistence.uni-leipzig.org/nlp2rdf/ontologies/rlog#",
+                $local_name
+            ))
+        };
+    }
+
+    pub const ENTRY: NamedNodeRef<'_> = term!("Entry");
+    pub const ERROR: NamedNodeRef<'_> = term!("ERROR");
+    pub const LEVEL: NamedNodeRef<'_> = term!("level");
+    pub const MESSAGE: NamedNodeRef<'_> = term!("message");
+    pub const RESOURCE: NamedNodeRef<'_> = term!("resource");
+}
+
 #[derive(Clone, Copy)]
 enum SourceFormat {
     Rdf(RdfFormat),
@@ -63,12 +82,15 @@ struct FileCatalog<'a> {
 
 pub(crate) struct ReloadReport {
     pub(crate) loaded_sources: BTreeSet<PathBuf>,
+    pub(crate) load_errors: BTreeMap<PathBuf, String>,
     pub(crate) updates: Vec<SourceUpdate>,
+    pub(crate) failures: Vec<SourceFailure>,
     pub(crate) impacts: BTreeMap<PathBuf, BTreeSet<PathBuf>>,
 }
 
 pub(crate) struct DirectoryLoad {
     pub(crate) loaded_sources: BTreeSet<PathBuf>,
+    pub(crate) load_errors: BTreeMap<PathBuf, String>,
     pub(crate) ignored_files: usize,
 }
 
@@ -85,6 +107,14 @@ pub(crate) struct SourceUpdate {
     pub(crate) graph: String,
     pub(crate) triples: usize,
     pub(crate) kind: SourceUpdateKind,
+}
+
+#[derive(Debug)]
+pub(crate) struct SourceFailure {
+    pub(crate) path: PathBuf,
+    pub(crate) graph: String,
+    pub(crate) format: &'static str,
+    pub(crate) error: String,
 }
 
 impl<'a> FileCatalog<'a> {
@@ -115,6 +145,32 @@ impl<'a> FileCatalog<'a> {
         self.insert_type(graph.as_ref(), nfo::FILE_DATA_OBJECT)?;
         self.insert_file_name(graph.as_ref(), file_name)?;
         self.insert_container(graph.as_ref(), container.as_ref())
+    }
+
+    fn describe_load_error(&self, relative: &Path, message: &str) -> LoadResult<()> {
+        let resource = graph_name(relative)?;
+        let entry = NamedNode::new(format!("{}#load-error", resource.as_str()))?;
+
+        self.insert_type(entry.as_ref(), rlog::ENTRY)?;
+        self.dataset.insert(QuadRef::new(
+            entry.as_ref(),
+            rlog::LEVEL,
+            rlog::ERROR,
+            FILE_CATALOG_GRAPH,
+        ))?;
+        self.dataset.insert(QuadRef::new(
+            entry.as_ref(),
+            rlog::RESOURCE,
+            resource.as_ref(),
+            FILE_CATALOG_GRAPH,
+        ))?;
+        self.dataset.insert(QuadRef::new(
+            entry.as_ref(),
+            rlog::MESSAGE,
+            LiteralRef::new_simple_literal(message),
+            FILE_CATALOG_GRAPH,
+        ))?;
+        Ok(())
     }
 
     fn describe_directories(&self, relative: &Path) -> LoadResult<NamedNode> {
@@ -224,26 +280,41 @@ pub(crate) fn load_directory_with_stats(
     let catalog = FileCatalog::new(dataset, &root)?;
 
     let mut loaded_sources = BTreeSet::new();
+    let mut load_errors = BTreeMap::new();
     let mut ignored_files = 0;
     for file in &files {
         if is_context_file(file) {
             continue;
         }
-        if source_format(file).is_none() {
+        let Some(format) = source_format(file) else {
             ignored_files += 1;
             continue;
-        }
-        if load_file(&root, file, dataset, &mut contexts)? {
-            let relative = file.strip_prefix(&root).map_err(io::Error::other)?;
-            catalog.describe_source(relative)?;
-            loaded_sources.insert(relative.to_owned());
-        } else {
-            ignored_files += 1;
+        };
+        let relative = file.strip_prefix(&root).map_err(io::Error::other)?;
+        match load_file(&root, file, dataset, &mut contexts) {
+            Ok(true) => {
+                catalog.describe_source(relative)?;
+                loaded_sources.insert(relative.to_owned());
+            }
+            Ok(false) => ignored_files += 1,
+            Err(error) => {
+                dataset.remove_named_graph(graph_name(relative)?.as_ref())?;
+                let error = error.to_string();
+                log::error!(
+                    "Could not load {} as {}: {error}",
+                    relative.display(),
+                    format.name()
+                );
+                catalog.describe_source(relative)?;
+                catalog.describe_load_error(relative, &error)?;
+                load_errors.insert(relative.to_owned(), error);
+            }
         }
     }
 
     Ok(DirectoryLoad {
         loaded_sources,
+        load_errors,
         ignored_files,
     })
 }
@@ -252,17 +323,25 @@ pub(crate) fn reload_changed(
     directory: &Path,
     changed_paths: &BTreeSet<PathBuf>,
     loaded_sources: &BTreeSet<PathBuf>,
+    load_errors: &BTreeMap<PathBuf, String>,
     dataset: &Store,
 ) -> LoadResult<ReloadReport> {
     let root = directory.canonicalize()?;
     let current_sources = source_paths(&root)?;
-    let impacts = source_impacts(&root, changed_paths, loaded_sources, &current_sources);
+    let tracked_sources = loaded_sources
+        .iter()
+        .chain(load_errors.keys())
+        .cloned()
+        .collect::<BTreeSet<_>>();
+    let impacts = source_impacts(&root, changed_paths, &tracked_sources, &current_sources);
     let affected = impacts.values().flatten().cloned().collect::<BTreeSet<_>>();
 
     if affected.is_empty() {
         return Ok(ReloadReport {
             loaded_sources: loaded_sources.clone(),
+            load_errors: load_errors.clone(),
             updates: Vec::new(),
+            failures: Vec::new(),
             impacts,
         });
     }
@@ -270,28 +349,40 @@ pub(crate) fn reload_changed(
     let staging = Store::new()?;
     let mut contexts = ContextResolver::new(&root);
     let mut staged_sources = BTreeSet::new();
+    let mut failed_sources = BTreeMap::new();
     for relative in &affected {
-        if current_sources.contains(relative)
-            && load_file(&root, &root.join(relative), &staging, &mut contexts)?
-        {
-            staged_sources.insert(relative.clone());
+        if current_sources.contains(relative) {
+            match load_file(&root, &root.join(relative), &staging, &mut contexts) {
+                Ok(true) => {
+                    staged_sources.insert(relative.clone());
+                }
+                Ok(false) => {}
+                Err(error) => {
+                    staging.remove_named_graph(graph_name(relative)?.as_ref())?;
+                    failed_sources.insert(relative.clone(), error.to_string());
+                }
+            }
         }
     }
 
     let mut next_sources = loaded_sources.clone();
+    let mut next_errors = load_errors.clone();
     for relative in &affected {
         next_sources.remove(relative);
+        next_errors.remove(relative);
+        if failed_sources.contains_key(relative) {
+            next_errors.insert(relative.clone(), failed_sources[relative].clone());
+        } else if staged_sources.contains(relative) {
+            next_sources.insert(relative.clone());
+        }
     }
-    next_sources.extend(staged_sources.iter().cloned());
 
-    let catalog = build_catalog(&root, &next_sources)?;
+    let catalog = build_catalog(&root, &next_sources, &next_errors)?;
     let staged_quads = collect_quads(&staging)?;
     let catalog_quads = collect_quads(&catalog)?;
     let removed_triples = affected
         .iter()
-        .filter(|relative| {
-            loaded_sources.contains(*relative) && !staged_sources.contains(*relative)
-        })
+        .filter(|relative| loaded_sources.contains(*relative) && !next_sources.contains(*relative))
         .map(|relative| {
             let graph = graph_name(relative)?;
             Ok((
@@ -324,7 +415,7 @@ pub(crate) fn reload_changed(
                     SourceUpdateKind::Loaded
                 },
             });
-        } else if loaded_sources.contains(relative) {
+        } else if loaded_sources.contains(relative) && !next_sources.contains(relative) {
             updates.push(SourceUpdate {
                 path: relative.clone(),
                 graph: graph.as_str().to_owned(),
@@ -334,9 +425,25 @@ pub(crate) fn reload_changed(
         }
     }
 
+    let failures = failed_sources
+        .into_iter()
+        .map(|(path, error)| {
+            let format = source_format(&path)
+                .ok_or_else(|| io::Error::other("failed source has no recognized format"))?;
+            Ok(SourceFailure {
+                graph: graph_name(&path)?.as_str().to_owned(),
+                path,
+                format: format.name(),
+                error,
+            })
+        })
+        .collect::<LoadResult<Vec<_>>>()?;
+
     Ok(ReloadReport {
         loaded_sources: next_sources,
+        load_errors: next_errors,
         updates,
+        failures,
         impacts,
     })
 }
@@ -409,11 +516,22 @@ fn source_impacts(
     impacts
 }
 
-fn build_catalog(root: &Path, sources: &BTreeSet<PathBuf>) -> LoadResult<Store> {
+fn build_catalog(
+    root: &Path,
+    sources: &BTreeSet<PathBuf>,
+    load_errors: &BTreeMap<PathBuf, String>,
+) -> LoadResult<Store> {
     let dataset = Store::new()?;
     let catalog = FileCatalog::new(&dataset, root)?;
-    for source in sources {
+    for source in sources
+        .iter()
+        .chain(load_errors.keys())
+        .collect::<BTreeSet<_>>()
+    {
         catalog.describe_source(source)?;
+    }
+    for (source, error) in load_errors {
+        catalog.describe_load_error(source, error)?;
     }
     Ok(dataset)
 }
@@ -502,6 +620,17 @@ fn source_format(path: &Path) -> Option<SourceFormat> {
     }
 }
 
+impl SourceFormat {
+    fn name(self) -> &'static str {
+        match self {
+            Self::Rdf(format) => format.name(),
+            Self::JsonLd => "JSON-LD",
+            Self::YamlLd => "YAML-LD",
+            Self::Markdown => "Markdown-LD",
+        }
+    }
+}
+
 fn is_context_file(path: &Path) -> bool {
     matches!(
         path.file_name().and_then(|name| name.to_str()),
@@ -556,33 +685,65 @@ fn prepare_json_ld(
 }
 
 fn apply_context(document: Value, inherited: Option<Value>) -> Value {
-    let Some(inherited) = inherited else {
-        return document;
-    };
-
     match document {
         Value::Object(mut document) => {
-            let context = if let Some(local) = document.remove("@context") {
-                combine_contexts(inherited, local)
-            } else {
-                inherited
-            };
-            document.insert("@context".into(), context);
+            let mut contexts = vec![dollar_convenience_context()];
+            if let Some(inherited) = inherited {
+                append_context(&mut contexts, inherited);
+            }
+            if let Some(local) = document.remove("@context") {
+                append_context(&mut contexts, local);
+            }
+            document.insert("@context".into(), Value::Array(contexts));
             Value::Object(document)
         }
-        Value::Array(graph) => Value::Object(Map::from_iter([
-            ("@context".into(), inherited),
-            ("@graph".into(), Value::Array(graph)),
-        ])),
+        Value::Array(graph) => {
+            let mut contexts = vec![dollar_convenience_context()];
+            if let Some(inherited) = inherited {
+                append_context(&mut contexts, inherited);
+            }
+            Value::Object(Map::from_iter([
+                ("@context".into(), Value::Array(contexts)),
+                ("@graph".into(), Value::Array(graph)),
+            ]))
+        }
         document => document,
     }
 }
 
-fn combine_contexts(inherited: Value, local: Value) -> Value {
-    let mut contexts = Vec::new();
-    append_context(&mut contexts, inherited);
-    append_context(&mut contexts, local);
-    Value::Array(contexts)
+fn dollar_convenience_context() -> Value {
+    serde_json::json!({
+        "$always": "@always",
+        "$base": "@base",
+        "$container": "@container",
+        "$direction": "@direction",
+        "$embed": "@embed",
+        "$explicit": "@explicit",
+        "$graph": "@graph",
+        "$id": "@id",
+        "$import": "@import",
+        "$included": "@included",
+        "$index": "@index",
+        "$json": "@json",
+        "$language": "@language",
+        "$list": "@list",
+        "$nest": "@nest",
+        "$never": "@never",
+        "$none": "@none",
+        "$null": "@null",
+        "$omitDefault": "@omitDefault",
+        "$once": "@once",
+        "$prefix": "@prefix",
+        "$propagate": "@propagate",
+        "$protected": "@protected",
+        "$requireAll": "@requireAll",
+        "$reverse": "@reverse",
+        "$set": "@set",
+        "$type": "@type",
+        "$value": "@value",
+        "$version": "@version",
+        "$vocab": "@vocab"
+    })
 }
 
 fn append_context(contexts: &mut Vec<Value>, context: Value) {
@@ -738,6 +899,104 @@ mod tests {
     }
 
     #[test]
+    fn records_a_source_error_and_continues_initial_loading() {
+        let directory = tempfile::tempdir().unwrap();
+        fs::write(
+            directory.path().join("good.ttl"),
+            "<urn:subject> <urn:value> <urn:object> .",
+        )
+        .unwrap();
+        fs::write(directory.path().join("broken.xml"), "<RDF></RDF>").unwrap();
+        let dataset = Store::new().unwrap();
+
+        let load = load_directory_with_stats(directory.path(), &dataset).unwrap();
+
+        let broken = Path::new("broken.xml");
+        let error = &load.load_errors[broken];
+        let resource = NamedNodeRef::new("sparqld:broken.xml").unwrap();
+        let entry = NamedNodeRef::new("sparqld:broken.xml#load-error").unwrap();
+        assert_eq!(
+            load.loaded_sources,
+            BTreeSet::from([PathBuf::from("good.ttl")])
+        );
+        assert!(
+            error.contains("XML namespaces are required in RDF/XML"),
+            "unexpected parser error: {error}"
+        );
+        assert!(
+            dataset
+                .contains(QuadRef::new(
+                    entry,
+                    rdf::TYPE,
+                    rlog::ENTRY,
+                    FILE_CATALOG_GRAPH,
+                ))
+                .unwrap()
+        );
+        assert!(
+            dataset
+                .contains(QuadRef::new(
+                    entry,
+                    rlog::LEVEL,
+                    rlog::ERROR,
+                    FILE_CATALOG_GRAPH,
+                ))
+                .unwrap()
+        );
+        assert!(
+            dataset
+                .contains(QuadRef::new(
+                    entry,
+                    rlog::RESOURCE,
+                    resource,
+                    FILE_CATALOG_GRAPH,
+                ))
+                .unwrap()
+        );
+        assert!(
+            dataset
+                .contains(QuadRef::new(
+                    entry,
+                    rlog::MESSAGE,
+                    LiteralRef::new_simple_literal(error),
+                    FILE_CATALOG_GRAPH,
+                ))
+                .unwrap()
+        );
+        assert!(!dataset.contains_named_graph(resource).unwrap());
+    }
+
+    #[test]
+    fn rejects_remote_and_local_context_references() {
+        for context in [
+            "https://example.org/context.jsonld",
+            "shared-context.jsonld",
+        ] {
+            let directory = tempfile::tempdir().unwrap();
+            fs::write(
+                directory.path().join("source.jsonld"),
+                format!(r#"{{"@context":"{context}","@id":"urn:subject","name":"Alice"}}"#),
+            )
+            .unwrap();
+            let dataset = Store::new().unwrap();
+
+            let load = load_directory_with_stats(directory.path(), &dataset).unwrap();
+
+            assert!(load.loaded_sources.is_empty());
+            let error = &load.load_errors[Path::new("source.jsonld")];
+            assert!(
+                error.contains("No LoadDocumentCallback has been set"),
+                "unexpected error for {context}: {error}"
+            );
+            assert!(
+                !dataset
+                    .contains_named_graph(NamedNodeRef::new("sparqld:source.jsonld").unwrap())
+                    .unwrap()
+            );
+        }
+    }
+
+    #[test]
     fn catalogs_source_graphs_and_directories() {
         let dataset = Store::new().unwrap();
 
@@ -825,6 +1084,7 @@ mod tests {
             directory.path(),
             &BTreeSet::from([first]),
             &loaded_sources,
+            &BTreeMap::new(),
             &dataset,
         )
         .unwrap();
@@ -857,6 +1117,77 @@ mod tests {
     }
 
     #[test]
+    fn records_a_reload_error_and_empties_the_source_graph() {
+        let directory = tempfile::tempdir().unwrap();
+        let source = directory.path().join("source.ttl");
+        fs::write(&source, "<urn:subject> <urn:value> <urn:old> .").unwrap();
+        let dataset = Store::new().unwrap();
+        let load = load_directory_with_stats(directory.path(), &dataset).unwrap();
+
+        fs::write(&source, "not valid Turtle").unwrap();
+        let failed = reload_changed(
+            directory.path(),
+            &BTreeSet::from([source.clone()]),
+            &load.loaded_sources,
+            &load.load_errors,
+            &dataset,
+        )
+        .unwrap();
+
+        assert_eq!(failed.updates.len(), 1);
+        assert_eq!(failed.updates[0].kind, SourceUpdateKind::Removed);
+        assert_eq!(failed.updates[0].triples, 1);
+        assert_eq!(failed.failures.len(), 1);
+        assert_eq!(failed.failures[0].path, Path::new("source.ttl"));
+        assert!(!failed.loaded_sources.contains(Path::new("source.ttl")));
+        assert!(failed.load_errors.contains_key(Path::new("source.ttl")));
+        assert!(
+            !dataset
+                .contains(QuadRef::new(
+                    NamedNodeRef::new("urn:subject").unwrap(),
+                    NamedNodeRef::new("urn:value").unwrap(),
+                    NamedNodeRef::new("urn:old").unwrap(),
+                    NamedNodeRef::new("sparqld:source.ttl").unwrap(),
+                ))
+                .unwrap()
+        );
+
+        fs::write(&source, "<urn:subject> <urn:value> <urn:new> .").unwrap();
+        let recovered = reload_changed(
+            directory.path(),
+            &BTreeSet::from([source]),
+            &failed.loaded_sources,
+            &failed.load_errors,
+            &dataset,
+        )
+        .unwrap();
+
+        assert!(recovered.failures.is_empty());
+        assert!(recovered.load_errors.is_empty());
+        assert_eq!(recovered.updates[0].kind, SourceUpdateKind::Loaded);
+        assert!(
+            dataset
+                .contains(QuadRef::new(
+                    NamedNodeRef::new("urn:subject").unwrap(),
+                    NamedNodeRef::new("urn:value").unwrap(),
+                    NamedNodeRef::new("urn:new").unwrap(),
+                    NamedNodeRef::new("sparqld:source.ttl").unwrap(),
+                ))
+                .unwrap()
+        );
+        assert!(
+            !dataset
+                .contains(QuadRef::new(
+                    NamedNodeRef::new("sparqld:source.ttl#load-error").unwrap(),
+                    rdf::TYPE,
+                    rlog::ENTRY,
+                    FILE_CATALOG_GRAPH,
+                ))
+                .unwrap()
+        );
+    }
+
+    #[test]
     fn reports_a_new_sources_graph_and_triple_count() {
         let directory = tempfile::tempdir().unwrap();
         let dataset = Store::new().unwrap();
@@ -872,6 +1203,7 @@ mod tests {
             directory.path(),
             &BTreeSet::from([source]),
             &loaded_sources,
+            &BTreeMap::new(),
             &dataset,
         )
         .unwrap();
@@ -897,6 +1229,7 @@ mod tests {
             directory.path(),
             &BTreeSet::from([source]),
             &loaded_sources,
+            &BTreeMap::new(),
             &dataset,
         )
         .unwrap();
@@ -943,6 +1276,7 @@ mod tests {
             directory.path(),
             &BTreeSet::from([context]),
             &loaded_sources,
+            &BTreeMap::new(),
             &dataset,
         )
         .unwrap();
@@ -1018,10 +1352,52 @@ mod tests {
         assert_eq!(
             document["@context"],
             json!([
+                dollar_convenience_context(),
                 {"name": "https://schema.org/name"},
                 {"name": "urn:local-name"}
             ])
         );
+    }
+
+    #[test]
+    fn enables_dollar_keywords_without_an_explicit_context() {
+        let directory = tempfile::tempdir().unwrap();
+        fs::write(
+            directory.path().join("source.yamlld"),
+            "$id: urn:yaml-subject\n$type: urn:Type\nurn:value: YAML-LD\n",
+        )
+        .unwrap();
+        fs::write(
+            directory.path().join("source.jsonld"),
+            r#"{"$id":"urn:json-subject","$type":"urn:Type","urn:value":"JSON-LD"}"#,
+        )
+        .unwrap();
+        let dataset = Store::new().unwrap();
+
+        let loaded = load_directory(directory.path(), &dataset).unwrap();
+
+        assert_eq!(
+            loaded,
+            BTreeSet::from([
+                PathBuf::from("source.jsonld"),
+                PathBuf::from("source.yamlld")
+            ])
+        );
+        for (subject, graph) in [
+            ("urn:yaml-subject", "sparqld:source.yamlld"),
+            ("urn:json-subject", "sparqld:source.jsonld"),
+        ] {
+            assert!(
+                dataset
+                    .contains(QuadRef::new(
+                        NamedNodeRef::new(subject).unwrap(),
+                        rdf::TYPE,
+                        NamedNodeRef::new("urn:Type").unwrap(),
+                        NamedNodeRef::new(graph).unwrap(),
+                    ))
+                    .unwrap()
+            );
+        }
     }
 
     #[test]
