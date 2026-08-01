@@ -1,0 +1,124 @@
+:root,
+[data-md-color-scheme="default"] {
+  --adr-chosen-background: #edf7ed;
+  --adr-not-selected-background: #fff8e1;
+  --adr-excluded-background: #fdf0ee;
+  --adr-excluded-hot-background: #f7d4cd;
+  --format-supported-background: #e8f5e9;
+  --format-supported-foreground: #246b2b;
+  --format-development-background: #fff4ce;
+  --format-development-foreground: #805700;
+}
+
+[data-md-color-scheme="slate"] {
+  --adr-chosen-background: #17291e;
+  --adr-not-selected-background: #332b16;
+  --adr-excluded-background: #261a19;
+  --adr-excluded-hot-background: #45231e;
+  --format-supported-background: #183c22;
+  --format-supported-foreground: #9fdaa8;
+  --format-development-background: #453813;
+  --format-development-foreground: #f4cf65;
+}
+
+.md-typeset .format-status {
+  display: inline-block;
+  padding: 0.15rem 0.45rem;
+  border-radius: 999px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+.md-typeset .install-command code {
+  font-size: 1rem;
+}
+
+.md-typeset .client-gallery .client-logo {
+  display: block;
+  width: auto;
+  height: 2.5rem;
+  margin: 0 0 0.75rem;
+  object-fit: contain;
+}
+
+.md-typeset .client-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.md-typeset .client-recommended {
+  display: inline-block;
+  padding: 0.15rem 0.45rem;
+  border-radius: 999px;
+  background: var(--format-supported-background);
+  color: var(--format-supported-foreground);
+  font-size: 0.68rem;
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+.md-typeset .client-gallery > ul > li:first-child {
+  border-top: 0.15rem solid var(--format-supported-foreground);
+}
+
+.md-typeset .admonition.example > .admonition-title {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+}
+
+.md-typeset .admonition.example > .admonition-title .example-source-link {
+  margin-left: auto;
+  font-weight: normal;
+}
+
+.md-typeset .format-status--supported {
+  background: var(--format-supported-background);
+  color: var(--format-supported-foreground);
+}
+
+.md-typeset .format-status--development {
+  background: var(--format-development-background);
+  color: var(--format-development-foreground);
+}
+
+.md-typeset .grid.cards > ul > li:has(.format-status--supported) {
+  border-top: 0.15rem solid var(--format-supported-foreground);
+}
+
+.md-typeset .grid.cards > ul > li:has(.format-status--supported) .twemoji {
+  color: var(--format-supported-foreground);
+}
+
+.md-typeset .grid.cards > ul > li:has(.format-status--development) {
+  border-top: 0.15rem solid var(--format-development-foreground);
+}
+
+.md-typeset .grid.cards > ul > li:has(.format-status--development) .twemoji {
+  color: var(--format-development-foreground);
+}
+
+.md-typeset table[data-adr-comparison] .chosen {
+  background-color: var(--adr-chosen-background);
+}
+
+.md-typeset table[data-adr-comparison] .not-selected {
+  background-color: var(--adr-not-selected-background);
+}
+
+.md-typeset table[data-adr-comparison] .excl {
+  background-color: var(--adr-excluded-background);
+}
+
+.md-typeset table[data-adr-comparison] .excl.hot {
+  background-color: var(--adr-excluded-hot-background);
+}
+
+.md-typeset table[data-adr-comparison] td:not(:first-child),
+.md-typeset table[data-adr-comparison] th:not(:first-child) {
+  text-align: center;
+}
