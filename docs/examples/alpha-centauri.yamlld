@@ -1,0 +1,6 @@
+"@id": dbr:Alpha_Centauri
+"@type": dbo:Star
+name: Alpha Centauri
+description: >-
+  The closest star system to the Solar System.
+constellation: dbr:Centaurus
