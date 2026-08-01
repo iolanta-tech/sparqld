@@ -1,0 +1,11 @@
+title: Reference
+nav:
+  - Command: index.md
+  - HTTP API: api
+  - Libraries: libraries
+  - SPARQL cheat sheet: sparql
+  - File formats: formats.md
+  - Named graphs: named-graphs.md
+  - Context files: context-files.md
+  - clients
+  - Agents: agents.md
