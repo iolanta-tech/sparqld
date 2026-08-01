@@ -50,12 +50,17 @@ sparqld [OPTIONS] <DIRECTORY>
 
     Reserved for a TOML configuration file
 
--   :material-information-outline:{ .lg .middle } **Command information**
+-   :material-help-circle-outline:{ .lg .middle } **`-h`, `--help`**
 
     ---
 
-    `-h`, `--help` · Show command help  
-    `-V`, `--version` · Show the installed version
+    Show command help
+
+-   :material-tag-outline:{ .lg .middle } **`-V`, `--version`**
+
+    ---
+
+    Show the installed version
 
 </div>
 
