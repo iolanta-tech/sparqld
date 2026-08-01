@@ -1,6 +1,6 @@
 ---
-"@id": dbr:Centaurus
-"@type": schema:Place
+$id: dbr:Centaurus
+$type: schema:Place
 name: Centaurus
 subjectOf: alpha-centauri.yamlld
 ---
