@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+project_directory=$(cd "$(dirname "$0")/.." && pwd)
+prompt="$project_directory/docs/conversations/alpha-centauri/user.prompt"
+response="$project_directory/docs/conversations/alpha-centauri/codex.response"
+recording_directory=$(mktemp -d -t sparqld-codex.XXXXXX)
+trap 'rm -rf -- "$recording_directory"' EXIT
+
+codex exec \
+  --ephemeral \
+  --ignore-user-config \
+  --skip-git-repo-check \
+  --color never \
+  --sandbox workspace-write \
+  --config sandbox_workspace_write.network_access=true \
+  --cd "$recording_directory" \
+  --output-last-message "$response" \
+  - < "$prompt"
