@@ -1,0 +1,6 @@
+SELECT ?graph ?subject ?predicate ?object
+WHERE {
+  GRAPH ?graph {
+    ?subject ?predicate ?object .
+  }
+}
