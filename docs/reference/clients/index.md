@@ -21,25 +21,23 @@ whenever this documentation is built.
 
 <div class="grid cards client-gallery" markdown>
 
--   <div class="client-heading" markdown>
-    **[`sq`](https://github.com/ktk/sq)**
+-   **[`sq`](sq/index.md)**
     <span class="client-recommended">Recommended</span>
-    </div>
 
     ---
 
     ```console
-    sq graphs
+    sq -e http://127.0.0.1:7737/ graphs
     ```
 
-    Keeps endpoint URLs and prefixes in `.sq.toml`, making repeated queries
-    concise.
+    Use an endpoint URL directly, or [configure the endpoint and prefixes](sq/index.md)
+    for concise repeated queries.
 
--   ![Apache Jena logo](images/apache-jena.svg){ .client-logo }
-
-    **[Apache Jena `rsparql`](https://jena.apache.org/documentation/query/sparql-remote.html)**
+-   **[Apache Jena `rsparql`](https://jena.apache.org/documentation/query/sparql-remote.html)**
 
     ---
+
+    ![Apache Jena logo](images/apache-jena.svg){ .client-logo }
 
     ```console
     rsparql --service http://127.0.0.1:7737/ --query query.rq
@@ -47,11 +45,11 @@ whenever this documentation is built.
 
     Sends a query file through Jena's SPARQL Protocol client.
 
--   ![Comunica logo](images/comunica.svg){ .client-logo }
-
-    **[Comunica](https://comunica.dev/docs/query/getting_started/query_cli/)**
+-   **[Comunica](https://comunica.dev/docs/query/getting_started/query_cli/)**
 
     ---
+
+    ![Comunica logo](images/comunica.svg){ .client-logo }
 
     ```console
     comunica-sparql sparql@http://127.0.0.1:7737/ -f query.rq
@@ -60,11 +58,11 @@ whenever this documentation is built.
     The `sparql@` prefix identifies the source as an endpoint without requiring
     Service Description discovery.
 
--   ![RDFLib logo](images/rdflib.svg){ .client-logo }
-
-    **[RDFLib `sparqlquery`](https://rdflib.readthedocs.io/en/stable/apidocs/rdflib.tools.sparqlquery/)**
+-   **[RDFLib `sparqlquery`](https://rdflib.readthedocs.io/en/stable/apidocs/rdflib.tools.sparqlquery/)**
 
     ---
+
+    ![RDFLib logo](images/rdflib.svg){ .client-logo }
 
     ```console
     sparqlquery http://127.0.0.1:7737/ --queryfile query.rq
