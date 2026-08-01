@@ -97,6 +97,72 @@
   font-weight: normal;
 }
 
+.md-typeset .admonition.agent-user,
+.md-typeset .admonition.agent-codex {
+  border: 0.05rem solid var(--md-default-fg-color--lightest);
+  border-radius: 0.3rem;
+  background: var(--md-default-bg-color);
+  box-shadow: var(--md-shadow-z1);
+  font-size: inherit;
+}
+
+.md-typeset .admonition.agent-codex {
+  border-left: 0.15rem solid var(--md-accent-fg-color);
+}
+
+.md-typeset .agent-user > .admonition-title,
+.md-typeset .agent-codex > .admonition-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin: 0;
+  padding: 0.55rem 0.8rem;
+  border-bottom: 0.05rem solid var(--md-default-fg-color--lightest);
+  background: color-mix(
+    in srgb,
+    var(--md-default-fg-color) 4%,
+    var(--md-default-bg-color)
+  );
+}
+
+.md-typeset .agent-codex > .admonition-title {
+  background: color-mix(
+    in srgb,
+    var(--md-accent-fg-color) 7%,
+    var(--md-default-bg-color)
+  );
+}
+
+.md-typeset .agent-user > .admonition-title::before,
+.md-typeset .agent-codex > .admonition-title::before {
+  display: none;
+}
+
+.md-typeset .agent-message__source {
+  margin-left: auto;
+  flex: none;
+  color: var(--md-default-fg-color--light);
+  font-size: 0.68rem;
+  font-weight: normal;
+}
+
+.md-typeset .agent-message__source:hover {
+  color: var(--md-accent-fg-color);
+}
+
+.md-typeset .agent-user > :not(.admonition-title),
+.md-typeset .agent-codex > :not(.admonition-title) {
+  margin-right: 0.8rem;
+  margin-left: 0.8rem;
+}
+
+.md-typeset .agent-user pre,
+.md-typeset .agent-codex pre {
+  margin: 0.65rem 0;
+  box-shadow: none;
+}
+
 .md-typeset .format-status--supported {
   background: var(--format-supported-background);
   color: var(--format-supported-foreground);
