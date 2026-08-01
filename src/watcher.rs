@@ -99,9 +99,10 @@ impl DirectoryWatcher {
         let load = reload_dataset(&directory, &dataset)?;
         let stats = load.stats();
         let loaded_sources = load.loaded_sources;
+        let load_errors = load.load_errors;
         let worker = thread::Builder::new()
             .name("sparqld-watcher".into())
-            .spawn(move || watch(events, directory, dataset, loaded_sources))?;
+            .spawn(move || watch(events, directory, dataset, loaded_sources, load_errors))?;
 
         Ok((
             Self {
@@ -129,6 +130,7 @@ fn watch(
     directory: PathBuf,
     dataset: SharedDataset,
     mut loaded_sources: BTreeSet<PathBuf>,
+    mut load_errors: BTreeMap<PathBuf, String>,
 ) {
     let mut reload_at: Option<Instant> = None;
     let mut changed_paths = BTreeMap::new();
@@ -138,7 +140,13 @@ fn watch(
             match events.recv_timeout(deadline.saturating_duration_since(Instant::now())) {
                 Ok(message) => message,
                 Err(RecvTimeoutError::Timeout) => {
-                    reload(&directory, &changed_paths, &dataset, &mut loaded_sources);
+                    reload(
+                        &directory,
+                        &changed_paths,
+                        &dataset,
+                        &mut loaded_sources,
+                        &mut load_errors,
+                    );
                     changed_paths.clear();
                     reload_at = None;
                     continue;
@@ -249,6 +257,7 @@ fn reload(
     changed_paths: &BTreeMap<PathBuf, PathChange>,
     dataset: &SharedDataset,
     loaded_sources: &mut BTreeSet<PathBuf>,
+    load_errors: &mut BTreeMap<PathBuf, String>,
 ) {
     let path_set = changed_paths.keys().cloned().collect::<BTreeSet<_>>();
     let paths = format_changed_paths(directory, &path_set);
@@ -259,12 +268,13 @@ fn reload(
             return;
         }
     };
-    match loader::reload_changed(directory, &path_set, loaded_sources, &dataset) {
+    match loader::reload_changed(directory, &path_set, loaded_sources, load_errors, &dataset) {
         Ok(report) => {
             for message in reload_messages(directory, changed_paths, &report) {
                 log::info!("{message}");
             }
             *loaded_sources = report.loaded_sources;
+            *load_errors = report.load_errors;
         }
         Err(error) => log::error!(
             "Could not reload {paths}: {error}; continuing to serve the previous dataset"
@@ -282,13 +292,19 @@ fn reload_messages(
         .map(|(path, observed)| {
             let relative = path.strip_prefix(directory).unwrap_or(path);
             let direct = report.updates.iter().find(|update| update.path == relative);
+            let direct_failure = report
+                .failures
+                .iter()
+                .find(|failure| failure.path == relative);
             let change = if path.exists() {
                 observed.change
             } else {
                 FileChange::Deleted
             };
             let entry_kind = match observed.entry_kind {
-                EntryKind::Unknown if direct.is_some() => EntryKind::File,
+                EntryKind::Unknown if direct.is_some() || direct_failure.is_some() => {
+                    EntryKind::File
+                }
                 entry_kind => entry_kind,
             };
             let prefix = format!(
@@ -298,6 +314,13 @@ fn reload_messages(
                 format_changed_path(directory, path)
             );
 
+            if entry_kind == EntryKind::Directory {
+                return format!("{prefix}; ignored");
+            }
+
+            if let Some(failure) = direct_failure {
+                return format!("{prefix}; {}", failure_message(failure));
+            }
             if let Some(update) = direct {
                 return format!("{prefix}; {}", direct_update_message(update));
             }
@@ -309,6 +332,31 @@ fn reload_messages(
                 .flatten()
                 .filter_map(|source| report.updates.iter().find(|update| &update.path == source))
                 .collect::<Vec<_>>();
+            let dependent_failures = report
+                .impacts
+                .get(relative)
+                .into_iter()
+                .flatten()
+                .filter_map(|source| {
+                    report
+                        .failures
+                        .iter()
+                        .find(|failure| &failure.path == source)
+                })
+                .collect::<Vec<_>>();
+            if !dependent_failures.is_empty() {
+                return match dependent_failures.as_slice() {
+                    [failure] => format!("{prefix}; {}", failure_message(failure)),
+                    failures => format!(
+                        "{prefix}; failed to load dependent source files: {}",
+                        failures
+                            .iter()
+                            .map(|failure| failure.path.display().to_string())
+                            .collect::<Vec<_>>()
+                            .join(", ")
+                    ),
+                };
+            }
             match dependent_updates.as_slice() {
                 [] => format!("{prefix}; ignored"),
                 [update] => format!("{prefix}; {}", dependent_update_message(update)),
@@ -316,6 +364,13 @@ fn reload_messages(
             }
         })
         .collect()
+}
+
+fn failure_message(failure: &loader::SourceFailure) -> String {
+    format!(
+        "failed to load as {} into {}: {}",
+        failure.format, failure.graph, failure.error
+    )
 }
 
 fn direct_update_message(update: &loader::SourceUpdate) -> String {
@@ -444,6 +499,7 @@ mod tests {
                 PathBuf::from("foo.yamlld"),
                 PathBuf::from("index.md"),
             ]),
+            load_errors: BTreeMap::new(),
             updates: vec![
                 loader::SourceUpdate {
                     path: PathBuf::from("foo.yamlld"),
@@ -458,6 +514,7 @@ mod tests {
                     kind: loader::SourceUpdateKind::Reloaded,
                 },
             ],
+            failures: Vec::new(),
             impacts: BTreeMap::from([
                 (
                     PathBuf::from("foo.yamlld"),
@@ -484,6 +541,48 @@ mod tests {
     }
 
     #[test]
+    fn describes_a_failed_source_with_its_path_and_graph() {
+        let directory = tempdir().unwrap();
+        let source = directory.path().join("broken.xml");
+        fs::write(&source, "<rdf:RDF></rdf:RDF>").unwrap();
+        let changed_paths = BTreeMap::from([(
+            source,
+            PathChange {
+                change: FileChange::Created,
+                entry_kind: EntryKind::File,
+            },
+        )]);
+        let error = "XML namespaces are required in RDF/XML";
+        let report = loader::ReloadReport {
+            loaded_sources: BTreeSet::new(),
+            load_errors: BTreeMap::from([(PathBuf::from("broken.xml"), error.to_owned())]),
+            updates: vec![loader::SourceUpdate {
+                path: PathBuf::from("broken.xml"),
+                graph: "sparqld:broken.xml".to_owned(),
+                triples: 3,
+                kind: loader::SourceUpdateKind::Removed,
+            }],
+            failures: vec![loader::SourceFailure {
+                path: PathBuf::from("broken.xml"),
+                graph: "sparqld:broken.xml".to_owned(),
+                format: "RDF/XML",
+                error: error.to_owned(),
+            }],
+            impacts: BTreeMap::from([(
+                PathBuf::from("broken.xml"),
+                BTreeSet::from([PathBuf::from("broken.xml")]),
+            )]),
+        };
+
+        assert_eq!(
+            reload_messages(directory.path(), &changed_paths, &report),
+            [
+                "File created: broken.xml; failed to load as RDF/XML into sparqld:broken.xml: XML namespaces are required in RDF/XML"
+            ]
+        );
+    }
+
+    #[test]
     fn describes_a_deleted_directory_as_a_directory() {
         let directory = tempdir().unwrap();
         let deleted = directory.path().join("examples/context-files/people");
@@ -496,7 +595,9 @@ mod tests {
         )]);
         let report = loader::ReloadReport {
             loaded_sources: BTreeSet::new(),
+            load_errors: BTreeMap::new(),
             updates: Vec::new(),
+            failures: Vec::new(),
             impacts: BTreeMap::from([(
                 PathBuf::from("examples/context-files/people"),
                 BTreeSet::new(),
@@ -506,6 +607,64 @@ mod tests {
         assert_eq!(
             reload_messages(directory.path(), &changed_paths, &report),
             ["Directory deleted: examples/context-files/people; ignored"]
+        );
+    }
+
+    #[test]
+    fn does_not_attribute_a_source_failure_to_its_created_directory() {
+        let directory = tempdir().unwrap();
+        let created = directory.path().join("conversations");
+        fs::create_dir(&created).unwrap();
+        let source = created.join("user.txt");
+        fs::write(&source, "Use the SPARQL endpoint").unwrap();
+        let changed_paths = BTreeMap::from([
+            (
+                created,
+                PathChange {
+                    change: FileChange::Created,
+                    entry_kind: EntryKind::Directory,
+                },
+            ),
+            (
+                source,
+                PathChange {
+                    change: FileChange::Created,
+                    entry_kind: EntryKind::File,
+                },
+            ),
+        ]);
+        let error = "The subject of a triple must be an IRI or a blank node";
+        let report = loader::ReloadReport {
+            loaded_sources: BTreeSet::new(),
+            load_errors: BTreeMap::from([(
+                PathBuf::from("conversations/user.txt"),
+                error.to_owned(),
+            )]),
+            updates: Vec::new(),
+            failures: vec![loader::SourceFailure {
+                path: PathBuf::from("conversations/user.txt"),
+                graph: "sparqld:conversations/user.txt".to_owned(),
+                format: "N-Triples",
+                error: error.to_owned(),
+            }],
+            impacts: BTreeMap::from([
+                (
+                    PathBuf::from("conversations"),
+                    BTreeSet::from([PathBuf::from("conversations/user.txt")]),
+                ),
+                (
+                    PathBuf::from("conversations/user.txt"),
+                    BTreeSet::from([PathBuf::from("conversations/user.txt")]),
+                ),
+            ]),
+        };
+
+        assert_eq!(
+            reload_messages(directory.path(), &changed_paths, &report),
+            [
+                "Directory created: conversations; ignored",
+                "File created: conversations/user.txt; failed to load as N-Triples into sparqld:conversations/user.txt: The subject of a triple must be an IRI or a blank node",
+            ]
         );
     }
 
