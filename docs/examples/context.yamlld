@@ -1,0 +1,20 @@
+"@context":
+  schema: https://schema.org/
+  dbo: http://dbpedia.org/ontology/
+  dbp: http://dbpedia.org/property/
+  dbr: http://dbpedia.org/resource/
+  xsd: http://www.w3.org/2001/XMLSchema#
+  name: schema:name
+  description: schema:description
+  subjectOf:
+    "@id": schema:subjectOf
+    "@type": "@id"
+  constellation:
+    "@id": dbo:constellation
+    "@type": "@id"
+  discovered:
+    "@id": dbp:discovered
+    "@type": xsd:date
+  star:
+    "@id": dbp:star
+    "@type": "@id"
