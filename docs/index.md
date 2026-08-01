@@ -6,7 +6,7 @@
   description: schema:description
 "@id": index.md
 "@type": schema:SoftwareApplication
-hide: [toc]
+hide: [toc, navigation]
 name: sparqld
 title: Quickstart
 description: A live, read-only SPARQL endpoint for linked data stored in files.
@@ -59,37 +59,23 @@ for changes. Use `--host` or `--port` to change the listening address, or
 ### :material-database-search-outline: Query the endpoint
 
 Use any
-[compatible SPARQL client](reference/clients/index.md). This query finds names
-together with their source graphs:
+[compatible SPARQL client](reference/clients/index.md). This query asks which
+constellation contains Alpha Centauri and how the knowledge base describes it:
 
-{{ query_data('names.rq') }}
+{{ query_data('alpha-centauri.rq') }}
 
 Run it with :material-database-search: [`sq`](https://github.com/ktk/sq):
 
-{{ command('sq -e http://127.0.0.1:7737/ < queries/names.rq') }}
+{{ command('sq -e http://127.0.0.1:7737/ < queries/alpha-centauri.rq') }}
 
-The live endpoint returns results from YAML-LD, Markdown-LD, and JSON-LD:
+The query joins facts loaded from YAML-LD and Markdown-LD files:
 
-{{ result_data('names.tsv') }}
+{{ result_data('alpha-centauri.tsv') }}
 
 Queries are read-only, so exploring the dataset cannot modify your files.
 
 ## :material-robot-outline: Ask your knowledge base
 
-!!! question ":material-account-outline: You"
+With `sparqld` running, ask your agent:
 
-    Which constellation contains Alpha Centauri, and what does our knowledge
-    base say about it?
-
-!!! example ":material-robot-outline: Agent"
-
-    I’ll query the live endpoint.
-
-    {{ query_data('alpha-centauri.rq', indent=4) }}
-
-    {{ result_data('alpha-centauri.tsv', indent=4) }}
-
-!!! success ":material-robot-happy-outline: Agent"
-
-    Alpha Centauri is in the **Centaurus** constellation. The knowledge base
-    describes it as the closest star system to the Solar System.
+{{ agent_conversation('alpha-centauri') }}
