@@ -1,0 +1,61 @@
+site_name: sparqld
+
+exclude_docs: |
+  **/AGENTS.md
+
+theme:
+  name: material
+  features:
+    - content.code.copy
+    - navigation.tabs
+    - navigation.top
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: deep purple
+      accent: purple
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: deep purple
+      accent: purple
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  icon:
+    logo: material/star-four-points
+
+extra_css:
+  - stylesheets/extra.css
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - md_in_html
+  - pymdownx.superfences
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+
+plugins:
+  - macros:
+      module_name: docs_macros
+      on_error_fail: true
+  - search
+
+nav:
+  - Quickstart: index.md
+  - Reference:
+      - Command: reference/index.md
+      - HTTP API: reference/api/index.md
+      - Clients: reference/clients/index.md
+      - Libraries: reference/libraries/index.md
+      - SPARQL cheat sheet: reference/sparql/index.md
+      - File formats: reference/formats.md
+      - Named graphs: reference/named-graphs.md
+      - Context files: reference/context-files.md
+  - Project:
+      - Decisions:
+          - Implement sparqld in Rust: project/decisions/implement-sparqld-in.md
