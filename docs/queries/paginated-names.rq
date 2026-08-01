@@ -1,0 +1,9 @@
+PREFIX schema: <https://schema.org/>
+
+SELECT ?name
+WHERE {
+  ?subject schema:name ?name .
+}
+ORDER BY ?name
+LIMIT 2
+OFFSET 1
