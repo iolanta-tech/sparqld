@@ -6,6 +6,7 @@
   description: schema:description
 "@id": index.md
 "@type": schema:SoftwareApplication
+icon: material/rocket-launch-outline
 hide: [toc, navigation]
 name: sparqld
 title: Quickstart
