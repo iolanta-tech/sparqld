@@ -6,6 +6,7 @@
   description: schema:description
 "@id": reference/index.md
 "@type": schema:TechArticle
+icon: material/book-open-page-variant-outline
 hide: [toc]
 name: sparqld command reference
 title: Reference
