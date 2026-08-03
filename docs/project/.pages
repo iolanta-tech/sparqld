@@ -1,4 +1,6 @@
 title: Project
 collapse_single_pages: false
 nav:
+  - index.md
+  - Roadmap: roadmap.md
   - decisions
