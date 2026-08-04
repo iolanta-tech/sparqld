@@ -104,6 +104,12 @@ behavioral contract, and differences between the documentation and software.
 
 ## :material-information-outline: Medium
 
+- [ ] **Add opt-in OWL 2 RL reasoning.** Add a `--reasoning` flag that uses
+   `reasonable` to materialize its supported OWL 2 RL inferences into the
+   dedicated `<reasoning:inferred>` named graph. Keep asserted source graphs
+   unchanged and reasoning disabled by default. Re-materialize the derived
+   graph atomically whenever the asserted dataset changes.
+
 - [ ] **"Using the file formats that suit you" overpromises.** The wording
     suggests broad compatibility before the reader discovers that commonly
     used RDF formats are marked unsupported. This is especially jarring for a
