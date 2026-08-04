@@ -2,6 +2,14 @@
 name = "sparqld"
 version = "0.1.0"
 edition = "2024"
+description = "A live, read-only SPARQL server for RDF files"
+license = "Apache-2.0 OR MIT"
+repository = "https://github.com/iolanta-tech/sparqld"
+homepage = "https://github.com/iolanta-tech/sparqld"
+documentation = "https://sparqld.iolanta.tech"
+readme = "README.md"
+keywords = ["rdf", "sparql", "linked-data", "knowledge-graph"]
+categories = ["command-line-utilities", "database"]
 
 [dependencies]
 clap = { version = "4", features = ["derive"] }
