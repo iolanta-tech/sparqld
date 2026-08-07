@@ -1,0 +1,4 @@
+interface:
+  display_name: "Sparqld"
+  short_description: "Query local sparqld knowledge bases"
+  default_prompt: "Use $sparqld to answer a question from my local knowledge base and show the query."
