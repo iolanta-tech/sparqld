@@ -5,8 +5,8 @@ Alpha Centauri is in the constellation **Centaurus**. The knowledge base describ
 Query used:
 
 ```sparql
-PREFIX dbo: <http://dbpedia.org/ontology/>
 PREFIX schema: <https://schema.org/>
+PREFIX dbo: <http://dbpedia.org/ontology/>
 
 SELECT ?constellation ?description
 WHERE {
