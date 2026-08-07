@@ -2,7 +2,7 @@
 name = "sparqld"
 version = "0.1.1"
 edition = "2024"
-rust-version = "1.87"
+rust-version = "1.88"
 description = "A live, read-only SPARQL server for RDF files"
 license = "Apache-2.0 OR MIT"
 repository = "https://github.com/iolanta-tech/sparqld"
