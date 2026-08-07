@@ -21,6 +21,10 @@ description: A live, read-only SPARQL endpoint for linked data stored in files.
 endpoint. Keep your data in version control and query its current state without
 importing it into a database.
 
+[![CI](https://github.com/iolanta-tech/sparqld/actions/workflows/ci.yml/badge.svg)](https://github.com/iolanta-tech/sparqld/actions/workflows/ci.yml)
+[![crates.io](https://img.shields.io/crates/v/sparqld.svg)](https://crates.io/crates/sparqld)
+[![License](https://img.shields.io/crates/l/sparqld.svg)](https://github.com/iolanta-tech/sparqld#license)
+
 <div class="grid cards" markdown>
 
 -   :material-folder-multiple:{ .lg .middle } **Files stay authoritative**

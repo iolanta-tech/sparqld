@@ -1,148 +1,92 @@
----
-hide: [toc]
----
-
 # sparqld
 
-**A live, read-only SPARQL server for RDF files.**
+[![CI](https://github.com/iolanta-tech/sparqld/actions/workflows/ci.yml/badge.svg)](https://github.com/iolanta-tech/sparqld/actions/workflows/ci.yml)
+[![crates.io](https://img.shields.io/crates/v/sparqld.svg)](https://crates.io/crates/sparqld)
+[![License](https://img.shields.io/crates/l/sparqld.svg)](#license)
 
-`sparqld` watches a directory and exposes its RDF contents through a local SPARQL endpoint.
+**A live, read-only SPARQL endpoint for linked data stored in files.**
 
-The directory remains the source of truth. Affected sources are parsed in staging and their changes become visible atomically.
+`sparqld` watches a directory and makes its RDF files queryable immediately.
+The files remain authoritative: there is no database to operate, import step to
+run, or duplicate copy to synchronize. Each successful edit becomes available
+atomically.
 
-## Usage
+## Install
 
-Start `sparqld` for a directory:
+Install [Rust and Cargo](https://rustup.rs/) if they are not already available,
+then install `sparqld` from crates.io:
+
+```console
+cargo install sparqld
+```
+
+## Start an endpoint
+
+Serve a directory of RDF files:
 
 ```console
 sparqld ./data
 ```
 
-The endpoint is available at:
+The endpoint listens locally at `http://127.0.0.1:7737/` and watches the
+directory for changes.
 
-```text
-http://127.0.0.1:7737/
-```
-
-Query it with [`sq`](https://github.com/ktk/sq):
+Query it with any SPARQL client. For example, install
+[`sq`](https://github.com/ktk/sq) and inspect the first twenty triples:
 
 ```console
-sq -e http://127.0.0.1:7737/ any
-```
-
-Run an arbitrary SPARQL query:
-
-```console
+cargo install --git https://github.com/ktk/sq
 sq -e http://127.0.0.1:7737/ \
-  'SELECT ?subject ?predicate ?object {
-    ?subject ?predicate ?object
-  } LIMIT 20'
+  'SELECT ?subject ?predicate ?object { ?subject ?predicate ?object } LIMIT 20'
 ```
 
-For repeated use, configure the endpoint in `.sq.toml`:
+For copy-pasteable example data and a first query, see the
+[Quickstart](https://sparqld.iolanta.tech/quickstart/).
 
-```toml
-default = "sparqld"
+## What it supports
 
-[endpoints.sparqld]
-url = "http://127.0.0.1:7737/"
-```
+- [JSON-LD](https://www.w3.org/TR/json-ld11/),
+  [YAML-LD](https://www.w3.org/TR/yaml-ld-10/), and Markdown-LD;
+- Turtle, TriG, N-Triples, N-Quads, RDF/XML, and Notation3;
+- local JSON-LD contexts, including relative `@import` references, scoped to
+  the served directory;
+- a [live file catalog](https://sparqld.iolanta.tech/reference/file-catalog/)
+  and [named graph model](https://sparqld.iolanta.tech/reference/named-graphs/)
+  for locating source data.
 
-You can then omit the endpoint URL:
+See the [file formats reference](https://sparqld.iolanta.tech/reference/formats/)
+for extensions and format-specific behavior.
 
-```console
-sq any
-sq classes
-sq graphs
-sq -f query.rq
-```
+## How it behaves
 
-## Dataset model
+Every source file is represented by its own named graph. A file that declares
+named graphs, such as a TriG file or nanopublication, retains them as graphs
+scoped to that source. The default graph is the union of source graphs and the
+catalog, so ordinary SPARQL queries search the whole directory.
 
-Each source file is exposed through named graphs derived from its path.
-Relative IRIs in a source resolve against the internal `sparqld:` IRI of the
-directory containing that source.
+When a file or its local context changes, `sparqld` parses the affected data
+before replacing it. A failed parse removes that source graph and records the
+error in the catalog. Pass `--no-watch` to load once without watching.
 
-JSON-LD-derived sources declare their own `@context`. Relative `.jsonld` and
-`.yamlld` context files are resolved inside the served directory, including
-relative `@import` references. The canonical
-[JSON-LD dollar-convenience context](https://json-ld.org/contexts/dollar-convenience.jsonld)
-is available by its URL and is served from the bundled copy; other web context
-URLs are rejected. `context.jsonld` and `context.yamlld` have no implicit
-effect and work only when a source explicitly references them.
+The endpoint is permanently read-only: modify RDF by editing files, never via
+SPARQL Update.
 
-The `sparqld:` named graph is a file catalog. It describes every source graph
-as an NFO `FileDataObject`, represents directories as NFO `Folder` resources,
-and connects each child to its directory with `nfo:belongsToContainer`.
+## Security
 
-Each loaded source is associated with the named graph derived from its path.
+By default, `sparqld` listens only on `127.0.0.1`. Using `--host 0.0.0.0`
+makes its read-only endpoint reachable on the network; it provides neither
+authentication nor TLS. Put network-facing deployments behind appropriate
+access controls.
 
-The default graph is the union of every named graph, including the file
-catalog, so ordinary queries operate across the complete directory:
+## Project
 
-```sparql
-SELECT ?person ?name
-WHERE {
-  ?person <http://xmlns.com/foaf/0.1/name> ?name
-}
-```
+`sparqld` is under active development. See the
+[documentation](https://sparqld.iolanta.tech/),
+[roadmap](https://sparqld.iolanta.tech/project/roadmap/), and
+[issue tracker](https://github.com/iolanta-tech/sparqld/issues).
 
-Use `GRAPH` when source boundaries matter:
+## License
 
-```sparql
-SELECT ?graph ?subject ?predicate ?object
-WHERE {
-  GRAPH ?graph {
-    ?subject ?predicate ?object
-  }
-}
-```
-
-## Live updates
-
-`sparqld` reacts to files being created, modified, moved, or deleted.
-
-Changes are debounced to accommodate editors that emit several filesystem events
-for one save. A changed source reloads only that source; changing a local
-context reloads every source that declares it, directly or through `@import`.
-If parsing fails, `sparqld` removes its graph and adds an `rlog:Entry`
-describing the error to the file catalog.
-
-Pass `--no-watch` to load the directory once and disable live updates.
-
-The endpoint is permanently read-only. RDF is changed by editing the source files, not through SPARQL Update.
-
-## Formats
-
-sparqld recognizes JSON-LD (`.jsonld`, `.json`), YAML-LD (`.yamlld`), and
-Markdown-LD (`.md`). Markdown-LD reads YAML-LD front matter; the Markdown body
-does not contribute RDF. JSON-LD-derived sources use the contexts they declare.
-
-It also recognizes `.n3` as Notation3, `.nq` as N-Quads, `.nt` and `.txt` as
-N-Triples, `.rdf` and `.xml` as RDF/XML, `.trig` as TriG, and `.ttl` as
-Turtle. See the [File formats reference](https://sparqld.iolanta.tech/reference/formats/)
-for the current details.
-
-## Why?
-
-`sparqld` is intended for RDF that already lives in files:
-
-* ontology and Linked Data repositories;
-* local knowledge bases;
-* generated RDF build output;
-* application and test fixtures;
-* documentation and static-site projects;
-* coding agents that edit RDF and query the result;
-* reproducible projects where external data is downloaded and versioned locally.
-
-It provides the SPARQL equivalent of a simple local file server:
-
-```text
-directory of RDF files → live SPARQL endpoint
-```
-
-No repository creation, import scripts, or database synchronization step is required.
-
-## Status
-
-Under development.
+Licensed under either of
+[Apache License, Version 2.0](LICENSE-APACHE) or
+[MIT license](LICENSE-MIT), at your option.
