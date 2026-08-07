@@ -4,11 +4,11 @@ use std::fs;
 use std::io;
 use std::path::{Component, Path, PathBuf};
 
-use oxigraph::io::{RdfFormat, RdfParser};
+use oxigraph::io::{JsonLdProfile, JsonLdProfileSet, LoadedDocument, RdfFormat, RdfParser};
 use oxigraph::model::{LiteralRef, NamedNode, NamedNodeRef, Quad, QuadRef, vocab::rdf};
 use oxigraph::store::Store;
-use percent_encoding::{AsciiSet, CONTROLS, utf8_percent_encode};
-use serde_json::{Map, Value};
+use percent_encoding::{AsciiSet, CONTROLS, percent_decode_str, utf8_percent_encode};
+use serde_json::Value;
 
 type LoadResult<T> = Result<T, Box<dyn Error + Send + Sync>>;
 
@@ -25,6 +25,8 @@ const GRAPH_PATH_ENCODE_SET: &AsciiSet = &CONTROLS
     .add(b'}');
 
 const FILE_CATALOG_GRAPH: NamedNodeRef<'_> = NamedNodeRef::new_unchecked("sparqld:");
+const DOLLAR_CONVENIENCE_CONTEXT_URL: &str =
+    "https://json-ld.org/contexts/dollar-convenience.jsonld";
 
 mod nfo {
     use oxigraph::model::NamedNodeRef;
@@ -69,11 +71,6 @@ enum SourceFormat {
     JsonLd,
     YamlLd,
     Markdown,
-}
-
-struct ContextResolver<'a> {
-    root: &'a Path,
-    cache: HashMap<PathBuf, Option<Value>>,
 }
 
 struct FileCatalog<'a> {
@@ -233,37 +230,6 @@ impl<'a> FileCatalog<'a> {
     }
 }
 
-impl<'a> ContextResolver<'a> {
-    fn new(root: &'a Path) -> Self {
-        Self {
-            root,
-            cache: HashMap::new(),
-        }
-    }
-
-    fn context_for(&mut self, directory: &Path) -> LoadResult<Option<Value>> {
-        if let Some(context) = self.cache.get(directory) {
-            return Ok(context.clone());
-        }
-
-        let context = if let Some(file) = local_context_file(directory) {
-            Some(read_context(&file)?)
-        } else if directory == self.root {
-            None
-        } else {
-            let parent = directory.parent().ok_or_else(|| {
-                io::Error::other(format!(
-                    "directory is outside the served tree: {}",
-                    directory.display()
-                ))
-            })?;
-            self.context_for(parent)?
-        };
-        self.cache.insert(directory.to_owned(), context.clone());
-        Ok(context)
-    }
-}
-
 #[cfg(test)]
 fn load_directory(directory: &Path, dataset: &Store) -> LoadResult<BTreeSet<PathBuf>> {
     Ok(load_directory_with_stats(directory, dataset)?.loaded_sources)
@@ -276,7 +242,6 @@ pub(crate) fn load_directory_with_stats(
     let root = directory.canonicalize()?;
     let mut files = directory_files(&root)?;
     files.sort();
-    let mut contexts = ContextResolver::new(&root);
     let catalog = FileCatalog::new(dataset, &root)?;
 
     let mut loaded_sources = BTreeSet::new();
@@ -291,7 +256,7 @@ pub(crate) fn load_directory_with_stats(
             continue;
         };
         let relative = file.strip_prefix(&root).map_err(io::Error::other)?;
-        match load_file(&root, file, dataset, &mut contexts) {
+        match load_file(&root, file, dataset) {
             Ok(true) => {
                 catalog.describe_source(relative)?;
                 loaded_sources.insert(relative.to_owned());
@@ -347,12 +312,11 @@ pub(crate) fn reload_changed(
     }
 
     let staging = Store::new()?;
-    let mut contexts = ContextResolver::new(&root);
     let mut staged_sources = BTreeSet::new();
     let mut failed_sources = BTreeMap::new();
     for relative in &affected {
         if current_sources.contains(relative) {
-            match load_file(&root, &root.join(relative), &staging, &mut contexts) {
+            match load_file(&root, &root.join(relative), &staging) {
                 Ok(true) => {
                     staged_sources.insert(relative.clone());
                 }
@@ -486,15 +450,7 @@ fn source_impacts(
         };
 
         let mut affected = BTreeSet::new();
-        if is_context_file(changed) {
-            let directory = changed.parent().unwrap_or_else(|| Path::new(""));
-            affected.extend(
-                loaded_sources
-                    .union(current_sources)
-                    .filter(|source| source.starts_with(directory))
-                    .cloned(),
-            );
-        } else if loaded_sources.contains(changed) || current_sources.contains(changed) {
+        if loaded_sources.contains(changed) || current_sources.contains(changed) {
             affected.insert(changed.to_owned());
         } else if root.join(changed).is_dir()
             || loaded_sources
@@ -570,50 +526,53 @@ fn collect_directory_files(directory: &Path, files: &mut Vec<PathBuf>) -> LoadRe
     Ok(())
 }
 
-fn load_file(
-    root: &Path,
-    file: &Path,
-    dataset: &Store,
-    contexts: &mut ContextResolver<'_>,
-) -> LoadResult<bool> {
+fn load_file(root: &Path, file: &Path, dataset: &Store) -> LoadResult<bool> {
     let format = source_format(file).ok_or_else(|| io::Error::other("unknown RDF format"))?;
     let relative = file.strip_prefix(root).map_err(io::Error::other)?;
     let graph = graph_name(relative)?;
     let base_iri = directory_iri(relative)?;
     let source = fs::read(file)?;
-    let (format, source) = match format {
-        SourceFormat::Rdf(format) => (format, source),
-        SourceFormat::JsonLd => (
-            json_ld_format(),
-            prepare_json_ld(serde_json::from_slice(&source)?, file, contexts)?,
-        ),
-        SourceFormat::YamlLd => (
-            json_ld_format(),
-            prepare_json_ld(parse_yaml_ld(&source)?, file, contexts)?,
-        ),
+    match format {
+        SourceFormat::Rdf(format) => {
+            let parser = RdfParser::from_format(format)
+                .with_base_iri(base_iri)?
+                .without_named_graphs()
+                .with_default_graph(graph);
+            dataset.load_from_slice(parser, &source)?;
+        }
+        SourceFormat::JsonLd => load_json_ld(root, &source, &base_iri, graph, dataset)?,
+        SourceFormat::YamlLd => load_json_ld(
+            root,
+            &serde_json::to_vec(&parse_yaml_ld(&source)?)?,
+            &base_iri,
+            graph,
+            dataset,
+        )?,
         SourceFormat::Markdown => {
             let Some(front_matter) = markdown_front_matter(&source)? else {
                 return Ok(false);
             };
-            (
-                json_ld_format(),
-                prepare_json_ld(parse_yaml_ld(front_matter)?, file, contexts)?,
-            )
+            load_json_ld(
+                root,
+                &serde_json::to_vec(&parse_yaml_ld(front_matter)?)?,
+                &base_iri,
+                graph,
+                dataset,
+            )?;
         }
-    };
-    let parser = RdfParser::from_format(format)
-        .with_base_iri(base_iri)?
-        .without_named_graphs()
-        .with_default_graph(graph);
-
-    dataset.load_from_slice(parser, &source)?;
+    }
     Ok(true)
 }
 
 fn source_format(path: &Path) -> Option<SourceFormat> {
     let extension = path.extension()?.to_str()?;
     match extension {
-        extension if extension.eq_ignore_ascii_case("jsonld") => Some(SourceFormat::JsonLd),
+        extension
+            if extension.eq_ignore_ascii_case("jsonld")
+                || extension.eq_ignore_ascii_case("json") =>
+        {
+            Some(SourceFormat::JsonLd)
+        }
         extension if extension.eq_ignore_ascii_case("yamlld") => Some(SourceFormat::YamlLd),
         extension if extension.eq_ignore_ascii_case("md") => Some(SourceFormat::Markdown),
         extension => RdfFormat::from_extension(extension).map(SourceFormat::Rdf),
@@ -638,126 +597,88 @@ fn is_context_file(path: &Path) -> bool {
     )
 }
 
-fn local_context_file(directory: &Path) -> Option<PathBuf> {
-    let json = directory.join("context.jsonld");
-    if json.is_file() {
-        return Some(json);
+fn load_json_ld(
+    root: &Path,
+    source: &[u8],
+    base_iri: &str,
+    graph: NamedNode,
+    dataset: &Store,
+) -> LoadResult<()> {
+    let root = root.to_owned();
+    let parser = RdfParser::from_format(RdfFormat::JsonLd {
+        profile: JsonLdProfileSet::empty(),
+    })
+    .with_base_iri(base_iri)?
+    .without_named_graphs()
+    .with_default_graph(graph);
+    for quad in parser
+        .for_slice(source)
+        .with_document_loader(move |url| load_context_document(&root, url))
+    {
+        dataset.insert(&quad?)?;
     }
-    let yaml = directory.join("context.yamlld");
-    yaml.is_file().then_some(yaml)
+    Ok(())
 }
 
-fn read_context(path: &Path) -> LoadResult<Value> {
-    let source = fs::read(path)?;
-    let document: Value = match path.extension().and_then(|extension| extension.to_str()) {
-        Some(extension) if extension.eq_ignore_ascii_case("jsonld") => {
-            serde_json::from_slice(&source)?
+fn load_context_document(root: &Path, url: &str) -> LoadResult<LoadedDocument> {
+    if url == DOLLAR_CONVENIENCE_CONTEXT_URL {
+        return Ok(LoadedDocument {
+            url: url.into(),
+            content: include_bytes!("loader/contexts/dollar-convenience.jsonld").to_vec(),
+            format: context_format(),
+        });
+    }
+
+    let path = local_context_path(root, url)?;
+    let content = match path.extension().and_then(|extension| extension.to_str()) {
+        Some(extension) if extension.eq_ignore_ascii_case("jsonld") => fs::read(&path)?,
+        Some(extension) if extension.eq_ignore_ascii_case("yamlld") => {
+            serde_json::to_vec(&parse_yaml_ld(&fs::read(&path)?)?)?
         }
-        Some(extension) if extension.eq_ignore_ascii_case("yamlld") => parse_yaml_ld(&source)?,
-        _ => return Err(io::Error::other("unknown context format").into()),
+        _ => {
+            return Err(
+                io::Error::other(format!("unsupported local context format: {url}")).into(),
+            );
+        }
     };
-    let Value::Object(mut document) = document else {
-        return Err(io::Error::new(
-            io::ErrorKind::InvalidData,
-            format!("context document must be an object: {}", path.display()),
-        )
-        .into());
-    };
-    document.remove("@context").ok_or_else(|| {
-        io::Error::new(
-            io::ErrorKind::InvalidData,
-            format!("context document has no @context: {}", path.display()),
-        )
-        .into()
+    Ok(LoadedDocument {
+        url: url.into(),
+        content,
+        format: context_format(),
     })
 }
 
-fn prepare_json_ld(
-    document: Value,
-    file: &Path,
-    contexts: &mut ContextResolver<'_>,
-) -> LoadResult<Vec<u8>> {
-    let context = contexts.context_for(
-        file.parent()
-            .ok_or_else(|| io::Error::other("source file has no parent directory"))?,
-    )?;
-    Ok(serde_json::to_vec(&apply_context(document, context))?)
-}
-
-fn apply_context(document: Value, inherited: Option<Value>) -> Value {
-    match document {
-        Value::Object(mut document) => {
-            let mut contexts = vec![dollar_convenience_context()];
-            if let Some(inherited) = inherited {
-                append_context(&mut contexts, inherited);
-            }
-            if let Some(local) = document.remove("@context") {
-                append_context(&mut contexts, local);
-            }
-            document.insert("@context".into(), Value::Array(contexts));
-            Value::Object(document)
-        }
-        Value::Array(graph) => {
-            let mut contexts = vec![dollar_convenience_context()];
-            if let Some(inherited) = inherited {
-                append_context(&mut contexts, inherited);
-            }
-            Value::Object(Map::from_iter([
-                ("@context".into(), Value::Array(contexts)),
-                ("@graph".into(), Value::Array(graph)),
-            ]))
-        }
-        document => document,
-    }
-}
-
-fn dollar_convenience_context() -> Value {
-    serde_json::json!({
-        "$always": "@always",
-        "$base": "@base",
-        "$container": "@container",
-        "$direction": "@direction",
-        "$embed": "@embed",
-        "$explicit": "@explicit",
-        "$graph": "@graph",
-        "$id": "@id",
-        "$import": "@import",
-        "$included": "@included",
-        "$index": "@index",
-        "$json": "@json",
-        "$language": "@language",
-        "$list": "@list",
-        "$nest": "@nest",
-        "$never": "@never",
-        "$none": "@none",
-        "$null": "@null",
-        "$omitDefault": "@omitDefault",
-        "$once": "@once",
-        "$prefix": "@prefix",
-        "$propagate": "@propagate",
-        "$protected": "@protected",
-        "$requireAll": "@requireAll",
-        "$reverse": "@reverse",
-        "$set": "@set",
-        "$type": "@type",
-        "$value": "@value",
-        "$version": "@version",
-        "$vocab": "@vocab"
-    })
-}
-
-fn append_context(contexts: &mut Vec<Value>, context: Value) {
-    if let Value::Array(entries) = context {
-        contexts.extend(entries);
-    } else {
-        contexts.push(context);
-    }
-}
-
-fn json_ld_format() -> RdfFormat {
+fn context_format() -> RdfFormat {
     RdfFormat::JsonLd {
-        profile: oxigraph::io::JsonLdProfileSet::empty(),
+        profile: JsonLdProfile::Context.into(),
     }
+}
+
+fn local_context_path(root: &Path, url: &str) -> LoadResult<PathBuf> {
+    let relative = url
+        .strip_prefix("sparqld:")
+        .ok_or_else(|| io::Error::other(format!("context URL is not supported: {url}")))?;
+    let relative = percent_decode_str(relative)
+        .decode_utf8()
+        .map_err(|_| io::Error::other(format!("context URL is not UTF-8: {url}")))?;
+    let relative = Path::new(relative.as_ref());
+    if relative.components().any(|component| {
+        matches!(
+            component,
+            Component::ParentDir | Component::RootDir | Component::Prefix(_)
+        )
+    }) {
+        return Err(
+            io::Error::other(format!("context is outside the served directory: {url}")).into(),
+        );
+    }
+    let path = root.join(relative).canonicalize()?;
+    if !path.starts_with(root) {
+        return Err(
+            io::Error::other(format!("context is outside the served directory: {url}")).into(),
+        );
+    }
+    Ok(path)
 }
 
 fn parse_yaml_ld(source: &[u8]) -> LoadResult<Value> {
@@ -824,7 +745,6 @@ fn path_iri(relative: &Path, directory: bool) -> LoadResult<String> {
 mod tests {
     use super::*;
     use oxigraph::model::{LiteralRef, NamedNodeRef, QuadRef};
-    use serde_json::json;
 
     #[test]
     fn loads_each_source_file_into_a_relative_path_graph() {
@@ -876,7 +796,7 @@ mod tests {
     }
 
     #[test]
-    fn counts_ignored_files_but_not_dedicated_contexts() {
+    fn counts_ignored_files_and_keeps_context_documents_out_of_source_graphs() {
         let directory = tempfile::tempdir().unwrap();
         fs::write(
             directory.path().join("context.yamlld"),
@@ -885,7 +805,7 @@ mod tests {
         .unwrap();
         fs::write(
             directory.path().join("source.yamlld"),
-            "'@id': urn:subject\nvalue: object\n",
+            "'@context': context.yamlld\n'@id': urn:subject\nvalue: object\n",
         )
         .unwrap();
         fs::write(directory.path().join("notes.md"), "# No front matter\n").unwrap();
@@ -967,33 +887,23 @@ mod tests {
     }
 
     #[test]
-    fn rejects_remote_and_local_context_references() {
-        for context in [
-            "https://example.org/context.jsonld",
-            "shared-context.jsonld",
-        ] {
-            let directory = tempfile::tempdir().unwrap();
-            fs::write(
-                directory.path().join("source.jsonld"),
-                format!(r#"{{"@context":"{context}","@id":"urn:subject","name":"Alice"}}"#),
-            )
-            .unwrap();
-            let dataset = Store::new().unwrap();
+    fn rejects_unregistered_context_urls() {
+        let directory = tempfile::tempdir().unwrap();
+        fs::write(
+            directory.path().join("source.jsonld"),
+            r#"{"@context":"https://example.org/context.jsonld","@id":"urn:subject","name":"Alice"}"#,
+        )
+        .unwrap();
+        let dataset = Store::new().unwrap();
 
-            let load = load_directory_with_stats(directory.path(), &dataset).unwrap();
+        let load = load_directory_with_stats(directory.path(), &dataset).unwrap();
 
-            assert!(load.loaded_sources.is_empty());
-            let error = &load.load_errors[Path::new("source.jsonld")];
-            assert!(
-                error.contains("No LoadDocumentCallback has been set"),
-                "unexpected error for {context}: {error}"
-            );
-            assert!(
-                !dataset
-                    .contains_named_graph(NamedNodeRef::new("sparqld:source.jsonld").unwrap())
-                    .unwrap()
-            );
-        }
+        assert!(load.loaded_sources.is_empty());
+        let error = &load.load_errors[Path::new("source.jsonld")];
+        assert!(
+            error.contains("context URL is not supported"),
+            "unexpected error: {error}"
+        );
     }
 
     #[test]
@@ -1257,119 +1167,64 @@ mod tests {
     }
 
     #[test]
-    fn reloads_a_contexts_descendant_sources() {
+    fn loads_relative_contexts_and_context_imports() {
         let directory = tempfile::tempdir().unwrap();
-        let nested = directory.path().join("nested");
-        fs::create_dir(&nested).unwrap();
-        let context = nested.join("context.yamlld");
-        let source = nested.join("source.yamlld");
-        let unrelated = directory.path().join("unrelated.ttl");
-        fs::write(&context, "'@context':\n  value: urn:old-predicate\n").unwrap();
-        fs::write(&source, "'@id': urn:subject\nvalue: object\n").unwrap();
-        fs::write(&unrelated, "<urn:other> <urn:value> <urn:preserved> .").unwrap();
-        let dataset = Store::new().unwrap();
-        let loaded_sources = load_directory(directory.path(), &dataset).unwrap();
-
-        fs::write(&context, "'@context':\n  value: urn:new-predicate\n").unwrap();
-        fs::write(&unrelated, "this unrelated source is now invalid").unwrap();
-        let report = reload_changed(
-            directory.path(),
-            &BTreeSet::from([context]),
-            &loaded_sources,
-            &BTreeMap::new(),
-            &dataset,
+        fs::write(
+            directory.path().join("context.jsonld"),
+            r#"{"@context":{"@version":1.1,"@import":"terms.jsonld"}}"#,
         )
         .unwrap();
+        fs::write(
+            directory.path().join("terms.jsonld"),
+            r#"{"@context":{"name":"urn:name"}}"#,
+        )
+        .unwrap();
+        fs::write(
+            directory.path().join("source.json"),
+            r#"{
+                "@context": "context.jsonld",
+                "@id": "urn:subject",
+                "name": "Alice"
+            }"#,
+        )
+        .unwrap();
+        let dataset = Store::new().unwrap();
 
-        assert_eq!(report.updates.len(), 1);
-        assert_eq!(report.updates[0].kind, SourceUpdateKind::Reloaded);
-        assert_eq!(report.loaded_sources.len(), 2);
+        let load = load_directory_with_stats(directory.path(), &dataset).unwrap();
+
+        assert!(
+            load.load_errors.is_empty(),
+            "load errors: {:?}",
+            load.load_errors
+        );
+        let graph = NamedNodeRef::new("sparqld:source.json").unwrap();
         assert!(
             dataset
                 .contains(QuadRef::new(
                     NamedNodeRef::new("urn:subject").unwrap(),
-                    NamedNodeRef::new("urn:new-predicate").unwrap(),
-                    LiteralRef::new_simple_literal("object"),
-                    NamedNodeRef::new("sparqld:nested/source.yamlld").unwrap(),
-                ))
-                .unwrap()
-        );
-        assert!(
-            dataset
-                .contains(QuadRef::new(
-                    NamedNodeRef::new("urn:other").unwrap(),
-                    NamedNodeRef::new("urn:value").unwrap(),
-                    NamedNodeRef::new("urn:preserved").unwrap(),
-                    NamedNodeRef::new("sparqld:unrelated.ttl").unwrap(),
+                    NamedNodeRef::new("urn:name").unwrap(),
+                    LiteralRef::new_simple_literal("Alice"),
+                    graph,
                 ))
                 .unwrap()
         );
     }
 
     #[test]
-    fn inherits_the_nearest_directory_context() {
-        let root = Path::new("docs").canonicalize().unwrap();
-        let mut contexts = ContextResolver::new(&root);
-
-        let context = contexts
-            .context_for(&root.join("project/decisions/nested"))
-            .unwrap()
-            .unwrap();
-
-        assert_eq!(context["title"], "schema:name");
-    }
-
-    #[test]
-    fn prefers_json_contexts() {
-        let directory = tempfile::tempdir().unwrap();
-        fs::write(
-            directory.path().join("context.yamlld"),
-            "\"@context\": {}\n",
-        )
-        .unwrap();
-        fs::write(
-            directory.path().join("context.jsonld"),
-            "{\"@context\": {}}\n",
-        )
-        .unwrap();
-
-        assert_eq!(
-            local_context_file(directory.path()).unwrap(),
-            directory.path().join("context.jsonld")
-        );
-    }
-
-    #[test]
-    fn applies_local_context_after_the_inherited_context() {
-        let document = json!({
-            "@context": {"name": "urn:local-name"},
-            "name": "Alpha Centauri"
-        });
-        let inherited = json!({"name": "https://schema.org/name"});
-
-        let document = apply_context(document, Some(inherited));
-
-        assert_eq!(
-            document["@context"],
-            json!([
-                dollar_convenience_context(),
-                {"name": "https://schema.org/name"},
-                {"name": "urn:local-name"}
-            ])
-        );
-    }
-
-    #[test]
-    fn enables_dollar_keywords_without_an_explicit_context() {
+    fn only_enables_dollar_keywords_with_the_explicit_context_url() {
         let directory = tempfile::tempdir().unwrap();
         fs::write(
             directory.path().join("source.yamlld"),
-            "$id: urn:yaml-subject\n$type: urn:Type\nurn:value: YAML-LD\n",
+            format!(
+                "'@context': {DOLLAR_CONVENIENCE_CONTEXT_URL}\n$id: urn:yaml-subject\n$type: urn:Type\nurn:value: YAML-LD\n"
+            ),
         )
         .unwrap();
         fs::write(
             directory.path().join("source.jsonld"),
-            r#"{"$id":"urn:json-subject","$type":"urn:Type","urn:value":"JSON-LD"}"#,
+            format!(
+                r#"{{"@context":"{DOLLAR_CONVENIENCE_CONTEXT_URL}","$id":"urn:json-subject","$type":"urn:Type","urn:value":"JSON-LD"}}"#
+            ),
         )
         .unwrap();
         let dataset = Store::new().unwrap();
@@ -1398,6 +1253,53 @@ mod tests {
                     .unwrap()
             );
         }
+    }
+
+    #[test]
+    fn does_not_apply_directory_contexts_implicitly() {
+        let directory = tempfile::tempdir().unwrap();
+        fs::write(
+            directory.path().join("context.jsonld"),
+            r#"{"@context":{"name":"urn:name"}}"#,
+        )
+        .unwrap();
+        fs::write(
+            directory.path().join("source.jsonld"),
+            r#"{"@id":"urn:subject","name":"Alice"}"#,
+        )
+        .unwrap();
+        let dataset = Store::new().unwrap();
+
+        let load = load_directory_with_stats(directory.path(), &dataset).unwrap();
+
+        assert!(
+            load.load_errors.is_empty(),
+            "load errors: {:?}",
+            load.load_errors
+        );
+        assert!(
+            !dataset
+                .contains(QuadRef::new(
+                    NamedNodeRef::new("urn:subject").unwrap(),
+                    NamedNodeRef::new("urn:name").unwrap(),
+                    LiteralRef::new_simple_literal("Alice"),
+                    NamedNodeRef::new("sparqld:source.jsonld").unwrap(),
+                ))
+                .unwrap()
+        );
+    }
+
+    #[test]
+    fn forbids_context_paths_outside_the_served_directory() {
+        let directory = tempfile::tempdir().unwrap();
+        let root = directory.path().join("data");
+        fs::create_dir(&root).unwrap();
+        fs::write(directory.path().join("outside.jsonld"), "{}").unwrap();
+
+        let error = local_context_path(&root.canonicalize().unwrap(), "sparqld:../outside.jsonld")
+            .unwrap_err();
+
+        assert!(error.to_string().contains("outside the served directory"));
     }
 
     #[test]
