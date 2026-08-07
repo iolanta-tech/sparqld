@@ -30,7 +30,8 @@ own named graph.
 
     ---
 
-    Queries without `GRAPH` see the union of all source graphs.
+    Queries without `GRAPH` see the union of every named graph, including the
+    file catalog.
 
 -   :material-folder-information-outline:{ .lg .middle } **File catalog**
 
