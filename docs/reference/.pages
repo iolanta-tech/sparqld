@@ -6,6 +6,7 @@ nav:
   - SPARQL cheat sheet: sparql
   - File formats: formats.md
   - Named graphs: named-graphs.md
+  - File catalog: file-catalog.md
   - Contexts: contexts.md
   - clients
   - Agents: agents.md
