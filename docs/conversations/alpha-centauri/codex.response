@@ -1,19 +1,5 @@
-Alpha Centauri is in the constellation **Centaurus**. The knowledge base describes it as:
+Using the `sparqld` skill, I inspected the knowledge base vocabulary and
+followed the recorded star and system links. It records two planets in the
+Alpha Centauri system: **Proxima Centauri b** and **Proxima Centauri d**.
 
-> “The closest star system to the Solar System.”
-
-Query used:
-
-```sparql
-PREFIX schema: <https://schema.org/>
-PREFIX dbo: <http://dbpedia.org/ontology/>
-
-SELECT ?constellation ?description
-WHERE {
-  ?star schema:name "Alpha Centauri" ;
-        dbo:constellation ?constellationResource ;
-        schema:description ?description .
-
-  ?constellationResource schema:name ?constellation .
-}
-```
+The query and its result are shown below.
