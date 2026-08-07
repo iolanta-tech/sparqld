@@ -7,6 +7,7 @@ theme:
   name: material
   features:
     - content.code.copy
+    - content.tooltips
     - navigation.indexes
     - navigation.sections
     - navigation.tabs
@@ -32,13 +33,20 @@ theme:
 extra_css:
   - stylesheets/extra.css
 
+extra_javascript:
+  - https://unpkg.com/mermaid@11.16.1/dist/mermaid.min.js
+
 markdown_extensions:
   - admonition
   - attr_list
   - md_in_html
   - pymdownx.tabbed:
       alternate_style: true
-  - pymdownx.superfences
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_div_format
   - pymdownx.tasklist:
       custom_checkbox: true
   - pymdownx.emoji:
