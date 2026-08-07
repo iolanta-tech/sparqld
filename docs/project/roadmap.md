@@ -27,12 +27,6 @@ behavioral contract, and differences between the documentation and software.
 
 ## :material-information-outline: Medium
 
-- [ ] **Preserve named graphs inside dataset files.** TriG and N-Quads files
-   currently reject named graphs. Load each embedded graph under an IRI composed
-   from the file graph IRI and the embedded graph name, separated by `#`, and
-   record its relationship to the file graph in `sparqld:`. Choose and document
-   the relationship term as part of this work.
-
 - [ ] **Add opt-in OWL 2 RL reasoning.** Add a `--reasoning` flag that uses
    `reasonable` to materialize its supported OWL 2 RL inferences into the
    dedicated `<reasoning:inferred>` named graph. Keep asserted source graphs
