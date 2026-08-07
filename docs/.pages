@@ -1,4 +1,6 @@
 nav:
-  - Quickstart: index.md
+  - Home:
+      - Home: index.md
+      - Quickstart: quickstart.md
   - reference
   - project
