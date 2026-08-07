@@ -23,6 +23,7 @@ dataset running, ask your agent:
 ## :material-refresh: Live updates
 
 `sparqld` reloads a changed source after the editor's filesystem events settle.
-If parsing fails, it removes that source's graph and records an `rlog:Entry`
-with the error in the file catalog. Give the agent a chance to inspect the
-error before asking it to query the changed data again.
+Changing a local context also reloads every source that declares it, directly
+or through `@import`. If parsing fails, it removes that source's graph and
+records an `rlog:Entry` with the error in the file catalog. Give the agent a
+chance to inspect the error before asking it to query the changed data again.
