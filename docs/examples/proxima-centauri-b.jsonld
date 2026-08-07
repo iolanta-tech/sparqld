@@ -1,4 +1,5 @@
 {
+  "@context": "context.yamlld",
   "@id": "dbr:Proxima_Centauri_b",
   "@type": "dbo:Planet",
   "name": "Proxima Centauri b",
