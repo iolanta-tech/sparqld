@@ -15,15 +15,17 @@ description: Let agents query a local sparqld knowledge base.
 
 `sparqld` gives agents a read-only query surface over the files in your
 knowledge base. Give the agent the endpoint URL and a way to send SPARQL HTTP
-requests, such as the [`sq` client](clients/sq/index.md). With the example
-dataset running, ask your agent:
+requests, such as the [`sq` client](clients/sq/index.md). To give Codex the
+local query workflow, install the skill from the GitHub repository:
+
+```sh
+npx skills add https://github.com/iolanta-tech/sparqld --skill sparqld --agent codex
+```
+
+With the example dataset running, ask your agent:
 
 {{ agent_conversation('alpha-centauri') }}
 
-## :material-refresh: Live updates
+{{ query_data('alpha-centauri-planets.rq', title='Query used') }}
 
-`sparqld` reloads a changed source after the editor's filesystem events settle.
-Changing a local context also reloads every source that declares it, directly
-or through `@import`. If parsing fails, it removes that source's graph and
-records an [`rlog:Entry`](http://purl.org/NET/rlog#Entry) with the error in the file catalog. Give the agent a
-chance to inspect the error before asking it to query the changed data again.
+{{ result_data('alpha-centauri-planets.tsv') }}

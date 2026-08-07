@@ -15,7 +15,7 @@ description: Release, source, licensing, and development information for sparqld
 
 # :material-source-repository: Project
 
-`sparqld` 0.1.1 is an early release for local, file-backed SPARQL access.
+`sparqld` 0.1.2 is an early release for local, file-backed SPARQL access.
 
 <div class="grid cards" markdown>
 
@@ -31,7 +31,7 @@ description: Release, source, licensing, and development information for sparqld
 
     ---
 
-    Version 0.1.1 · Rust 1.87 or later with Cargo
+    Version 0.1.2 · Rust 1.88 or later with Cargo
 
 -   :material-source-repository:{ .lg .middle } **Source and issues**
 
