@@ -38,3 +38,9 @@ behavioral contract, and differences between the documentation and software.
    dedicated `<reasoning:inferred>` named graph. Keep asserted source graphs
    unchanged and reasoning disabled by default. Re-materialize the derived
    graph atomically whenever the asserted dataset changes.
+
+## :material-information-outline: Low
+
+- [ ] **Publish a minimal SPARQL Service Description.** Describe the root
+   endpoint and its query capability so standards-aware clients and agents can
+   discover it without application-specific source configuration.
