@@ -28,6 +28,16 @@ jobs:
       - uses: dtolnay/rust-toolchain@1.88
       - run: cargo build --locked
       - run: cargo install --git https://github.com/ktk/sq
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+      - run: |
+          mkdir -p .tools
+          curl -fsSL --retry 3 -o /tmp/apache-jena.tar.gz \
+            https://archive.apache.org/dist/jena/binaries/apache-jena-3.17.0.tar.gz
+          tar -xzf /tmp/apache-jena.tar.gz -C .tools
+      - run: npm ci
       - uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b # v8.1.0
         with:
           enable-cache: true
