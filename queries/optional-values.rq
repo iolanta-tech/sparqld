@@ -1,0 +1,9 @@
+PREFIX dbp: <http://dbpedia.org/property/>
+PREFIX schema: <https://schema.org/>
+
+SELECT ?name ?discovered
+WHERE {
+  ?body schema:name ?name .
+  OPTIONAL { ?body dbp:discovered ?discovered }
+}
+ORDER BY ?name

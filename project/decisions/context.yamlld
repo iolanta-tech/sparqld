@@ -1,0 +1,10 @@
+"@context":
+  schema: https://schema.org/
+  xsd: http://www.w3.org/2001/XMLSchema#
+  title: schema:name
+  status: schema:creativeWorkStatus
+  date:
+    "@id": schema:dateCreated
+    "@type": xsd:date
+  author: schema:author
+  tags: schema:keywords

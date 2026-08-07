@@ -1,0 +1,10 @@
+PREFIX dbo: <http://dbpedia.org/ontology/>
+PREFIX dbp: <http://dbpedia.org/property/>
+PREFIX schema: <https://schema.org/>
+
+SELECT DISTINCT ?planet ?name WHERE {
+  ?planet a dbo:Planet ;
+          dbp:star/dbp:star/^schema:hasPart <http://dbpedia.org/resource/Alpha_Centauri> ;
+          schema:name ?name .
+}
+ORDER BY ?name

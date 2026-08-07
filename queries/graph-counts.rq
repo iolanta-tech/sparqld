@@ -1,0 +1,6 @@
+SELECT ?graph (COUNT(*) AS ?triples)
+WHERE {
+  GRAPH ?graph { ?subject ?predicate ?object }
+}
+GROUP BY ?graph
+ORDER BY DESC(?triples) ?graph

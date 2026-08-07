@@ -1,0 +1,3 @@
+ASK {
+  ?subject ?predicate ?object .
+}

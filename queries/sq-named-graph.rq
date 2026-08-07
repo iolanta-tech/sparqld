@@ -1,0 +1,6 @@
+SELECT ?name
+WHERE {
+  GRAPH data:alpha-centauri.yamlld {
+    ?subject schema:name ?name .
+  }
+}

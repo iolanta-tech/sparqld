@@ -1,0 +1,8 @@
+default = "sparqld"
+
+[endpoints.sparqld]
+url = "http://127.0.0.1:7737/"
+
+[prefixes]
+data = "sparqld:"
+schema = "https://schema.org/"

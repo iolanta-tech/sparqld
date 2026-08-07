@@ -1,0 +1,11 @@
+apache-jena.svg:
+  source: https://github.com/apache/jena/blob/abccdc47a78ff503713d7ab380711d7568592663/jena-fuseki2/jena-fuseki-ui/src/assets/logo.svg
+  license: Apache-2.0
+
+comunica.svg:
+  source: https://github.com/comunica/website/blob/83288f9ff911480dbed20e8352122f8b7156140e/public/img/comunica_red.svg
+  terms: https://comunica.dev/logos/
+
+rdflib.svg:
+  source: https://github.com/RDFLib/rdflib/blob/4e4bd6e91bfe42095203c180f2e3d3081685e1cf/docs/_static/RDFlib.svg
+  license: BSD-3-Clause

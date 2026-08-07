@@ -1,0 +1,8 @@
+PREFIX schema: <https://schema.org/>
+
+SELECT ?name
+WHERE {
+  ?subject schema:name ?name .
+  FILTER(CONTAINS(LCASE(STR(?name)), "centauri"))
+}
+ORDER BY ?name

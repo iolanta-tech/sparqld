@@ -1,0 +1,12 @@
+SELECT ?graph ?name
+WHERE {
+  GRAPH ?graph {
+    ?subject <https://schema.org/name> ?name .
+  }
+  VALUES ?graph {
+    <sparqld:alpha-centauri.yamlld>
+    <sparqld:centaurus.md>
+    <sparqld:proxima-centauri-b.jsonld>
+  }
+}
+ORDER BY ?graph
