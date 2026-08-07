@@ -9,13 +9,14 @@
 hide: [toc]
 name: Named graphs
 title: Named graphs
-description: How sparqld assigns source graphs and describes the served directory.
+description: How sparqld assigns source and embedded named graphs.
 ---
 
 # :material-source-branch: Named graphs
 
 `sparqld` preserves the boundary between files by loading every source into its
-own named graph.
+own named graph. When a source declares further named graphs, they remain
+separate and are scoped to that source file.
 
 <div class="grid cards" markdown>
 
@@ -33,12 +34,12 @@ own named graph.
     Queries without `GRAPH` see the union of every named graph, including the
     file catalog.
 
--   :material-folder-information-outline:{ .lg .middle } **File catalog**
+-   :material-graph-outline:{ .lg .middle } **Embedded graph**
 
     ---
 
-    The reserved `sparqld:` graph describes sources, directories, and their
-    containment.
+    A graph declared inside a source is named with the source graph IRI,
+    followed by `#` and its original graph name.
 
 </div>
 
@@ -61,18 +62,34 @@ Use `GRAPH` to retain source provenance in query results:
 
 {{ query_data('all-quads.rq') }}
 
-## :material-folder-multiple: File catalog
+## :material-file-tree: Named graphs inside a source
 
-The `sparqld:` graph models the served directory with the
-[Nepomuk File Ontology](https://www.semanticdesktop.org/ontologies/2007/03/22/nfo/).
+TriG, N-Quads, JSON-LD, YAML-LD, and Markdown-LD may declare named graphs. A
+source's ordinary statements stay in its source graph. Each declared graph is
+scoped with the source graph IRI, so two files can use the same graph name
+without colliding.
 
-| Resource | RDF types | Properties |
-| --- | --- | --- |
-| Served directory | `nfo:FileDataObject`, `nfo:Folder` | `nfo:fileName` |
-| Nested directory | `nfo:FileDataObject`, `nfo:Folder` | `nfo:fileName`, `nfo:belongsToContainer` |
-| Source file | `nfo:FileDataObject` | `nfo:fileName`, `nfo:belongsToContainer` |
+For example, an assertion graph named
+`http://purl.org/nanopub/temp/np/assertion` in `nanopublication.yamlld` becomes
+`sparqld:nanopublication.yamlld#http://purl.org/nanopub/temp/np/assertion`.
 
-The source resource IRI is also its named graph IRI. The catalog is updated
-when source files are created, moved, or deleted.
+References to an embedded graph are rewritten to its scoped IRI too. A
+nanopublication head therefore continues to point to its assertion,
+provenance, and publication-info graphs after loading.
 
-{{ query_data('file-catalog.rq') }}
+```mermaid
+flowchart LR
+    source["nanopublication.yamlld"]
+    default["Default-graph statements"]
+    declared["Declared assertion graph"]
+    source_graph["sparqld:nanopublication.yamlld"]
+    assertion["sparqld:nanopublication.yamlld#…/assertion"]
+    head["Head graph links to assertion"]
+
+    source --> default --> source_graph
+    source --> declared --> assertion
+    head -->|rewritten reference| assertion
+```
+
+The [`File catalog`](file-catalog.md) page describes the reserved `sparqld:`
+graph, which records source files, directories, and embedded graphs.
