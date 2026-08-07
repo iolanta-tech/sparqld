@@ -20,6 +20,7 @@ type SharedDataset = Arc<RwLock<Store>>;
 struct DatasetLoad {
     loaded_sources: BTreeSet<PathBuf>,
     load_errors: BTreeMap<PathBuf, String>,
+    context_dependents: loader::ContextDependents,
     ignored_files: usize,
     triples: usize,
 }
@@ -110,6 +111,7 @@ fn reload_dataset(directory: &Path, dataset: &RwLock<Store>) -> SparqldResult<Da
     Ok(DatasetLoad {
         loaded_sources: load.loaded_sources,
         load_errors: load.load_errors,
+        context_dependents: load.context_dependents,
         ignored_files: load.ignored_files,
         triples,
     })
