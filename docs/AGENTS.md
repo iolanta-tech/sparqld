@@ -14,6 +14,9 @@ the reference unless they are needed to complete the task.
 Explain sparqld-specific behavior and less familiar RDF concepts where they
 first become necessary.
 
+When explanatory prose or a table uses an RDF QName, make the QName a link to
+the IRI of the term it denotes.
+
 - On every page under `docs/project/decisions/`, place
   `{{ adr_metadata(date, status) }}` immediately after the H1 so visible ADR
   metadata is derived from frontmatter.
