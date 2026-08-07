@@ -63,17 +63,13 @@ Each source file is exposed through named graphs derived from its path.
 Relative IRIs in a source resolve against the internal `sparqld:` IRI of the
 directory containing that source.
 
-A directory may define `context.jsonld` or `context.yamlld` for JSON-LD,
-YAML-LD, Markdown-LD, and other JSON-LD-inspired formats. The context
-is inherited by nested directories until a nearer context file replaces it.
-When both context formats exist in one directory, `context.jsonld` takes
-precedence. Inline `@context` values are supported, but `@context` references
-to remote URLs or local files are not resolved.
-
-The canonical JSON-LD dollar-convenience context is built in and applied to
-every JSON-LD-derived source, so document bodies may use `$id`, `$type`, and
-the other `$` keyword aliases without declaring the context. Literal JSON-LD
-keywords are still required inside `@context` definitions.
+JSON-LD-derived sources declare their own `@context`. Relative `.jsonld` and
+`.yamlld` context files are resolved inside the served directory, including
+relative `@import` references. The canonical
+[JSON-LD dollar-convenience context](https://json-ld.org/contexts/dollar-convenience.jsonld)
+is available by its URL and is served from the bundled copy; other web context
+URLs are rejected. `context.jsonld` and `context.yamlld` have no implicit
+effect and work only when a source explicitly references them.
 
 The `sparqld:` named graph is a file catalog. It describes every source graph
 as an NFO `FileDataObject`, represents directories as NFO `Folder` resources,
@@ -81,7 +77,8 @@ and connects each child to its directory with `nfo:belongsToContainer`.
 
 Each loaded source is associated with the named graph derived from its path.
 
-The default graph is the union of all named graphs, so ordinary queries operate across the complete directory:
+The default graph is the union of every named graph, including the file
+catalog, so ordinary queries operate across the complete directory:
 
 ```sparql
 SELECT ?person ?name
@@ -106,10 +103,10 @@ WHERE {
 `sparqld` reacts to files being created, modified, moved, or deleted.
 
 Changes are debounced to accommodate editors that emit several filesystem events
-for one save. Ordinary file changes reload only that source. Context changes
-reload sources below the context's directory because inherited terms may affect
-every descendant. If an affected source cannot be parsed, `sparqld` reports the
-error and empties that source's named graph.
+for one save. A changed source reloads only that source; changing a local
+context reloads every source that declares it, directly or through `@import`.
+If parsing fails, `sparqld` removes its graph and adds an `rlog:Entry`
+describing the error to the file catalog.
 
 Pass `--no-watch` to load the directory once and disable live updates.
 
@@ -117,19 +114,14 @@ The endpoint is permanently read-only. RDF is changed by editing the source file
 
 ## Formats
 
-Supported:
+sparqld recognizes JSON-LD (`.jsonld`, `.json`), YAML-LD (`.yamlld`), and
+Markdown-LD (`.md`). Markdown-LD reads YAML-LD front matter; the Markdown body
+does not contribute RDF. JSON-LD-derived sources use the contexts they declare.
 
-* JSON-LD
-* YAML-LD
-* Markdown-LD
-
-In development:
-
-* Turtle
-* TriG
-* N-Triples
-* N-Quads
-* RDF/XML
+It also recognizes `.n3` as Notation3, `.nq` as N-Quads, `.nt` and `.txt` as
+N-Triples, `.rdf` and `.xml` as RDF/XML, `.trig` as TriG, and `.ttl` as
+Turtle. See the [File formats reference](https://sparqld.iolanta.tech/reference/formats/)
+for the current details.
 
 ## Why?
 

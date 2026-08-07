@@ -1,0 +1,49 @@
+"@context":
+  np: http://www.nanopub.org/nschema#
+  prov: http://www.w3.org/ns/prov#
+  dct: http://purl.org/dc/terms/
+  dbo: http://dbpedia.org/ontology/
+  dbr: http://dbpedia.org/resource/
+  xsd: http://www.w3.org/2001/XMLSchema#
+  np:hasAssertion:
+    "@type": "@id"
+  np:hasProvenance:
+    "@type": "@id"
+  np:hasPublicationInfo:
+    "@type": "@id"
+  prov:wasDerivedFrom:
+    "@type": "@id"
+  dbo:constellation:
+    "@type": "@id"
+
+"@graph":
+  - "@id": http://purl.org/nanopub/temp/np/Head
+    "@graph":
+      - "@id": http://purl.org/nanopub/temp/np/
+        "@type": np:Nanopublication
+        np:hasAssertion: http://purl.org/nanopub/temp/np/assertion
+        np:hasProvenance: http://purl.org/nanopub/temp/np/provenance
+        np:hasPublicationInfo: http://purl.org/nanopub/temp/np/pubinfo
+
+  - "@id": http://purl.org/nanopub/temp/np/assertion
+    "@graph":
+      - "@id": dbr:Alpha_Centauri
+        dbo:constellation: dbr:Centaurus
+      - "@id": http://purl.org/nanopub/temp/np/assertion
+        "@type": np:Assertion
+
+  - "@id": http://purl.org/nanopub/temp/np/provenance
+    "@graph":
+      - "@id": http://purl.org/nanopub/temp/np/provenance
+        "@type": np:Provenance
+      - "@id": http://purl.org/nanopub/temp/np/assertion
+        prov:wasDerivedFrom: https://en.wikipedia.org/wiki/Alpha_Centauri
+
+  - "@id": http://purl.org/nanopub/temp/np/pubinfo
+    "@graph":
+      - "@id": http://purl.org/nanopub/temp/np/pubinfo
+        "@type": np:PublicationInfo
+      - "@id": http://purl.org/nanopub/temp/np/
+        dct:created:
+          "@value": "2026-08-07T00:00:00Z"
+          "@type": xsd:dateTime

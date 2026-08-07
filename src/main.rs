@@ -20,10 +20,6 @@ struct Cli {
     /// Load the directory once instead of watching it for changes
     #[arg(long)]
     no_watch: bool,
-
-    /// Read configuration from a TOML file
-    #[arg(long, value_name = "FILE", value_hint = ValueHint::FilePath)]
-    config: Option<PathBuf>,
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
@@ -32,7 +28,6 @@ fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         host,
         port,
         no_watch,
-        config: _,
     } = Cli::parse();
 
     env_logger::builder()
@@ -63,7 +58,6 @@ mod tests {
         assert_eq!(cli.host, "127.0.0.1");
         assert_eq!(cli.port, 7737);
         assert!(!cli.no_watch);
-        assert_eq!(cli.config, None);
     }
 
     #[test]
@@ -75,8 +69,6 @@ mod tests {
             "--port",
             "8080",
             "--no-watch",
-            "--config",
-            "sparqld.toml",
             "fixtures/data",
         ])
         .unwrap();
@@ -85,7 +77,6 @@ mod tests {
         assert_eq!(cli.host, "localhost");
         assert_eq!(cli.port, 8080);
         assert!(cli.no_watch);
-        assert_eq!(cli.config, Some(PathBuf::from("sparqld.toml")));
     }
 
     #[test]
@@ -97,7 +88,6 @@ mod tests {
         assert!(help.contains("--host <HOST>"));
         assert!(help.contains("--port <PORT>"));
         assert!(help.contains("--no-watch"));
-        assert!(help.contains("--config <FILE>"));
     }
 
     #[test]

@@ -1,0 +1,10 @@
+PREFIX schema: <https://schema.org/>
+PREFIX dbp: <http://dbpedia.org/property/>
+
+SELECT ?body ?orbits
+WHERE {
+  ?bodyResource dbp:star ?parent .
+  ?bodyResource schema:name ?body .
+  ?parent schema:name ?orbits .
+}
+ORDER BY ?body

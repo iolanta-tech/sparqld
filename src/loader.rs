@@ -3,14 +3,19 @@ use std::error::Error;
 use std::fs;
 use std::io;
 use std::path::{Component, Path, PathBuf};
+use std::sync::{Arc, Mutex};
 
-use oxigraph::io::{RdfFormat, RdfParser};
-use oxigraph::model::{LiteralRef, NamedNode, NamedNodeRef, Quad, QuadRef, vocab::rdf};
+use oxigraph::io::{JsonLdProfile, JsonLdProfileSet, LoadedDocument, RdfFormat, RdfParser};
+use oxigraph::model::{
+    BlankNode, GraphName, LiteralRef, NamedNode, NamedNodeRef, NamedOrBlankNode, Quad, QuadRef,
+    Term, vocab::rdf,
+};
 use oxigraph::store::Store;
-use percent_encoding::{AsciiSet, CONTROLS, utf8_percent_encode};
-use serde_json::{Map, Value};
+use percent_encoding::{AsciiSet, CONTROLS, percent_decode_str, utf8_percent_encode};
+use serde_json::Value;
 
 type LoadResult<T> = Result<T, Box<dyn Error + Send + Sync>>;
+pub(crate) type ContextDependents = BTreeMap<PathBuf, BTreeSet<PathBuf>>;
 
 const GRAPH_PATH_ENCODE_SET: &AsciiSet = &CONTROLS
     .add(b' ')
@@ -25,6 +30,8 @@ const GRAPH_PATH_ENCODE_SET: &AsciiSet = &CONTROLS
     .add(b'}');
 
 const FILE_CATALOG_GRAPH: NamedNodeRef<'_> = NamedNodeRef::new_unchecked("sparqld:");
+const DOLLAR_CONVENIENCE_CONTEXT_URL: &str =
+    "https://json-ld.org/contexts/dollar-convenience.jsonld";
 
 mod nfo {
     use oxigraph::model::NamedNodeRef;
@@ -63,17 +70,30 @@ mod rlog {
     pub const RESOURCE: NamedNodeRef<'_> = term!("resource");
 }
 
+mod sd {
+    use oxigraph::model::NamedNodeRef;
+
+    macro_rules! term {
+        ($local_name:literal) => {
+            NamedNodeRef::new_unchecked(concat!(
+                "http://www.w3.org/ns/sparql-service-description#",
+                $local_name
+            ))
+        };
+    }
+
+    pub const DATASET: NamedNodeRef<'_> = term!("Dataset");
+    pub const NAME: NamedNodeRef<'_> = term!("name");
+    pub const NAMED_GRAPH: NamedNodeRef<'_> = term!("namedGraph");
+    pub const NAMED_GRAPH_CLASS: NamedNodeRef<'_> = term!("NamedGraph");
+}
+
 #[derive(Clone, Copy)]
 enum SourceFormat {
     Rdf(RdfFormat),
     JsonLd,
     YamlLd,
     Markdown,
-}
-
-struct ContextResolver<'a> {
-    root: &'a Path,
-    cache: HashMap<PathBuf, Option<Value>>,
 }
 
 struct FileCatalog<'a> {
@@ -83,6 +103,7 @@ struct FileCatalog<'a> {
 pub(crate) struct ReloadReport {
     pub(crate) loaded_sources: BTreeSet<PathBuf>,
     pub(crate) load_errors: BTreeMap<PathBuf, String>,
+    pub(crate) context_dependents: ContextDependents,
     pub(crate) updates: Vec<SourceUpdate>,
     pub(crate) failures: Vec<SourceFailure>,
     pub(crate) impacts: BTreeMap<PathBuf, BTreeSet<PathBuf>>,
@@ -91,6 +112,7 @@ pub(crate) struct ReloadReport {
 pub(crate) struct DirectoryLoad {
     pub(crate) loaded_sources: BTreeSet<PathBuf>,
     pub(crate) load_errors: BTreeMap<PathBuf, String>,
+    pub(crate) context_dependents: ContextDependents,
     pub(crate) ignored_files: usize,
 }
 
@@ -128,7 +150,11 @@ impl<'a> FileCatalog<'a> {
         Ok(catalog)
     }
 
-    fn describe_source(&self, relative: &Path) -> LoadResult<()> {
+    fn describe_source(
+        &self,
+        relative: &Path,
+        embedded_graphs: &BTreeSet<NamedNode>,
+    ) -> LoadResult<()> {
         let graph = graph_name(relative)?;
         let container =
             self.describe_directories(relative.parent().unwrap_or_else(|| Path::new("")))?;
@@ -144,7 +170,32 @@ impl<'a> FileCatalog<'a> {
 
         self.insert_type(graph.as_ref(), nfo::FILE_DATA_OBJECT)?;
         self.insert_file_name(graph.as_ref(), file_name)?;
-        self.insert_container(graph.as_ref(), container.as_ref())
+        self.insert_container(graph.as_ref(), container.as_ref())?;
+        if !embedded_graphs.is_empty() {
+            self.insert_type(graph.as_ref(), sd::DATASET)?;
+        }
+        for embedded_graph in embedded_graphs {
+            let description = BlankNode::default();
+            self.dataset.insert(QuadRef::new(
+                graph.as_ref(),
+                sd::NAMED_GRAPH,
+                description.as_ref(),
+                FILE_CATALOG_GRAPH,
+            ))?;
+            self.dataset.insert(QuadRef::new(
+                description.as_ref(),
+                rdf::TYPE,
+                sd::NAMED_GRAPH_CLASS,
+                FILE_CATALOG_GRAPH,
+            ))?;
+            self.dataset.insert(QuadRef::new(
+                description.as_ref(),
+                sd::NAME,
+                embedded_graph.as_ref(),
+                FILE_CATALOG_GRAPH,
+            ))?;
+        }
+        Ok(())
     }
 
     fn describe_load_error(&self, relative: &Path, message: &str) -> LoadResult<()> {
@@ -233,37 +284,6 @@ impl<'a> FileCatalog<'a> {
     }
 }
 
-impl<'a> ContextResolver<'a> {
-    fn new(root: &'a Path) -> Self {
-        Self {
-            root,
-            cache: HashMap::new(),
-        }
-    }
-
-    fn context_for(&mut self, directory: &Path) -> LoadResult<Option<Value>> {
-        if let Some(context) = self.cache.get(directory) {
-            return Ok(context.clone());
-        }
-
-        let context = if let Some(file) = local_context_file(directory) {
-            Some(read_context(&file)?)
-        } else if directory == self.root {
-            None
-        } else {
-            let parent = directory.parent().ok_or_else(|| {
-                io::Error::other(format!(
-                    "directory is outside the served tree: {}",
-                    directory.display()
-                ))
-            })?;
-            self.context_for(parent)?
-        };
-        self.cache.insert(directory.to_owned(), context.clone());
-        Ok(context)
-    }
-}
-
 #[cfg(test)]
 fn load_directory(directory: &Path, dataset: &Store) -> LoadResult<BTreeSet<PathBuf>> {
     Ok(load_directory_with_stats(directory, dataset)?.loaded_sources)
@@ -276,27 +296,27 @@ pub(crate) fn load_directory_with_stats(
     let root = directory.canonicalize()?;
     let mut files = directory_files(&root)?;
     files.sort();
-    let mut contexts = ContextResolver::new(&root);
     let catalog = FileCatalog::new(dataset, &root)?;
 
     let mut loaded_sources = BTreeSet::new();
     let mut load_errors = BTreeMap::new();
+    let mut context_dependents = ContextDependents::new();
     let mut ignored_files = 0;
     for file in &files {
-        if is_context_file(file) {
-            continue;
-        }
         let Some(format) = source_format(file) else {
             ignored_files += 1;
             continue;
         };
         let relative = file.strip_prefix(&root).map_err(io::Error::other)?;
-        match load_file(&root, file, dataset, &mut contexts) {
-            Ok(true) => {
-                catalog.describe_source(relative)?;
+        let mut context_dependencies = BTreeSet::new();
+        let result = load_file(&root, file, dataset, &mut context_dependencies);
+        update_context_dependents(&mut context_dependents, relative, &context_dependencies);
+        match result {
+            Ok(Some(embedded_graphs)) => {
+                catalog.describe_source(relative, &embedded_graphs)?;
                 loaded_sources.insert(relative.to_owned());
             }
-            Ok(false) => ignored_files += 1,
+            Ok(None) => ignored_files += 1,
             Err(error) => {
                 dataset.remove_named_graph(graph_name(relative)?.as_ref())?;
                 let error = error.to_string();
@@ -305,7 +325,7 @@ pub(crate) fn load_directory_with_stats(
                     relative.display(),
                     format.name()
                 );
-                catalog.describe_source(relative)?;
+                catalog.describe_source(relative, &BTreeSet::new())?;
                 catalog.describe_load_error(relative, &error)?;
                 load_errors.insert(relative.to_owned(), error);
             }
@@ -315,6 +335,7 @@ pub(crate) fn load_directory_with_stats(
     Ok(DirectoryLoad {
         loaded_sources,
         load_errors,
+        context_dependents,
         ignored_files,
     })
 }
@@ -324,6 +345,7 @@ pub(crate) fn reload_changed(
     changed_paths: &BTreeSet<PathBuf>,
     loaded_sources: &BTreeSet<PathBuf>,
     load_errors: &BTreeMap<PathBuf, String>,
+    context_dependents: &ContextDependents,
     dataset: &Store,
 ) -> LoadResult<ReloadReport> {
     let root = directory.canonicalize()?;
@@ -333,13 +355,20 @@ pub(crate) fn reload_changed(
         .chain(load_errors.keys())
         .cloned()
         .collect::<BTreeSet<_>>();
-    let impacts = source_impacts(&root, changed_paths, &tracked_sources, &current_sources);
+    let impacts = source_impacts(
+        &root,
+        changed_paths,
+        &tracked_sources,
+        &current_sources,
+        context_dependents,
+    );
     let affected = impacts.values().flatten().cloned().collect::<BTreeSet<_>>();
 
     if affected.is_empty() {
         return Ok(ReloadReport {
             loaded_sources: loaded_sources.clone(),
             load_errors: load_errors.clone(),
+            context_dependents: context_dependents.clone(),
             updates: Vec::new(),
             failures: Vec::new(),
             impacts,
@@ -347,22 +376,32 @@ pub(crate) fn reload_changed(
     }
 
     let staging = Store::new()?;
-    let mut contexts = ContextResolver::new(&root);
     let mut staged_sources = BTreeSet::new();
     let mut failed_sources = BTreeMap::new();
+    let mut next_context_dependents = context_dependents.clone();
     for relative in &affected {
+        let mut context_dependencies = BTreeSet::new();
         if current_sources.contains(relative) {
-            match load_file(&root, &root.join(relative), &staging, &mut contexts) {
-                Ok(true) => {
+            match load_file(
+                &root,
+                &root.join(relative),
+                &staging,
+                &mut context_dependencies,
+            ) {
+                Ok(Some(_)) => {
                     staged_sources.insert(relative.clone());
                 }
-                Ok(false) => {}
+                Ok(None) => {}
                 Err(error) => {
-                    staging.remove_named_graph(graph_name(relative)?.as_ref())?;
                     failed_sources.insert(relative.clone(), error.to_string());
                 }
             }
         }
+        update_context_dependents(
+            &mut next_context_dependents,
+            relative,
+            &context_dependencies,
+        );
     }
 
     let mut next_sources = loaded_sources.clone();
@@ -377,23 +416,26 @@ pub(crate) fn reload_changed(
         }
     }
 
-    let catalog = build_catalog(&root, &next_sources, &next_errors)?;
+    let catalog = build_catalog(&root, &next_sources, &next_errors, |source| {
+        if affected.contains(source) {
+            scoped_graphs_for_source(&staging, source)
+        } else {
+            scoped_graphs_for_source(dataset, source)
+        }
+    })?;
     let staged_quads = collect_quads(&staging)?;
     let catalog_quads = collect_quads(&catalog)?;
     let removed_triples = affected
         .iter()
         .filter(|relative| loaded_sources.contains(*relative) && !next_sources.contains(*relative))
-        .map(|relative| {
-            let graph = graph_name(relative)?;
-            Ok((
-                relative.clone(),
-                graph_triple_count(dataset, graph.as_ref())?,
-            ))
-        })
+        .map(|relative| Ok((relative.clone(), source_triple_count(dataset, relative)?)))
         .collect::<LoadResult<HashMap<_, _>>>()?;
     let mut transaction = dataset.start_transaction()?;
     for relative in &affected {
         transaction.remove_named_graph(graph_name(relative)?.as_ref())?;
+        for graph in scoped_graphs_for_source(dataset, relative)? {
+            transaction.remove_named_graph(graph.as_ref())?;
+        }
     }
     transaction.remove_named_graph(FILE_CATALOG_GRAPH)?;
     for quad in staged_quads.iter().chain(&catalog_quads) {
@@ -408,7 +450,7 @@ pub(crate) fn reload_changed(
             updates.push(SourceUpdate {
                 path: relative.clone(),
                 graph: graph.as_str().to_owned(),
-                triples: graph_triple_count(&staging, graph.as_ref())?,
+                triples: source_triple_count(&staging, relative)?,
                 kind: if loaded_sources.contains(relative) {
                     SourceUpdateKind::Reloaded
                 } else {
@@ -442,6 +484,7 @@ pub(crate) fn reload_changed(
     Ok(ReloadReport {
         loaded_sources: next_sources,
         load_errors: next_errors,
+        context_dependents: next_context_dependents,
         updates,
         failures,
         impacts,
@@ -455,6 +498,15 @@ fn graph_triple_count(dataset: &Store, graph: NamedNodeRef<'_>) -> LoadResult<us
             quad?;
             Ok(count + 1)
         })
+}
+
+fn source_triple_count(dataset: &Store, relative: &Path) -> LoadResult<usize> {
+    let graph = graph_name(relative)?;
+    let embedded_graphs = scoped_graphs_for_source(dataset, relative)?;
+    embedded_graphs.iter().try_fold(
+        graph_triple_count(dataset, graph.as_ref())?,
+        |count, graph| Ok(count + graph_triple_count(dataset, graph.as_ref())?),
+    )
 }
 
 fn source_paths(root: &Path) -> LoadResult<BTreeSet<PathBuf>> {
@@ -473,6 +525,7 @@ fn source_impacts(
     changed_paths: &BTreeSet<PathBuf>,
     loaded_sources: &BTreeSet<PathBuf>,
     current_sources: &BTreeSet<PathBuf>,
+    context_dependents: &ContextDependents,
 ) -> BTreeMap<PathBuf, BTreeSet<PathBuf>> {
     let mut impacts = BTreeMap::new();
     for changed in changed_paths {
@@ -485,16 +538,8 @@ fn source_impacts(
             changed.as_path()
         };
 
-        let mut affected = BTreeSet::new();
-        if is_context_file(changed) {
-            let directory = changed.parent().unwrap_or_else(|| Path::new(""));
-            affected.extend(
-                loaded_sources
-                    .union(current_sources)
-                    .filter(|source| source.starts_with(directory))
-                    .cloned(),
-            );
-        } else if loaded_sources.contains(changed) || current_sources.contains(changed) {
+        let mut affected = context_dependents.get(changed).cloned().unwrap_or_default();
+        if loaded_sources.contains(changed) || current_sources.contains(changed) {
             affected.insert(changed.to_owned());
         } else if root.join(changed).is_dir()
             || loaded_sources
@@ -510,16 +555,41 @@ fn source_impacts(
                     .filter(|source| source.starts_with(changed))
                     .cloned(),
             );
+            affected.extend(
+                context_dependents
+                    .iter()
+                    .filter(|(context, _)| context.starts_with(changed))
+                    .flat_map(|(_, dependents)| dependents)
+                    .cloned(),
+            );
         }
         impacts.insert(changed.to_owned(), affected);
     }
     impacts
 }
 
+fn update_context_dependents(
+    context_dependents: &mut ContextDependents,
+    source: &Path,
+    dependencies: &BTreeSet<PathBuf>,
+) {
+    context_dependents.retain(|_, dependents| {
+        dependents.remove(source);
+        !dependents.is_empty()
+    });
+    for dependency in dependencies {
+        context_dependents
+            .entry(dependency.clone())
+            .or_default()
+            .insert(source.to_owned());
+    }
+}
+
 fn build_catalog(
     root: &Path,
     sources: &BTreeSet<PathBuf>,
     load_errors: &BTreeMap<PathBuf, String>,
+    mut embedded_graphs: impl FnMut(&Path) -> LoadResult<BTreeSet<NamedNode>>,
 ) -> LoadResult<Store> {
     let dataset = Store::new()?;
     let catalog = FileCatalog::new(&dataset, root)?;
@@ -528,12 +598,26 @@ fn build_catalog(
         .chain(load_errors.keys())
         .collect::<BTreeSet<_>>()
     {
-        catalog.describe_source(source)?;
+        catalog.describe_source(source, &embedded_graphs(source)?)?;
     }
     for (source, error) in load_errors {
         catalog.describe_load_error(source, error)?;
     }
     Ok(dataset)
+}
+
+fn scoped_graphs_for_source(dataset: &Store, relative: &Path) -> LoadResult<BTreeSet<NamedNode>> {
+    let prefix = format!("{}#", graph_name(relative)?.as_str());
+    dataset
+        .named_graphs()
+        .filter_map(|graph| match graph {
+            Ok(NamedOrBlankNode::NamedNode(graph)) if graph.as_str().starts_with(&prefix) => {
+                Some(Ok(graph))
+            }
+            Ok(_) => None,
+            Err(error) => Some(Err(error.into())),
+        })
+        .collect()
 }
 
 fn collect_quads(dataset: &Store) -> LoadResult<Vec<Quad>> {
@@ -546,7 +630,7 @@ fn collect_quads(dataset: &Store) -> LoadResult<Vec<Quad>> {
 fn source_files(directory: &Path) -> LoadResult<Vec<PathBuf>> {
     Ok(directory_files(directory)?
         .into_iter()
-        .filter(|path| !is_context_file(path) && source_format(path).is_some())
+        .filter(|path| source_format(path).is_some())
         .collect())
 }
 
@@ -574,46 +658,64 @@ fn load_file(
     root: &Path,
     file: &Path,
     dataset: &Store,
-    contexts: &mut ContextResolver<'_>,
-) -> LoadResult<bool> {
+    context_dependencies: &mut BTreeSet<PathBuf>,
+) -> LoadResult<Option<BTreeSet<NamedNode>>> {
     let format = source_format(file).ok_or_else(|| io::Error::other("unknown RDF format"))?;
     let relative = file.strip_prefix(root).map_err(io::Error::other)?;
     let graph = graph_name(relative)?;
     let base_iri = directory_iri(relative)?;
     let source = fs::read(file)?;
-    let (format, source) = match format {
-        SourceFormat::Rdf(format) => (format, source),
-        SourceFormat::JsonLd => (
-            json_ld_format(),
-            prepare_json_ld(serde_json::from_slice(&source)?, file, contexts)?,
-        ),
-        SourceFormat::YamlLd => (
-            json_ld_format(),
-            prepare_json_ld(parse_yaml_ld(&source)?, file, contexts)?,
-        ),
+    let embedded_graphs = match format {
+        SourceFormat::Rdf(format) => {
+            let parser = RdfParser::from_format(format).with_base_iri(base_iri)?;
+            load_scoped_quads(
+                dataset,
+                parser.for_slice(&source).collect::<Result<Vec<_>, _>>()?,
+                graph,
+            )?
+        }
+        SourceFormat::JsonLd => load_json_ld(
+            root,
+            &source,
+            &base_iri,
+            graph,
+            dataset,
+            context_dependencies,
+        )?,
+        SourceFormat::YamlLd => load_json_ld(
+            root,
+            &serde_json::to_vec(&parse_yaml_ld(&source)?)?,
+            &base_iri,
+            graph,
+            dataset,
+            context_dependencies,
+        )?,
         SourceFormat::Markdown => {
             let Some(front_matter) = markdown_front_matter(&source)? else {
-                return Ok(false);
+                return Ok(None);
             };
-            (
-                json_ld_format(),
-                prepare_json_ld(parse_yaml_ld(front_matter)?, file, contexts)?,
-            )
+            load_json_ld(
+                root,
+                &serde_json::to_vec(&parse_yaml_ld(front_matter)?)?,
+                &base_iri,
+                graph,
+                dataset,
+                context_dependencies,
+            )?
         }
     };
-    let parser = RdfParser::from_format(format)
-        .with_base_iri(base_iri)?
-        .without_named_graphs()
-        .with_default_graph(graph);
-
-    dataset.load_from_slice(parser, &source)?;
-    Ok(true)
+    Ok(Some(embedded_graphs))
 }
 
 fn source_format(path: &Path) -> Option<SourceFormat> {
     let extension = path.extension()?.to_str()?;
     match extension {
-        extension if extension.eq_ignore_ascii_case("jsonld") => Some(SourceFormat::JsonLd),
+        extension
+            if extension.eq_ignore_ascii_case("jsonld")
+                || extension.eq_ignore_ascii_case("json") =>
+        {
+            Some(SourceFormat::JsonLd)
+        }
         extension if extension.eq_ignore_ascii_case("yamlld") => Some(SourceFormat::YamlLd),
         extension if extension.eq_ignore_ascii_case("md") => Some(SourceFormat::Markdown),
         extension => RdfFormat::from_extension(extension).map(SourceFormat::Rdf),
@@ -631,133 +733,199 @@ impl SourceFormat {
     }
 }
 
-fn is_context_file(path: &Path) -> bool {
-    matches!(
-        path.file_name().and_then(|name| name.to_str()),
-        Some("context.jsonld" | "context.yamlld")
+fn load_json_ld(
+    root: &Path,
+    source: &[u8],
+    base_iri: &str,
+    graph: NamedNode,
+    dataset: &Store,
+    dependencies: &mut BTreeSet<PathBuf>,
+) -> LoadResult<BTreeSet<NamedNode>> {
+    let root = root.to_owned();
+    let loaded_contexts = Arc::new(Mutex::new(BTreeSet::new()));
+    let context_dependencies = Arc::clone(&loaded_contexts);
+    let parser = RdfParser::from_format(RdfFormat::JsonLd {
+        profile: JsonLdProfileSet::empty(),
+    })
+    .with_base_iri(base_iri)?;
+    let result = (|| {
+        let quads = parser
+            .for_slice(source)
+            .with_document_loader(move |url| {
+                load_context_document(&root, url, Some(&context_dependencies))
+            })
+            .collect::<Result<Vec<_>, _>>()?;
+        load_scoped_quads(dataset, quads, graph)
+    })();
+    dependencies.extend(
+        loaded_contexts
+            .lock()
+            .map_err(|error| io::Error::other(error.to_string()))?
+            .iter()
+            .cloned(),
+    );
+    result
+}
+
+fn load_scoped_quads(
+    dataset: &Store,
+    mut quads: Vec<Quad>,
+    source_graph: NamedNode,
+) -> LoadResult<BTreeSet<NamedNode>> {
+    let mut scoped_graphs = HashMap::new();
+    for quad in &quads {
+        if !quad.graph_name.is_default_graph() {
+            let graph_name = quad.graph_name.clone();
+            scoped_graphs
+                .entry(graph_name.clone())
+                .or_insert(scoped_graph_name(&source_graph, &graph_name)?);
+        }
+    }
+
+    for quad in &mut quads {
+        *quad = scope_quad(quad.clone(), &source_graph, &scoped_graphs);
+        dataset.insert(quad.as_ref())?;
+    }
+
+    Ok(scoped_graphs.into_values().collect())
+}
+
+fn scoped_graph_name(source_graph: &NamedNode, graph_name: &GraphName) -> LoadResult<NamedNode> {
+    let embedded_name = match graph_name {
+        GraphName::NamedNode(node) => node.as_str().to_owned(),
+        GraphName::BlankNode(node) => format!("_:{}", node.as_str()),
+        GraphName::DefaultGraph => unreachable!("default graphs are not scoped"),
+    };
+    Ok(NamedNode::new(format!(
+        "{}#{embedded_name}",
+        source_graph.as_str()
+    ))?)
+}
+
+fn scope_quad(
+    quad: Quad,
+    source_graph: &NamedNode,
+    scoped_graphs: &HashMap<GraphName, NamedNode>,
+) -> Quad {
+    let map_named_or_blank = |term: NamedOrBlankNode| -> NamedOrBlankNode {
+        match term {
+            NamedOrBlankNode::NamedNode(node) => scoped_graphs
+                .get(&GraphName::NamedNode(node.clone()))
+                .cloned()
+                .map(NamedOrBlankNode::from)
+                .unwrap_or_else(|| NamedOrBlankNode::from(node)),
+            NamedOrBlankNode::BlankNode(node) => scoped_graphs
+                .get(&GraphName::BlankNode(node.clone()))
+                .cloned()
+                .map(NamedOrBlankNode::from)
+                .unwrap_or_else(|| NamedOrBlankNode::from(node)),
+        }
+    };
+    let map_term = |term: Term| -> Term {
+        match term {
+            Term::NamedNode(node) => scoped_graphs
+                .get(&GraphName::NamedNode(node.clone()))
+                .cloned()
+                .map(Term::from)
+                .unwrap_or_else(|| Term::from(node)),
+            Term::BlankNode(node) => scoped_graphs
+                .get(&GraphName::BlankNode(node.clone()))
+                .cloned()
+                .map(Term::from)
+                .unwrap_or_else(|| Term::from(node)),
+            Term::Literal(literal) => Term::from(literal),
+        }
+    };
+    let predicate = scoped_graphs
+        .get(&GraphName::NamedNode(quad.predicate.clone()))
+        .cloned()
+        .unwrap_or(quad.predicate);
+    let graph_name: GraphName = match quad.graph_name {
+        GraphName::DefaultGraph => source_graph.clone().into(),
+        graph_name => scoped_graphs[&graph_name].clone().into(),
+    };
+    Quad::new(
+        map_named_or_blank(quad.subject),
+        predicate,
+        map_term(quad.object),
+        graph_name,
     )
 }
 
-fn local_context_file(directory: &Path) -> Option<PathBuf> {
-    let json = directory.join("context.jsonld");
-    if json.is_file() {
-        return Some(json);
+fn load_context_document(
+    root: &Path,
+    url: &str,
+    dependencies: Option<&Mutex<BTreeSet<PathBuf>>>,
+) -> LoadResult<LoadedDocument> {
+    if url == DOLLAR_CONVENIENCE_CONTEXT_URL {
+        return Ok(LoadedDocument {
+            url: url.into(),
+            content: include_bytes!("loader/contexts/dollar-convenience.jsonld").to_vec(),
+            format: context_format(),
+        });
     }
-    let yaml = directory.join("context.yamlld");
-    yaml.is_file().then_some(yaml)
-}
 
-fn read_context(path: &Path) -> LoadResult<Value> {
-    let source = fs::read(path)?;
-    let document: Value = match path.extension().and_then(|extension| extension.to_str()) {
-        Some(extension) if extension.eq_ignore_ascii_case("jsonld") => {
-            serde_json::from_slice(&source)?
+    let relative = local_context_relative(url)?;
+    if let Some(dependencies) = dependencies {
+        dependencies
+            .lock()
+            .map_err(|error| io::Error::other(error.to_string()))?
+            .insert(relative.clone());
+    }
+    let path = local_context_path(root, &relative, url)?;
+    let content = match path.extension().and_then(|extension| extension.to_str()) {
+        Some(extension) if extension.eq_ignore_ascii_case("jsonld") => fs::read(&path)?,
+        Some(extension) if extension.eq_ignore_ascii_case("yamlld") => {
+            serde_json::to_vec(&parse_yaml_ld(&fs::read(&path)?)?)?
         }
-        Some(extension) if extension.eq_ignore_ascii_case("yamlld") => parse_yaml_ld(&source)?,
-        _ => return Err(io::Error::other("unknown context format").into()),
+        _ => {
+            return Err(
+                io::Error::other(format!("unsupported local context format: {url}")).into(),
+            );
+        }
     };
-    let Value::Object(mut document) = document else {
-        return Err(io::Error::new(
-            io::ErrorKind::InvalidData,
-            format!("context document must be an object: {}", path.display()),
-        )
-        .into());
-    };
-    document.remove("@context").ok_or_else(|| {
-        io::Error::new(
-            io::ErrorKind::InvalidData,
-            format!("context document has no @context: {}", path.display()),
-        )
-        .into()
+    Ok(LoadedDocument {
+        url: url.into(),
+        content,
+        format: context_format(),
     })
 }
 
-fn prepare_json_ld(
-    document: Value,
-    file: &Path,
-    contexts: &mut ContextResolver<'_>,
-) -> LoadResult<Vec<u8>> {
-    let context = contexts.context_for(
-        file.parent()
-            .ok_or_else(|| io::Error::other("source file has no parent directory"))?,
-    )?;
-    Ok(serde_json::to_vec(&apply_context(document, context))?)
-}
-
-fn apply_context(document: Value, inherited: Option<Value>) -> Value {
-    match document {
-        Value::Object(mut document) => {
-            let mut contexts = vec![dollar_convenience_context()];
-            if let Some(inherited) = inherited {
-                append_context(&mut contexts, inherited);
-            }
-            if let Some(local) = document.remove("@context") {
-                append_context(&mut contexts, local);
-            }
-            document.insert("@context".into(), Value::Array(contexts));
-            Value::Object(document)
-        }
-        Value::Array(graph) => {
-            let mut contexts = vec![dollar_convenience_context()];
-            if let Some(inherited) = inherited {
-                append_context(&mut contexts, inherited);
-            }
-            Value::Object(Map::from_iter([
-                ("@context".into(), Value::Array(contexts)),
-                ("@graph".into(), Value::Array(graph)),
-            ]))
-        }
-        document => document,
-    }
-}
-
-fn dollar_convenience_context() -> Value {
-    serde_json::json!({
-        "$always": "@always",
-        "$base": "@base",
-        "$container": "@container",
-        "$direction": "@direction",
-        "$embed": "@embed",
-        "$explicit": "@explicit",
-        "$graph": "@graph",
-        "$id": "@id",
-        "$import": "@import",
-        "$included": "@included",
-        "$index": "@index",
-        "$json": "@json",
-        "$language": "@language",
-        "$list": "@list",
-        "$nest": "@nest",
-        "$never": "@never",
-        "$none": "@none",
-        "$null": "@null",
-        "$omitDefault": "@omitDefault",
-        "$once": "@once",
-        "$prefix": "@prefix",
-        "$propagate": "@propagate",
-        "$protected": "@protected",
-        "$requireAll": "@requireAll",
-        "$reverse": "@reverse",
-        "$set": "@set",
-        "$type": "@type",
-        "$value": "@value",
-        "$version": "@version",
-        "$vocab": "@vocab"
-    })
-}
-
-fn append_context(contexts: &mut Vec<Value>, context: Value) {
-    if let Value::Array(entries) = context {
-        contexts.extend(entries);
-    } else {
-        contexts.push(context);
-    }
-}
-
-fn json_ld_format() -> RdfFormat {
+fn context_format() -> RdfFormat {
     RdfFormat::JsonLd {
-        profile: oxigraph::io::JsonLdProfileSet::empty(),
+        profile: JsonLdProfile::Context.into(),
     }
+}
+
+fn local_context_relative(url: &str) -> LoadResult<PathBuf> {
+    let relative = url
+        .strip_prefix("sparqld:")
+        .ok_or_else(|| io::Error::other(format!("context URL is not supported: {url}")))?;
+    let relative = percent_decode_str(relative)
+        .decode_utf8()
+        .map_err(|_| io::Error::other(format!("context URL is not UTF-8: {url}")))?;
+    let relative = Path::new(relative.as_ref());
+    if relative.components().any(|component| {
+        matches!(
+            component,
+            Component::ParentDir | Component::RootDir | Component::Prefix(_)
+        )
+    }) {
+        return Err(
+            io::Error::other(format!("context is outside the served directory: {url}")).into(),
+        );
+    }
+    Ok(relative.to_owned())
+}
+
+fn local_context_path(root: &Path, relative: &Path, url: &str) -> LoadResult<PathBuf> {
+    let path = root.join(relative).canonicalize()?;
+    if !path.starts_with(root) {
+        return Err(
+            io::Error::other(format!("context is outside the served directory: {url}")).into(),
+        );
+    }
+    Ok(path)
 }
 
 fn parse_yaml_ld(source: &[u8]) -> LoadResult<Value> {
@@ -824,7 +992,6 @@ fn path_iri(relative: &Path, directory: bool) -> LoadResult<String> {
 mod tests {
     use super::*;
     use oxigraph::model::{LiteralRef, NamedNodeRef, QuadRef};
-    use serde_json::json;
 
     #[test]
     fn loads_each_source_file_into_a_relative_path_graph() {
@@ -876,7 +1043,187 @@ mod tests {
     }
 
     #[test]
-    fn counts_ignored_files_but_not_dedicated_contexts() {
+    fn scopes_named_graphs_and_rewrites_their_references() {
+        let directory = tempfile::tempdir().unwrap();
+        fs::write(
+            directory.path().join("dataset.trig"),
+            "@prefix ex: <urn:> .\nex:graph { ex:head ex:links ex:graph . }",
+        )
+        .unwrap();
+        fs::write(
+            directory.path().join("dataset.nq"),
+            "<urn:head> <urn:links> <urn:graph> <urn:graph> .",
+        )
+        .unwrap();
+        fs::write(
+            directory.path().join("dataset.jsonld"),
+            r#"{
+                "@context": {"links": {"@id": "urn:links", "@type": "@id"}},
+                "@graph": [{
+                    "@id": "urn:graph",
+                    "@graph": [{"@id": "urn:head", "links": "urn:graph"}]
+                }]
+            }"#,
+        )
+        .unwrap();
+        fs::write(
+            directory.path().join("nanopublication.yamlld"),
+            include_str!("loader/fixtures/nanopublication.yamlld"),
+        )
+        .unwrap();
+        let dataset = Store::new().unwrap();
+
+        let load = load_directory_with_stats(directory.path(), &dataset).unwrap();
+
+        assert!(
+            load.load_errors.is_empty(),
+            "load errors: {:?}",
+            load.load_errors
+        );
+        for source in ["dataset.trig", "dataset.nq", "dataset.jsonld"] {
+            let graph = NamedNode::new(format!("sparqld:{source}#urn:graph")).unwrap();
+            let source_graph = NamedNode::new(format!("sparqld:{source}")).unwrap();
+            assert!(
+                dataset
+                    .contains(QuadRef::new(
+                        NamedNodeRef::new("urn:head").unwrap(),
+                        NamedNodeRef::new("urn:links").unwrap(),
+                        graph.as_ref(),
+                        graph.as_ref(),
+                    ))
+                    .unwrap()
+            );
+            assert!(
+                dataset
+                    .contains(QuadRef::new(
+                        source_graph.as_ref(),
+                        rdf::TYPE,
+                        sd::DATASET,
+                        FILE_CATALOG_GRAPH,
+                    ))
+                    .unwrap()
+            );
+            let descriptions = dataset
+                .quads_for_pattern(
+                    Some(source_graph.as_ref().into()),
+                    Some(sd::NAMED_GRAPH.into()),
+                    None,
+                    Some(FILE_CATALOG_GRAPH.into()),
+                )
+                .collect::<Result<Vec<_>, _>>()
+                .unwrap();
+            assert_eq!(descriptions.len(), 1);
+            let description = match &descriptions[0].object {
+                Term::NamedNode(node) => NamedOrBlankNode::from(node.clone()),
+                Term::BlankNode(node) => NamedOrBlankNode::from(node.clone()),
+                Term::Literal(_) => panic!("named graph description is a literal"),
+            };
+            assert!(
+                dataset
+                    .contains(QuadRef::new(
+                        description.as_ref(),
+                        rdf::TYPE,
+                        sd::NAMED_GRAPH_CLASS,
+                        FILE_CATALOG_GRAPH,
+                    ))
+                    .unwrap()
+            );
+            assert!(
+                dataset
+                    .contains(QuadRef::new(
+                        description.as_ref(),
+                        sd::NAME,
+                        graph.as_ref(),
+                        FILE_CATALOG_GRAPH,
+                    ))
+                    .unwrap()
+            );
+        }
+
+        let nanopublication = NamedNode::new("http://purl.org/nanopub/temp/np/").unwrap();
+        let assertion = NamedNode::new(
+            "sparqld:nanopublication.yamlld#http://purl.org/nanopub/temp/np/assertion",
+        )
+        .unwrap();
+        let head =
+            NamedNode::new("sparqld:nanopublication.yamlld#http://purl.org/nanopub/temp/np/Head")
+                .unwrap();
+        assert!(
+            dataset
+                .contains(QuadRef::new(
+                    nanopublication.as_ref(),
+                    NamedNodeRef::new("http://www.nanopub.org/nschema#hasAssertion").unwrap(),
+                    assertion.as_ref(),
+                    head.as_ref(),
+                ))
+                .unwrap()
+        );
+    }
+
+    #[test]
+    fn removes_scoped_graphs_when_a_source_is_deleted() {
+        let directory = tempfile::tempdir().unwrap();
+        let source = directory.path().join("dataset.nq");
+        fs::write(&source, "<urn:head> <urn:links> <urn:graph> <urn:graph> .").unwrap();
+        let dataset = Store::new().unwrap();
+        let load = load_directory_with_stats(directory.path(), &dataset).unwrap();
+        let scoped = NamedNodeRef::new("sparqld:dataset.nq#urn:graph").unwrap();
+        assert!(dataset.contains_named_graph(scoped).unwrap());
+
+        fs::remove_file(&source).unwrap();
+        reload_changed(
+            directory.path(),
+            &BTreeSet::from([source]),
+            &load.loaded_sources,
+            &load.load_errors,
+            &load.context_dependents,
+            &dataset,
+        )
+        .unwrap();
+
+        assert!(!dataset.contains_named_graph(scoped).unwrap());
+    }
+
+    #[test]
+    fn replaces_scoped_graphs_when_a_source_changes() {
+        let directory = tempfile::tempdir().unwrap();
+        let source = directory.path().join("dataset.nq");
+        fs::write(
+            &source,
+            "<urn:head> <urn:links> <urn:old-graph> <urn:old-graph> .",
+        )
+        .unwrap();
+        let dataset = Store::new().unwrap();
+        let load = load_directory_with_stats(directory.path(), &dataset).unwrap();
+        let old_graph = NamedNodeRef::new("sparqld:dataset.nq#urn:old-graph").unwrap();
+
+        fs::write(
+            &source,
+            "<urn:head> <urn:links> <urn:new-graph> <urn:new-graph> .",
+        )
+        .unwrap();
+        reload_changed(
+            directory.path(),
+            &BTreeSet::from([source]),
+            &load.loaded_sources,
+            &load.load_errors,
+            &load.context_dependents,
+            &dataset,
+        )
+        .unwrap();
+
+        assert!(!dataset.contains_named_graph(old_graph).unwrap());
+        assert!(
+            dataset
+                .contains_named_graph(
+                    NamedNodeRef::new("sparqld:dataset.nq#urn:new-graph").unwrap(),
+                )
+                .unwrap()
+        );
+    }
+
+    #[test]
+    fn counts_ignored_files_and_loads_context_documents_as_sources() {
         let directory = tempfile::tempdir().unwrap();
         fs::write(
             directory.path().join("context.yamlld"),
@@ -885,7 +1232,7 @@ mod tests {
         .unwrap();
         fs::write(
             directory.path().join("source.yamlld"),
-            "'@id': urn:subject\nvalue: object\n",
+            "'@context': context.yamlld\n'@id': urn:subject\nvalue: object\n",
         )
         .unwrap();
         fs::write(directory.path().join("notes.md"), "# No front matter\n").unwrap();
@@ -894,7 +1241,7 @@ mod tests {
 
         let load = load_directory_with_stats(directory.path(), &dataset).unwrap();
 
-        assert_eq!(load.loaded_sources.len(), 1);
+        assert_eq!(load.loaded_sources.len(), 2);
         assert_eq!(load.ignored_files, 2);
     }
 
@@ -967,33 +1314,23 @@ mod tests {
     }
 
     #[test]
-    fn rejects_remote_and_local_context_references() {
-        for context in [
-            "https://example.org/context.jsonld",
-            "shared-context.jsonld",
-        ] {
-            let directory = tempfile::tempdir().unwrap();
-            fs::write(
-                directory.path().join("source.jsonld"),
-                format!(r#"{{"@context":"{context}","@id":"urn:subject","name":"Alice"}}"#),
-            )
-            .unwrap();
-            let dataset = Store::new().unwrap();
+    fn rejects_unregistered_context_urls() {
+        let directory = tempfile::tempdir().unwrap();
+        fs::write(
+            directory.path().join("source.jsonld"),
+            r#"{"@context":"https://example.org/context.jsonld","@id":"urn:subject","name":"Alice"}"#,
+        )
+        .unwrap();
+        let dataset = Store::new().unwrap();
 
-            let load = load_directory_with_stats(directory.path(), &dataset).unwrap();
+        let load = load_directory_with_stats(directory.path(), &dataset).unwrap();
 
-            assert!(load.loaded_sources.is_empty());
-            let error = &load.load_errors[Path::new("source.jsonld")];
-            assert!(
-                error.contains("No LoadDocumentCallback has been set"),
-                "unexpected error for {context}: {error}"
-            );
-            assert!(
-                !dataset
-                    .contains_named_graph(NamedNodeRef::new("sparqld:source.jsonld").unwrap())
-                    .unwrap()
-            );
-        }
+        assert!(load.loaded_sources.is_empty());
+        let error = &load.load_errors[Path::new("source.jsonld")];
+        assert!(
+            error.contains("context URL is not supported"),
+            "unexpected error: {error}"
+        );
     }
 
     #[test]
@@ -1085,6 +1422,7 @@ mod tests {
             &BTreeSet::from([first]),
             &loaded_sources,
             &BTreeMap::new(),
+            &ContextDependents::new(),
             &dataset,
         )
         .unwrap();
@@ -1130,6 +1468,7 @@ mod tests {
             &BTreeSet::from([source.clone()]),
             &load.loaded_sources,
             &load.load_errors,
+            &load.context_dependents,
             &dataset,
         )
         .unwrap();
@@ -1158,6 +1497,7 @@ mod tests {
             &BTreeSet::from([source]),
             &failed.loaded_sources,
             &failed.load_errors,
+            &failed.context_dependents,
             &dataset,
         )
         .unwrap();
@@ -1204,6 +1544,7 @@ mod tests {
             &BTreeSet::from([source]),
             &loaded_sources,
             &BTreeMap::new(),
+            &ContextDependents::new(),
             &dataset,
         )
         .unwrap();
@@ -1230,6 +1571,7 @@ mod tests {
             &BTreeSet::from([source]),
             &loaded_sources,
             &BTreeMap::new(),
+            &ContextDependents::new(),
             &dataset,
         )
         .unwrap();
@@ -1257,119 +1599,118 @@ mod tests {
     }
 
     #[test]
-    fn reloads_a_contexts_descendant_sources() {
+    fn loads_relative_contexts_and_context_imports() {
         let directory = tempfile::tempdir().unwrap();
-        let nested = directory.path().join("nested");
-        fs::create_dir(&nested).unwrap();
-        let context = nested.join("context.yamlld");
-        let source = nested.join("source.yamlld");
-        let unrelated = directory.path().join("unrelated.ttl");
-        fs::write(&context, "'@context':\n  value: urn:old-predicate\n").unwrap();
-        fs::write(&source, "'@id': urn:subject\nvalue: object\n").unwrap();
-        fs::write(&unrelated, "<urn:other> <urn:value> <urn:preserved> .").unwrap();
+        fs::write(
+            directory.path().join("context.jsonld"),
+            r#"{"@context":{"@version":1.1,"@import":"terms.jsonld"}}"#,
+        )
+        .unwrap();
+        fs::write(
+            directory.path().join("terms.jsonld"),
+            r#"{"@context":{"name":"urn:name"}}"#,
+        )
+        .unwrap();
+        fs::write(
+            directory.path().join("source.json"),
+            r#"{
+                "@context": "context.jsonld",
+                "@id": "urn:subject",
+                "name": "Alice"
+            }"#,
+        )
+        .unwrap();
         let dataset = Store::new().unwrap();
-        let loaded_sources = load_directory(directory.path(), &dataset).unwrap();
 
-        fs::write(&context, "'@context':\n  value: urn:new-predicate\n").unwrap();
-        fs::write(&unrelated, "this unrelated source is now invalid").unwrap();
+        let load = load_directory_with_stats(directory.path(), &dataset).unwrap();
+
+        assert!(
+            load.load_errors.is_empty(),
+            "load errors: {:?}",
+            load.load_errors
+        );
+        let graph = NamedNodeRef::new("sparqld:source.json").unwrap();
+        assert!(
+            dataset
+                .contains(QuadRef::new(
+                    NamedNodeRef::new("urn:subject").unwrap(),
+                    NamedNodeRef::new("urn:name").unwrap(),
+                    LiteralRef::new_simple_literal("Alice"),
+                    graph,
+                ))
+                .unwrap()
+        );
+    }
+
+    #[test]
+    fn reloads_sources_when_a_declared_context_or_its_import_changes() {
+        let directory = tempfile::tempdir().unwrap();
+        let contexts = directory.path().join("contexts/astronomy");
+        fs::create_dir_all(&contexts).unwrap();
+        let terms = contexts.join("terms.yamlld");
+        let context = directory.path().join("main.jsonld");
+        let source = directory.path().join("source.jsonld");
+        fs::write(&terms, "'@context':\n  value: urn:old-predicate\n").unwrap();
+        fs::write(
+            &context,
+            r#"{"@context":{"@version":1.1,"@import":"contexts/astronomy/terms.yamlld"}}"#,
+        )
+        .unwrap();
+        fs::write(
+            &source,
+            r#"{"@context":"main.jsonld","@id":"urn:subject","value":"object"}"#,
+        )
+        .unwrap();
+        let dataset = Store::new().unwrap();
+
+        let load = load_directory_with_stats(directory.path(), &dataset).unwrap();
+        let terms_relative = PathBuf::from("contexts/astronomy/terms.yamlld");
+        assert!(load.context_dependents[&terms_relative].contains(Path::new("source.jsonld")));
+
+        fs::write(&terms, "'@context':\n  value: urn:new-predicate\n").unwrap();
         let report = reload_changed(
             directory.path(),
-            &BTreeSet::from([context]),
-            &loaded_sources,
-            &BTreeMap::new(),
+            &BTreeSet::from([terms]),
+            &load.loaded_sources,
+            &load.load_errors,
+            &load.context_dependents,
             &dataset,
         )
         .unwrap();
 
-        assert_eq!(report.updates.len(), 1);
-        assert_eq!(report.updates[0].kind, SourceUpdateKind::Reloaded);
-        assert_eq!(report.loaded_sources.len(), 2);
+        assert!(
+            report
+                .updates
+                .iter()
+                .any(|update| update.path == Path::new("source.jsonld"))
+        );
         assert!(
             dataset
                 .contains(QuadRef::new(
                     NamedNodeRef::new("urn:subject").unwrap(),
                     NamedNodeRef::new("urn:new-predicate").unwrap(),
                     LiteralRef::new_simple_literal("object"),
-                    NamedNodeRef::new("sparqld:nested/source.yamlld").unwrap(),
-                ))
-                .unwrap()
-        );
-        assert!(
-            dataset
-                .contains(QuadRef::new(
-                    NamedNodeRef::new("urn:other").unwrap(),
-                    NamedNodeRef::new("urn:value").unwrap(),
-                    NamedNodeRef::new("urn:preserved").unwrap(),
-                    NamedNodeRef::new("sparqld:unrelated.ttl").unwrap(),
+                    NamedNodeRef::new("sparqld:source.jsonld").unwrap(),
                 ))
                 .unwrap()
         );
     }
 
     #[test]
-    fn inherits_the_nearest_directory_context() {
-        let root = Path::new("docs").canonicalize().unwrap();
-        let mut contexts = ContextResolver::new(&root);
-
-        let context = contexts
-            .context_for(&root.join("project/decisions/nested"))
-            .unwrap()
-            .unwrap();
-
-        assert_eq!(context["title"], "schema:name");
-    }
-
-    #[test]
-    fn prefers_json_contexts() {
-        let directory = tempfile::tempdir().unwrap();
-        fs::write(
-            directory.path().join("context.yamlld"),
-            "\"@context\": {}\n",
-        )
-        .unwrap();
-        fs::write(
-            directory.path().join("context.jsonld"),
-            "{\"@context\": {}}\n",
-        )
-        .unwrap();
-
-        assert_eq!(
-            local_context_file(directory.path()).unwrap(),
-            directory.path().join("context.jsonld")
-        );
-    }
-
-    #[test]
-    fn applies_local_context_after_the_inherited_context() {
-        let document = json!({
-            "@context": {"name": "urn:local-name"},
-            "name": "Alpha Centauri"
-        });
-        let inherited = json!({"name": "https://schema.org/name"});
-
-        let document = apply_context(document, Some(inherited));
-
-        assert_eq!(
-            document["@context"],
-            json!([
-                dollar_convenience_context(),
-                {"name": "https://schema.org/name"},
-                {"name": "urn:local-name"}
-            ])
-        );
-    }
-
-    #[test]
-    fn enables_dollar_keywords_without_an_explicit_context() {
+    fn only_enables_dollar_keywords_with_the_explicit_context_url() {
         let directory = tempfile::tempdir().unwrap();
         fs::write(
             directory.path().join("source.yamlld"),
-            "$id: urn:yaml-subject\n$type: urn:Type\nurn:value: YAML-LD\n",
+            format!(
+                "'@context': {DOLLAR_CONVENIENCE_CONTEXT_URL}\n$id: urn:yaml-subject\n$type: urn:Type\nurn:value: YAML-LD\n"
+            ),
         )
         .unwrap();
         fs::write(
             directory.path().join("source.jsonld"),
-            r#"{"$id":"urn:json-subject","$type":"urn:Type","urn:value":"JSON-LD"}"#,
+            format!(
+                r#"{{"@context":"{DOLLAR_CONVENIENCE_CONTEXT_URL}","$id":"urn:json-subject","$type":"urn:Type","urn:value":"JSON-LD"}}"#
+            ),
         )
         .unwrap();
         let dataset = Store::new().unwrap();
@@ -1398,6 +1739,52 @@ mod tests {
                     .unwrap()
             );
         }
+    }
+
+    #[test]
+    fn does_not_apply_directory_contexts_implicitly() {
+        let directory = tempfile::tempdir().unwrap();
+        fs::write(
+            directory.path().join("context.jsonld"),
+            r#"{"@context":{"name":"urn:name"}}"#,
+        )
+        .unwrap();
+        fs::write(
+            directory.path().join("source.jsonld"),
+            r#"{"@id":"urn:subject","name":"Alice"}"#,
+        )
+        .unwrap();
+        let dataset = Store::new().unwrap();
+
+        let load = load_directory_with_stats(directory.path(), &dataset).unwrap();
+
+        assert!(
+            load.load_errors.is_empty(),
+            "load errors: {:?}",
+            load.load_errors
+        );
+        assert!(
+            !dataset
+                .contains(QuadRef::new(
+                    NamedNodeRef::new("urn:subject").unwrap(),
+                    NamedNodeRef::new("urn:name").unwrap(),
+                    LiteralRef::new_simple_literal("Alice"),
+                    NamedNodeRef::new("sparqld:source.jsonld").unwrap(),
+                ))
+                .unwrap()
+        );
+    }
+
+    #[test]
+    fn forbids_context_paths_outside_the_served_directory() {
+        let directory = tempfile::tempdir().unwrap();
+        let root = directory.path().join("data");
+        fs::create_dir(&root).unwrap();
+        fs::write(directory.path().join("outside.jsonld"), "{}").unwrap();
+
+        let error = local_context_relative("sparqld:../outside.jsonld").unwrap_err();
+
+        assert!(error.to_string().contains("outside the served directory"));
     }
 
     #[test]

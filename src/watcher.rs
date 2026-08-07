@@ -100,9 +100,19 @@ impl DirectoryWatcher {
         let stats = load.stats();
         let loaded_sources = load.loaded_sources;
         let load_errors = load.load_errors;
+        let context_dependents = load.context_dependents;
         let worker = thread::Builder::new()
             .name("sparqld-watcher".into())
-            .spawn(move || watch(events, directory, dataset, loaded_sources, load_errors))?;
+            .spawn(move || {
+                watch(
+                    events,
+                    directory,
+                    dataset,
+                    loaded_sources,
+                    load_errors,
+                    context_dependents,
+                )
+            })?;
 
         Ok((
             Self {
@@ -131,6 +141,7 @@ fn watch(
     dataset: SharedDataset,
     mut loaded_sources: BTreeSet<PathBuf>,
     mut load_errors: BTreeMap<PathBuf, String>,
+    mut context_dependents: loader::ContextDependents,
 ) {
     let mut reload_at: Option<Instant> = None;
     let mut changed_paths = BTreeMap::new();
@@ -146,6 +157,7 @@ fn watch(
                         &dataset,
                         &mut loaded_sources,
                         &mut load_errors,
+                        &mut context_dependents,
                     );
                     changed_paths.clear();
                     reload_at = None;
@@ -258,6 +270,7 @@ fn reload(
     dataset: &SharedDataset,
     loaded_sources: &mut BTreeSet<PathBuf>,
     load_errors: &mut BTreeMap<PathBuf, String>,
+    context_dependents: &mut loader::ContextDependents,
 ) {
     let path_set = changed_paths.keys().cloned().collect::<BTreeSet<_>>();
     let paths = format_changed_paths(directory, &path_set);
@@ -268,13 +281,21 @@ fn reload(
             return;
         }
     };
-    match loader::reload_changed(directory, &path_set, loaded_sources, load_errors, &dataset) {
+    match loader::reload_changed(
+        directory,
+        &path_set,
+        loaded_sources,
+        load_errors,
+        context_dependents,
+        &dataset,
+    ) {
         Ok(report) => {
             for message in reload_messages(directory, changed_paths, &report) {
                 log::info!("{message}");
             }
             *loaded_sources = report.loaded_sources;
             *load_errors = report.load_errors;
+            *context_dependents = report.context_dependents;
         }
         Err(error) => log::error!(
             "Could not reload {paths}: {error}; continuing to serve the previous dataset"
@@ -500,6 +521,7 @@ mod tests {
                 PathBuf::from("index.md"),
             ]),
             load_errors: BTreeMap::new(),
+            context_dependents: BTreeMap::new(),
             updates: vec![
                 loader::SourceUpdate {
                     path: PathBuf::from("foo.yamlld"),
@@ -556,6 +578,7 @@ mod tests {
         let report = loader::ReloadReport {
             loaded_sources: BTreeSet::new(),
             load_errors: BTreeMap::from([(PathBuf::from("broken.xml"), error.to_owned())]),
+            context_dependents: BTreeMap::new(),
             updates: vec![loader::SourceUpdate {
                 path: PathBuf::from("broken.xml"),
                 graph: "sparqld:broken.xml".to_owned(),
@@ -596,6 +619,7 @@ mod tests {
         let report = loader::ReloadReport {
             loaded_sources: BTreeSet::new(),
             load_errors: BTreeMap::new(),
+            context_dependents: BTreeMap::new(),
             updates: Vec::new(),
             failures: Vec::new(),
             impacts: BTreeMap::from([(
@@ -640,6 +664,7 @@ mod tests {
                 PathBuf::from("conversations/user.txt"),
                 error.to_owned(),
             )]),
+            context_dependents: BTreeMap::new(),
             updates: Vec::new(),
             failures: vec![loader::SourceFailure {
                 path: PathBuf::from("conversations/user.txt"),

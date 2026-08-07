@@ -1,10 +1,14 @@
 PREFIX nfo: <http://www.semanticdesktop.org/ontologies/2007/03/22/nfo#>
+PREFIX sd: <http://www.w3.org/ns/sparql-service-description#>
 
-SELECT ?file ?name ?directory
+SELECT ?file ?name ?directory ?graph
 WHERE {
   GRAPH <sparqld:> {
     ?file a nfo:FileDataObject ;
           nfo:fileName ?name ;
           nfo:belongsToContainer ?directory .
+    OPTIONAL {
+      ?file sd:namedGraph [ sd:name ?graph ] .
+    }
   }
 }

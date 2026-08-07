@@ -10,12 +10,12 @@ icon: material/source-repository
 hide: [toc]
 name: sparqld project
 title: Project
-description: Architecture decisions and development documentation for sparqld.
+description: Release, source, licensing, and development information for sparqld.
 ---
 
 # :material-source-repository: Project
 
-Development documentation for `sparqld`.
+`sparqld` 0.1.1 is an early release for local, file-backed SPARQL access.
 
 <div class="grid cards" markdown>
 
@@ -26,5 +26,31 @@ Development documentation for `sparqld`.
     Review the decisions that shape the project.
 
     [:octicons-arrow-right-24: Decisions](decisions/implement-sparqld-in.md)
+
+-   :material-tag-outline:{ .lg .middle } **Release and requirements**
+
+    ---
+
+    Version 0.1.1 · Rust 1.87 or later with Cargo
+
+-   :material-source-repository:{ .lg .middle } **Source and issues**
+
+    ---
+
+    [:fontawesome-brands-github: Repository](https://github.com/iolanta-tech/sparqld) ·
+    [:octicons-issue-opened-24: Issues](https://github.com/iolanta-tech/sparqld/issues)
+
+-   :material-scale-balance:{ .lg .middle } **License**
+
+    ---
+
+    [Apache-2.0](https://github.com/iolanta-tech/sparqld/blob/main/LICENSE-APACHE)
+    OR [MIT](https://github.com/iolanta-tech/sparqld/blob/main/LICENSE-MIT)
+
+-   :material-map-marker-path:{ .lg .middle } **Roadmap**
+
+    ---
+
+    [Planned work](roadmap.md) and current limitations.
 
 </div>

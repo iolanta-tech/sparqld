@@ -1,4 +1,5 @@
 ---
+"@context": context.yamlld
 "@id": implement-sparqld-in.md
 "@type": schema:TechArticle
 title: Implement sparqld in Rust
