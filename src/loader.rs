@@ -6,7 +6,10 @@ use std::path::{Component, Path, PathBuf};
 use std::sync::{Arc, Mutex};
 
 use oxigraph::io::{JsonLdProfile, JsonLdProfileSet, LoadedDocument, RdfFormat, RdfParser};
-use oxigraph::model::{LiteralRef, NamedNode, NamedNodeRef, Quad, QuadRef, vocab::rdf};
+use oxigraph::model::{
+    BlankNode, GraphName, LiteralRef, NamedNode, NamedNodeRef, NamedOrBlankNode, Quad, QuadRef,
+    Term, vocab::rdf,
+};
 use oxigraph::store::Store;
 use percent_encoding::{AsciiSet, CONTROLS, percent_decode_str, utf8_percent_encode};
 use serde_json::Value;
@@ -65,6 +68,24 @@ mod rlog {
     pub const LEVEL: NamedNodeRef<'_> = term!("level");
     pub const MESSAGE: NamedNodeRef<'_> = term!("message");
     pub const RESOURCE: NamedNodeRef<'_> = term!("resource");
+}
+
+mod sd {
+    use oxigraph::model::NamedNodeRef;
+
+    macro_rules! term {
+        ($local_name:literal) => {
+            NamedNodeRef::new_unchecked(concat!(
+                "http://www.w3.org/ns/sparql-service-description#",
+                $local_name
+            ))
+        };
+    }
+
+    pub const DATASET: NamedNodeRef<'_> = term!("Dataset");
+    pub const NAME: NamedNodeRef<'_> = term!("name");
+    pub const NAMED_GRAPH: NamedNodeRef<'_> = term!("namedGraph");
+    pub const NAMED_GRAPH_CLASS: NamedNodeRef<'_> = term!("NamedGraph");
 }
 
 #[derive(Clone, Copy)]
@@ -129,7 +150,11 @@ impl<'a> FileCatalog<'a> {
         Ok(catalog)
     }
 
-    fn describe_source(&self, relative: &Path) -> LoadResult<()> {
+    fn describe_source(
+        &self,
+        relative: &Path,
+        embedded_graphs: &BTreeSet<NamedNode>,
+    ) -> LoadResult<()> {
         let graph = graph_name(relative)?;
         let container =
             self.describe_directories(relative.parent().unwrap_or_else(|| Path::new("")))?;
@@ -145,7 +170,32 @@ impl<'a> FileCatalog<'a> {
 
         self.insert_type(graph.as_ref(), nfo::FILE_DATA_OBJECT)?;
         self.insert_file_name(graph.as_ref(), file_name)?;
-        self.insert_container(graph.as_ref(), container.as_ref())
+        self.insert_container(graph.as_ref(), container.as_ref())?;
+        if !embedded_graphs.is_empty() {
+            self.insert_type(graph.as_ref(), sd::DATASET)?;
+        }
+        for embedded_graph in embedded_graphs {
+            let description = BlankNode::default();
+            self.dataset.insert(QuadRef::new(
+                graph.as_ref(),
+                sd::NAMED_GRAPH,
+                description.as_ref(),
+                FILE_CATALOG_GRAPH,
+            ))?;
+            self.dataset.insert(QuadRef::new(
+                description.as_ref(),
+                rdf::TYPE,
+                sd::NAMED_GRAPH_CLASS,
+                FILE_CATALOG_GRAPH,
+            ))?;
+            self.dataset.insert(QuadRef::new(
+                description.as_ref(),
+                sd::NAME,
+                embedded_graph.as_ref(),
+                FILE_CATALOG_GRAPH,
+            ))?;
+        }
+        Ok(())
     }
 
     fn describe_load_error(&self, relative: &Path, message: &str) -> LoadResult<()> {
@@ -262,11 +312,11 @@ pub(crate) fn load_directory_with_stats(
         let result = load_file(&root, file, dataset, &mut context_dependencies);
         update_context_dependents(&mut context_dependents, relative, &context_dependencies);
         match result {
-            Ok(true) => {
-                catalog.describe_source(relative)?;
+            Ok(Some(embedded_graphs)) => {
+                catalog.describe_source(relative, &embedded_graphs)?;
                 loaded_sources.insert(relative.to_owned());
             }
-            Ok(false) => ignored_files += 1,
+            Ok(None) => ignored_files += 1,
             Err(error) => {
                 dataset.remove_named_graph(graph_name(relative)?.as_ref())?;
                 let error = error.to_string();
@@ -275,7 +325,7 @@ pub(crate) fn load_directory_with_stats(
                     relative.display(),
                     format.name()
                 );
-                catalog.describe_source(relative)?;
+                catalog.describe_source(relative, &BTreeSet::new())?;
                 catalog.describe_load_error(relative, &error)?;
                 load_errors.insert(relative.to_owned(), error);
             }
@@ -338,12 +388,11 @@ pub(crate) fn reload_changed(
                 &staging,
                 &mut context_dependencies,
             ) {
-                Ok(true) => {
+                Ok(Some(_)) => {
                     staged_sources.insert(relative.clone());
                 }
-                Ok(false) => {}
+                Ok(None) => {}
                 Err(error) => {
-                    staging.remove_named_graph(graph_name(relative)?.as_ref())?;
                     failed_sources.insert(relative.clone(), error.to_string());
                 }
             }
@@ -367,23 +416,26 @@ pub(crate) fn reload_changed(
         }
     }
 
-    let catalog = build_catalog(&root, &next_sources, &next_errors)?;
+    let catalog = build_catalog(&root, &next_sources, &next_errors, |source| {
+        if affected.contains(source) {
+            scoped_graphs_for_source(&staging, source)
+        } else {
+            scoped_graphs_for_source(dataset, source)
+        }
+    })?;
     let staged_quads = collect_quads(&staging)?;
     let catalog_quads = collect_quads(&catalog)?;
     let removed_triples = affected
         .iter()
         .filter(|relative| loaded_sources.contains(*relative) && !next_sources.contains(*relative))
-        .map(|relative| {
-            let graph = graph_name(relative)?;
-            Ok((
-                relative.clone(),
-                graph_triple_count(dataset, graph.as_ref())?,
-            ))
-        })
+        .map(|relative| Ok((relative.clone(), source_triple_count(dataset, relative)?)))
         .collect::<LoadResult<HashMap<_, _>>>()?;
     let mut transaction = dataset.start_transaction()?;
     for relative in &affected {
         transaction.remove_named_graph(graph_name(relative)?.as_ref())?;
+        for graph in scoped_graphs_for_source(dataset, relative)? {
+            transaction.remove_named_graph(graph.as_ref())?;
+        }
     }
     transaction.remove_named_graph(FILE_CATALOG_GRAPH)?;
     for quad in staged_quads.iter().chain(&catalog_quads) {
@@ -398,7 +450,7 @@ pub(crate) fn reload_changed(
             updates.push(SourceUpdate {
                 path: relative.clone(),
                 graph: graph.as_str().to_owned(),
-                triples: graph_triple_count(&staging, graph.as_ref())?,
+                triples: source_triple_count(&staging, relative)?,
                 kind: if loaded_sources.contains(relative) {
                     SourceUpdateKind::Reloaded
                 } else {
@@ -446,6 +498,15 @@ fn graph_triple_count(dataset: &Store, graph: NamedNodeRef<'_>) -> LoadResult<us
             quad?;
             Ok(count + 1)
         })
+}
+
+fn source_triple_count(dataset: &Store, relative: &Path) -> LoadResult<usize> {
+    let graph = graph_name(relative)?;
+    let embedded_graphs = scoped_graphs_for_source(dataset, relative)?;
+    embedded_graphs.iter().try_fold(
+        graph_triple_count(dataset, graph.as_ref())?,
+        |count, graph| Ok(count + graph_triple_count(dataset, graph.as_ref())?),
+    )
 }
 
 fn source_paths(root: &Path) -> LoadResult<BTreeSet<PathBuf>> {
@@ -528,6 +589,7 @@ fn build_catalog(
     root: &Path,
     sources: &BTreeSet<PathBuf>,
     load_errors: &BTreeMap<PathBuf, String>,
+    mut embedded_graphs: impl FnMut(&Path) -> LoadResult<BTreeSet<NamedNode>>,
 ) -> LoadResult<Store> {
     let dataset = Store::new()?;
     let catalog = FileCatalog::new(&dataset, root)?;
@@ -536,12 +598,26 @@ fn build_catalog(
         .chain(load_errors.keys())
         .collect::<BTreeSet<_>>()
     {
-        catalog.describe_source(source)?;
+        catalog.describe_source(source, &embedded_graphs(source)?)?;
     }
     for (source, error) in load_errors {
         catalog.describe_load_error(source, error)?;
     }
     Ok(dataset)
+}
+
+fn scoped_graphs_for_source(dataset: &Store, relative: &Path) -> LoadResult<BTreeSet<NamedNode>> {
+    let prefix = format!("{}#", graph_name(relative)?.as_str());
+    dataset
+        .named_graphs()
+        .filter_map(|graph| match graph {
+            Ok(NamedOrBlankNode::NamedNode(graph)) if graph.as_str().starts_with(&prefix) => {
+                Some(Ok(graph))
+            }
+            Ok(_) => None,
+            Err(error) => Some(Err(error.into())),
+        })
+        .collect()
 }
 
 fn collect_quads(dataset: &Store) -> LoadResult<Vec<Quad>> {
@@ -583,19 +659,20 @@ fn load_file(
     file: &Path,
     dataset: &Store,
     context_dependencies: &mut BTreeSet<PathBuf>,
-) -> LoadResult<bool> {
+) -> LoadResult<Option<BTreeSet<NamedNode>>> {
     let format = source_format(file).ok_or_else(|| io::Error::other("unknown RDF format"))?;
     let relative = file.strip_prefix(root).map_err(io::Error::other)?;
     let graph = graph_name(relative)?;
     let base_iri = directory_iri(relative)?;
     let source = fs::read(file)?;
-    match format {
+    let embedded_graphs = match format {
         SourceFormat::Rdf(format) => {
-            let parser = RdfParser::from_format(format)
-                .with_base_iri(base_iri)?
-                .without_named_graphs()
-                .with_default_graph(graph);
-            dataset.load_from_slice(parser, &source)?;
+            let parser = RdfParser::from_format(format).with_base_iri(base_iri)?;
+            load_scoped_quads(
+                dataset,
+                parser.for_slice(&source).collect::<Result<Vec<_>, _>>()?,
+                graph,
+            )?
         }
         SourceFormat::JsonLd => load_json_ld(
             root,
@@ -615,7 +692,7 @@ fn load_file(
         )?,
         SourceFormat::Markdown => {
             let Some(front_matter) = markdown_front_matter(&source)? else {
-                return Ok(false);
+                return Ok(None);
             };
             load_json_ld(
                 root,
@@ -624,10 +701,10 @@ fn load_file(
                 graph,
                 dataset,
                 context_dependencies,
-            )?;
+            )?
         }
-    }
-    Ok(true)
+    };
+    Ok(Some(embedded_graphs))
 }
 
 fn source_format(path: &Path) -> Option<SourceFormat> {
@@ -663,23 +740,22 @@ fn load_json_ld(
     graph: NamedNode,
     dataset: &Store,
     dependencies: &mut BTreeSet<PathBuf>,
-) -> LoadResult<()> {
+) -> LoadResult<BTreeSet<NamedNode>> {
     let root = root.to_owned();
     let loaded_contexts = Arc::new(Mutex::new(BTreeSet::new()));
     let context_dependencies = Arc::clone(&loaded_contexts);
     let parser = RdfParser::from_format(RdfFormat::JsonLd {
         profile: JsonLdProfileSet::empty(),
     })
-    .with_base_iri(base_iri)?
-    .without_named_graphs()
-    .with_default_graph(graph);
+    .with_base_iri(base_iri)?;
     let result = (|| {
-        for quad in parser.for_slice(source).with_document_loader(move |url| {
-            load_context_document(&root, url, Some(&context_dependencies))
-        }) {
-            dataset.insert(&quad?)?;
-        }
-        Ok(())
+        let quads = parser
+            .for_slice(source)
+            .with_document_loader(move |url| {
+                load_context_document(&root, url, Some(&context_dependencies))
+            })
+            .collect::<Result<Vec<_>, _>>()?;
+        load_scoped_quads(dataset, quads, graph)
     })();
     dependencies.extend(
         loaded_contexts
@@ -689,6 +765,91 @@ fn load_json_ld(
             .cloned(),
     );
     result
+}
+
+fn load_scoped_quads(
+    dataset: &Store,
+    mut quads: Vec<Quad>,
+    source_graph: NamedNode,
+) -> LoadResult<BTreeSet<NamedNode>> {
+    let mut scoped_graphs = HashMap::new();
+    for quad in &quads {
+        if !quad.graph_name.is_default_graph() {
+            let graph_name = quad.graph_name.clone();
+            scoped_graphs
+                .entry(graph_name.clone())
+                .or_insert(scoped_graph_name(&source_graph, &graph_name)?);
+        }
+    }
+
+    for quad in &mut quads {
+        *quad = scope_quad(quad.clone(), &source_graph, &scoped_graphs);
+        dataset.insert(quad.as_ref())?;
+    }
+
+    Ok(scoped_graphs.into_values().collect())
+}
+
+fn scoped_graph_name(source_graph: &NamedNode, graph_name: &GraphName) -> LoadResult<NamedNode> {
+    let embedded_name = match graph_name {
+        GraphName::NamedNode(node) => node.as_str().to_owned(),
+        GraphName::BlankNode(node) => format!("_:{}", node.as_str()),
+        GraphName::DefaultGraph => unreachable!("default graphs are not scoped"),
+    };
+    Ok(NamedNode::new(format!(
+        "{}#{embedded_name}",
+        source_graph.as_str()
+    ))?)
+}
+
+fn scope_quad(
+    quad: Quad,
+    source_graph: &NamedNode,
+    scoped_graphs: &HashMap<GraphName, NamedNode>,
+) -> Quad {
+    let map_named_or_blank = |term: NamedOrBlankNode| -> NamedOrBlankNode {
+        match term {
+            NamedOrBlankNode::NamedNode(node) => scoped_graphs
+                .get(&GraphName::NamedNode(node.clone()))
+                .cloned()
+                .map(NamedOrBlankNode::from)
+                .unwrap_or_else(|| NamedOrBlankNode::from(node)),
+            NamedOrBlankNode::BlankNode(node) => scoped_graphs
+                .get(&GraphName::BlankNode(node.clone()))
+                .cloned()
+                .map(NamedOrBlankNode::from)
+                .unwrap_or_else(|| NamedOrBlankNode::from(node)),
+        }
+    };
+    let map_term = |term: Term| -> Term {
+        match term {
+            Term::NamedNode(node) => scoped_graphs
+                .get(&GraphName::NamedNode(node.clone()))
+                .cloned()
+                .map(Term::from)
+                .unwrap_or_else(|| Term::from(node)),
+            Term::BlankNode(node) => scoped_graphs
+                .get(&GraphName::BlankNode(node.clone()))
+                .cloned()
+                .map(Term::from)
+                .unwrap_or_else(|| Term::from(node)),
+            Term::Literal(literal) => Term::from(literal),
+        }
+    };
+    let predicate = scoped_graphs
+        .get(&GraphName::NamedNode(quad.predicate.clone()))
+        .cloned()
+        .unwrap_or(quad.predicate);
+    let graph_name: GraphName = match quad.graph_name {
+        GraphName::DefaultGraph => source_graph.clone().into(),
+        graph_name => scoped_graphs[&graph_name].clone().into(),
+    };
+    Quad::new(
+        map_named_or_blank(quad.subject),
+        predicate,
+        map_term(quad.object),
+        graph_name,
+    )
 }
 
 fn load_context_document(
@@ -877,6 +1038,186 @@ mod tests {
                     LiteralRef::new_simple_literal("Implement sparqld in Rust"),
                     NamedNodeRef::new("sparqld:project/decisions/implement-sparqld-in.md").unwrap(),
                 ))
+                .unwrap()
+        );
+    }
+
+    #[test]
+    fn scopes_named_graphs_and_rewrites_their_references() {
+        let directory = tempfile::tempdir().unwrap();
+        fs::write(
+            directory.path().join("dataset.trig"),
+            "@prefix ex: <urn:> .\nex:graph { ex:head ex:links ex:graph . }",
+        )
+        .unwrap();
+        fs::write(
+            directory.path().join("dataset.nq"),
+            "<urn:head> <urn:links> <urn:graph> <urn:graph> .",
+        )
+        .unwrap();
+        fs::write(
+            directory.path().join("dataset.jsonld"),
+            r#"{
+                "@context": {"links": {"@id": "urn:links", "@type": "@id"}},
+                "@graph": [{
+                    "@id": "urn:graph",
+                    "@graph": [{"@id": "urn:head", "links": "urn:graph"}]
+                }]
+            }"#,
+        )
+        .unwrap();
+        fs::write(
+            directory.path().join("nanopublication.yamlld"),
+            include_str!("loader/fixtures/nanopublication.yamlld"),
+        )
+        .unwrap();
+        let dataset = Store::new().unwrap();
+
+        let load = load_directory_with_stats(directory.path(), &dataset).unwrap();
+
+        assert!(
+            load.load_errors.is_empty(),
+            "load errors: {:?}",
+            load.load_errors
+        );
+        for source in ["dataset.trig", "dataset.nq", "dataset.jsonld"] {
+            let graph = NamedNode::new(format!("sparqld:{source}#urn:graph")).unwrap();
+            let source_graph = NamedNode::new(format!("sparqld:{source}")).unwrap();
+            assert!(
+                dataset
+                    .contains(QuadRef::new(
+                        NamedNodeRef::new("urn:head").unwrap(),
+                        NamedNodeRef::new("urn:links").unwrap(),
+                        graph.as_ref(),
+                        graph.as_ref(),
+                    ))
+                    .unwrap()
+            );
+            assert!(
+                dataset
+                    .contains(QuadRef::new(
+                        source_graph.as_ref(),
+                        rdf::TYPE,
+                        sd::DATASET,
+                        FILE_CATALOG_GRAPH,
+                    ))
+                    .unwrap()
+            );
+            let descriptions = dataset
+                .quads_for_pattern(
+                    Some(source_graph.as_ref().into()),
+                    Some(sd::NAMED_GRAPH.into()),
+                    None,
+                    Some(FILE_CATALOG_GRAPH.into()),
+                )
+                .collect::<Result<Vec<_>, _>>()
+                .unwrap();
+            assert_eq!(descriptions.len(), 1);
+            let description = match &descriptions[0].object {
+                Term::NamedNode(node) => NamedOrBlankNode::from(node.clone()),
+                Term::BlankNode(node) => NamedOrBlankNode::from(node.clone()),
+                Term::Literal(_) => panic!("named graph description is a literal"),
+            };
+            assert!(
+                dataset
+                    .contains(QuadRef::new(
+                        description.as_ref(),
+                        rdf::TYPE,
+                        sd::NAMED_GRAPH_CLASS,
+                        FILE_CATALOG_GRAPH,
+                    ))
+                    .unwrap()
+            );
+            assert!(
+                dataset
+                    .contains(QuadRef::new(
+                        description.as_ref(),
+                        sd::NAME,
+                        graph.as_ref(),
+                        FILE_CATALOG_GRAPH,
+                    ))
+                    .unwrap()
+            );
+        }
+
+        let nanopublication = NamedNode::new("http://purl.org/nanopub/temp/np/").unwrap();
+        let assertion = NamedNode::new(
+            "sparqld:nanopublication.yamlld#http://purl.org/nanopub/temp/np/assertion",
+        )
+        .unwrap();
+        let head =
+            NamedNode::new("sparqld:nanopublication.yamlld#http://purl.org/nanopub/temp/np/Head")
+                .unwrap();
+        assert!(
+            dataset
+                .contains(QuadRef::new(
+                    nanopublication.as_ref(),
+                    NamedNodeRef::new("http://www.nanopub.org/nschema#hasAssertion").unwrap(),
+                    assertion.as_ref(),
+                    head.as_ref(),
+                ))
+                .unwrap()
+        );
+    }
+
+    #[test]
+    fn removes_scoped_graphs_when_a_source_is_deleted() {
+        let directory = tempfile::tempdir().unwrap();
+        let source = directory.path().join("dataset.nq");
+        fs::write(&source, "<urn:head> <urn:links> <urn:graph> <urn:graph> .").unwrap();
+        let dataset = Store::new().unwrap();
+        let load = load_directory_with_stats(directory.path(), &dataset).unwrap();
+        let scoped = NamedNodeRef::new("sparqld:dataset.nq#urn:graph").unwrap();
+        assert!(dataset.contains_named_graph(scoped).unwrap());
+
+        fs::remove_file(&source).unwrap();
+        reload_changed(
+            directory.path(),
+            &BTreeSet::from([source]),
+            &load.loaded_sources,
+            &load.load_errors,
+            &load.context_dependents,
+            &dataset,
+        )
+        .unwrap();
+
+        assert!(!dataset.contains_named_graph(scoped).unwrap());
+    }
+
+    #[test]
+    fn replaces_scoped_graphs_when_a_source_changes() {
+        let directory = tempfile::tempdir().unwrap();
+        let source = directory.path().join("dataset.nq");
+        fs::write(
+            &source,
+            "<urn:head> <urn:links> <urn:old-graph> <urn:old-graph> .",
+        )
+        .unwrap();
+        let dataset = Store::new().unwrap();
+        let load = load_directory_with_stats(directory.path(), &dataset).unwrap();
+        let old_graph = NamedNodeRef::new("sparqld:dataset.nq#urn:old-graph").unwrap();
+
+        fs::write(
+            &source,
+            "<urn:head> <urn:links> <urn:new-graph> <urn:new-graph> .",
+        )
+        .unwrap();
+        reload_changed(
+            directory.path(),
+            &BTreeSet::from([source]),
+            &load.loaded_sources,
+            &load.load_errors,
+            &load.context_dependents,
+            &dataset,
+        )
+        .unwrap();
+
+        assert!(!dataset.contains_named_graph(old_graph).unwrap());
+        assert!(
+            dataset
+                .contains_named_graph(
+                    NamedNodeRef::new("sparqld:dataset.nq#urn:new-graph").unwrap(),
+                )
                 .unwrap()
         );
     }
