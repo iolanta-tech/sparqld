@@ -103,9 +103,10 @@ WHERE {
 `sparqld` reacts to files being created, modified, moved, or deleted.
 
 Changes are debounced to accommodate editors that emit several filesystem events
-for one save. A changed source reloads only that source. If parsing fails,
-`sparqld` removes its graph and adds an `rlog:Entry` describing the error to
-the file catalog.
+for one save. A changed source reloads only that source; changing a local
+context reloads every source that declares it, directly or through `@import`.
+If parsing fails, `sparqld` removes its graph and adds an `rlog:Entry`
+describing the error to the file catalog.
 
 Pass `--no-watch` to load the directory once and disable live updates.
 
