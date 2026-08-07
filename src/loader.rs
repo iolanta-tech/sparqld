@@ -3,6 +3,7 @@ use std::error::Error;
 use std::fs;
 use std::io;
 use std::path::{Component, Path, PathBuf};
+use std::sync::{Arc, Mutex};
 
 use oxigraph::io::{JsonLdProfile, JsonLdProfileSet, LoadedDocument, RdfFormat, RdfParser};
 use oxigraph::model::{LiteralRef, NamedNode, NamedNodeRef, Quad, QuadRef, vocab::rdf};
@@ -11,6 +12,7 @@ use percent_encoding::{AsciiSet, CONTROLS, percent_decode_str, utf8_percent_enco
 use serde_json::Value;
 
 type LoadResult<T> = Result<T, Box<dyn Error + Send + Sync>>;
+pub(crate) type ContextDependents = BTreeMap<PathBuf, BTreeSet<PathBuf>>;
 
 const GRAPH_PATH_ENCODE_SET: &AsciiSet = &CONTROLS
     .add(b' ')
@@ -80,6 +82,7 @@ struct FileCatalog<'a> {
 pub(crate) struct ReloadReport {
     pub(crate) loaded_sources: BTreeSet<PathBuf>,
     pub(crate) load_errors: BTreeMap<PathBuf, String>,
+    pub(crate) context_dependents: ContextDependents,
     pub(crate) updates: Vec<SourceUpdate>,
     pub(crate) failures: Vec<SourceFailure>,
     pub(crate) impacts: BTreeMap<PathBuf, BTreeSet<PathBuf>>,
@@ -88,6 +91,7 @@ pub(crate) struct ReloadReport {
 pub(crate) struct DirectoryLoad {
     pub(crate) loaded_sources: BTreeSet<PathBuf>,
     pub(crate) load_errors: BTreeMap<PathBuf, String>,
+    pub(crate) context_dependents: ContextDependents,
     pub(crate) ignored_files: usize,
 }
 
@@ -246,17 +250,18 @@ pub(crate) fn load_directory_with_stats(
 
     let mut loaded_sources = BTreeSet::new();
     let mut load_errors = BTreeMap::new();
+    let mut context_dependents = ContextDependents::new();
     let mut ignored_files = 0;
     for file in &files {
-        if is_context_file(file) {
-            continue;
-        }
         let Some(format) = source_format(file) else {
             ignored_files += 1;
             continue;
         };
         let relative = file.strip_prefix(&root).map_err(io::Error::other)?;
-        match load_file(&root, file, dataset) {
+        let mut context_dependencies = BTreeSet::new();
+        let result = load_file(&root, file, dataset, &mut context_dependencies);
+        update_context_dependents(&mut context_dependents, relative, &context_dependencies);
+        match result {
             Ok(true) => {
                 catalog.describe_source(relative)?;
                 loaded_sources.insert(relative.to_owned());
@@ -280,6 +285,7 @@ pub(crate) fn load_directory_with_stats(
     Ok(DirectoryLoad {
         loaded_sources,
         load_errors,
+        context_dependents,
         ignored_files,
     })
 }
@@ -289,6 +295,7 @@ pub(crate) fn reload_changed(
     changed_paths: &BTreeSet<PathBuf>,
     loaded_sources: &BTreeSet<PathBuf>,
     load_errors: &BTreeMap<PathBuf, String>,
+    context_dependents: &ContextDependents,
     dataset: &Store,
 ) -> LoadResult<ReloadReport> {
     let root = directory.canonicalize()?;
@@ -298,13 +305,20 @@ pub(crate) fn reload_changed(
         .chain(load_errors.keys())
         .cloned()
         .collect::<BTreeSet<_>>();
-    let impacts = source_impacts(&root, changed_paths, &tracked_sources, &current_sources);
+    let impacts = source_impacts(
+        &root,
+        changed_paths,
+        &tracked_sources,
+        &current_sources,
+        context_dependents,
+    );
     let affected = impacts.values().flatten().cloned().collect::<BTreeSet<_>>();
 
     if affected.is_empty() {
         return Ok(ReloadReport {
             loaded_sources: loaded_sources.clone(),
             load_errors: load_errors.clone(),
+            context_dependents: context_dependents.clone(),
             updates: Vec::new(),
             failures: Vec::new(),
             impacts,
@@ -314,9 +328,16 @@ pub(crate) fn reload_changed(
     let staging = Store::new()?;
     let mut staged_sources = BTreeSet::new();
     let mut failed_sources = BTreeMap::new();
+    let mut next_context_dependents = context_dependents.clone();
     for relative in &affected {
+        let mut context_dependencies = BTreeSet::new();
         if current_sources.contains(relative) {
-            match load_file(&root, &root.join(relative), &staging) {
+            match load_file(
+                &root,
+                &root.join(relative),
+                &staging,
+                &mut context_dependencies,
+            ) {
                 Ok(true) => {
                     staged_sources.insert(relative.clone());
                 }
@@ -327,6 +348,11 @@ pub(crate) fn reload_changed(
                 }
             }
         }
+        update_context_dependents(
+            &mut next_context_dependents,
+            relative,
+            &context_dependencies,
+        );
     }
 
     let mut next_sources = loaded_sources.clone();
@@ -406,6 +432,7 @@ pub(crate) fn reload_changed(
     Ok(ReloadReport {
         loaded_sources: next_sources,
         load_errors: next_errors,
+        context_dependents: next_context_dependents,
         updates,
         failures,
         impacts,
@@ -437,6 +464,7 @@ fn source_impacts(
     changed_paths: &BTreeSet<PathBuf>,
     loaded_sources: &BTreeSet<PathBuf>,
     current_sources: &BTreeSet<PathBuf>,
+    context_dependents: &ContextDependents,
 ) -> BTreeMap<PathBuf, BTreeSet<PathBuf>> {
     let mut impacts = BTreeMap::new();
     for changed in changed_paths {
@@ -449,7 +477,7 @@ fn source_impacts(
             changed.as_path()
         };
 
-        let mut affected = BTreeSet::new();
+        let mut affected = context_dependents.get(changed).cloned().unwrap_or_default();
         if loaded_sources.contains(changed) || current_sources.contains(changed) {
             affected.insert(changed.to_owned());
         } else if root.join(changed).is_dir()
@@ -466,10 +494,34 @@ fn source_impacts(
                     .filter(|source| source.starts_with(changed))
                     .cloned(),
             );
+            affected.extend(
+                context_dependents
+                    .iter()
+                    .filter(|(context, _)| context.starts_with(changed))
+                    .flat_map(|(_, dependents)| dependents)
+                    .cloned(),
+            );
         }
         impacts.insert(changed.to_owned(), affected);
     }
     impacts
+}
+
+fn update_context_dependents(
+    context_dependents: &mut ContextDependents,
+    source: &Path,
+    dependencies: &BTreeSet<PathBuf>,
+) {
+    context_dependents.retain(|_, dependents| {
+        dependents.remove(source);
+        !dependents.is_empty()
+    });
+    for dependency in dependencies {
+        context_dependents
+            .entry(dependency.clone())
+            .or_default()
+            .insert(source.to_owned());
+    }
 }
 
 fn build_catalog(
@@ -502,7 +554,7 @@ fn collect_quads(dataset: &Store) -> LoadResult<Vec<Quad>> {
 fn source_files(directory: &Path) -> LoadResult<Vec<PathBuf>> {
     Ok(directory_files(directory)?
         .into_iter()
-        .filter(|path| !is_context_file(path) && source_format(path).is_some())
+        .filter(|path| source_format(path).is_some())
         .collect())
 }
 
@@ -526,7 +578,12 @@ fn collect_directory_files(directory: &Path, files: &mut Vec<PathBuf>) -> LoadRe
     Ok(())
 }
 
-fn load_file(root: &Path, file: &Path, dataset: &Store) -> LoadResult<bool> {
+fn load_file(
+    root: &Path,
+    file: &Path,
+    dataset: &Store,
+    context_dependencies: &mut BTreeSet<PathBuf>,
+) -> LoadResult<bool> {
     let format = source_format(file).ok_or_else(|| io::Error::other("unknown RDF format"))?;
     let relative = file.strip_prefix(root).map_err(io::Error::other)?;
     let graph = graph_name(relative)?;
@@ -540,13 +597,21 @@ fn load_file(root: &Path, file: &Path, dataset: &Store) -> LoadResult<bool> {
                 .with_default_graph(graph);
             dataset.load_from_slice(parser, &source)?;
         }
-        SourceFormat::JsonLd => load_json_ld(root, &source, &base_iri, graph, dataset)?,
+        SourceFormat::JsonLd => load_json_ld(
+            root,
+            &source,
+            &base_iri,
+            graph,
+            dataset,
+            context_dependencies,
+        )?,
         SourceFormat::YamlLd => load_json_ld(
             root,
             &serde_json::to_vec(&parse_yaml_ld(&source)?)?,
             &base_iri,
             graph,
             dataset,
+            context_dependencies,
         )?,
         SourceFormat::Markdown => {
             let Some(front_matter) = markdown_front_matter(&source)? else {
@@ -558,6 +623,7 @@ fn load_file(root: &Path, file: &Path, dataset: &Store) -> LoadResult<bool> {
                 &base_iri,
                 graph,
                 dataset,
+                context_dependencies,
             )?;
         }
     }
@@ -590,37 +656,46 @@ impl SourceFormat {
     }
 }
 
-fn is_context_file(path: &Path) -> bool {
-    matches!(
-        path.file_name().and_then(|name| name.to_str()),
-        Some("context.jsonld" | "context.yamlld")
-    )
-}
-
 fn load_json_ld(
     root: &Path,
     source: &[u8],
     base_iri: &str,
     graph: NamedNode,
     dataset: &Store,
+    dependencies: &mut BTreeSet<PathBuf>,
 ) -> LoadResult<()> {
     let root = root.to_owned();
+    let loaded_contexts = Arc::new(Mutex::new(BTreeSet::new()));
+    let context_dependencies = Arc::clone(&loaded_contexts);
     let parser = RdfParser::from_format(RdfFormat::JsonLd {
         profile: JsonLdProfileSet::empty(),
     })
     .with_base_iri(base_iri)?
     .without_named_graphs()
     .with_default_graph(graph);
-    for quad in parser
-        .for_slice(source)
-        .with_document_loader(move |url| load_context_document(&root, url))
-    {
-        dataset.insert(&quad?)?;
-    }
-    Ok(())
+    let result = (|| {
+        for quad in parser.for_slice(source).with_document_loader(move |url| {
+            load_context_document(&root, url, Some(&context_dependencies))
+        }) {
+            dataset.insert(&quad?)?;
+        }
+        Ok(())
+    })();
+    dependencies.extend(
+        loaded_contexts
+            .lock()
+            .map_err(|error| io::Error::other(error.to_string()))?
+            .iter()
+            .cloned(),
+    );
+    result
 }
 
-fn load_context_document(root: &Path, url: &str) -> LoadResult<LoadedDocument> {
+fn load_context_document(
+    root: &Path,
+    url: &str,
+    dependencies: Option<&Mutex<BTreeSet<PathBuf>>>,
+) -> LoadResult<LoadedDocument> {
     if url == DOLLAR_CONVENIENCE_CONTEXT_URL {
         return Ok(LoadedDocument {
             url: url.into(),
@@ -629,7 +704,14 @@ fn load_context_document(root: &Path, url: &str) -> LoadResult<LoadedDocument> {
         });
     }
 
-    let path = local_context_path(root, url)?;
+    let relative = local_context_relative(url)?;
+    if let Some(dependencies) = dependencies {
+        dependencies
+            .lock()
+            .map_err(|error| io::Error::other(error.to_string()))?
+            .insert(relative.clone());
+    }
+    let path = local_context_path(root, &relative, url)?;
     let content = match path.extension().and_then(|extension| extension.to_str()) {
         Some(extension) if extension.eq_ignore_ascii_case("jsonld") => fs::read(&path)?,
         Some(extension) if extension.eq_ignore_ascii_case("yamlld") => {
@@ -654,7 +736,7 @@ fn context_format() -> RdfFormat {
     }
 }
 
-fn local_context_path(root: &Path, url: &str) -> LoadResult<PathBuf> {
+fn local_context_relative(url: &str) -> LoadResult<PathBuf> {
     let relative = url
         .strip_prefix("sparqld:")
         .ok_or_else(|| io::Error::other(format!("context URL is not supported: {url}")))?;
@@ -672,6 +754,10 @@ fn local_context_path(root: &Path, url: &str) -> LoadResult<PathBuf> {
             io::Error::other(format!("context is outside the served directory: {url}")).into(),
         );
     }
+    Ok(relative.to_owned())
+}
+
+fn local_context_path(root: &Path, relative: &Path, url: &str) -> LoadResult<PathBuf> {
     let path = root.join(relative).canonicalize()?;
     if !path.starts_with(root) {
         return Err(
@@ -796,7 +882,7 @@ mod tests {
     }
 
     #[test]
-    fn counts_ignored_files_and_keeps_context_documents_out_of_source_graphs() {
+    fn counts_ignored_files_and_loads_context_documents_as_sources() {
         let directory = tempfile::tempdir().unwrap();
         fs::write(
             directory.path().join("context.yamlld"),
@@ -814,7 +900,7 @@ mod tests {
 
         let load = load_directory_with_stats(directory.path(), &dataset).unwrap();
 
-        assert_eq!(load.loaded_sources.len(), 1);
+        assert_eq!(load.loaded_sources.len(), 2);
         assert_eq!(load.ignored_files, 2);
     }
 
@@ -995,6 +1081,7 @@ mod tests {
             &BTreeSet::from([first]),
             &loaded_sources,
             &BTreeMap::new(),
+            &ContextDependents::new(),
             &dataset,
         )
         .unwrap();
@@ -1040,6 +1127,7 @@ mod tests {
             &BTreeSet::from([source.clone()]),
             &load.loaded_sources,
             &load.load_errors,
+            &load.context_dependents,
             &dataset,
         )
         .unwrap();
@@ -1068,6 +1156,7 @@ mod tests {
             &BTreeSet::from([source]),
             &failed.loaded_sources,
             &failed.load_errors,
+            &failed.context_dependents,
             &dataset,
         )
         .unwrap();
@@ -1114,6 +1203,7 @@ mod tests {
             &BTreeSet::from([source]),
             &loaded_sources,
             &BTreeMap::new(),
+            &ContextDependents::new(),
             &dataset,
         )
         .unwrap();
@@ -1140,6 +1230,7 @@ mod tests {
             &BTreeSet::from([source]),
             &loaded_sources,
             &BTreeMap::new(),
+            &ContextDependents::new(),
             &dataset,
         )
         .unwrap();
@@ -1205,6 +1296,60 @@ mod tests {
                     NamedNodeRef::new("urn:name").unwrap(),
                     LiteralRef::new_simple_literal("Alice"),
                     graph,
+                ))
+                .unwrap()
+        );
+    }
+
+    #[test]
+    fn reloads_sources_when_a_declared_context_or_its_import_changes() {
+        let directory = tempfile::tempdir().unwrap();
+        let contexts = directory.path().join("contexts/astronomy");
+        fs::create_dir_all(&contexts).unwrap();
+        let terms = contexts.join("terms.yamlld");
+        let context = directory.path().join("main.jsonld");
+        let source = directory.path().join("source.jsonld");
+        fs::write(&terms, "'@context':\n  value: urn:old-predicate\n").unwrap();
+        fs::write(
+            &context,
+            r#"{"@context":{"@version":1.1,"@import":"contexts/astronomy/terms.yamlld"}}"#,
+        )
+        .unwrap();
+        fs::write(
+            &source,
+            r#"{"@context":"main.jsonld","@id":"urn:subject","value":"object"}"#,
+        )
+        .unwrap();
+        let dataset = Store::new().unwrap();
+
+        let load = load_directory_with_stats(directory.path(), &dataset).unwrap();
+        let terms_relative = PathBuf::from("contexts/astronomy/terms.yamlld");
+        assert!(load.context_dependents[&terms_relative].contains(Path::new("source.jsonld")));
+
+        fs::write(&terms, "'@context':\n  value: urn:new-predicate\n").unwrap();
+        let report = reload_changed(
+            directory.path(),
+            &BTreeSet::from([terms]),
+            &load.loaded_sources,
+            &load.load_errors,
+            &load.context_dependents,
+            &dataset,
+        )
+        .unwrap();
+
+        assert!(
+            report
+                .updates
+                .iter()
+                .any(|update| update.path == Path::new("source.jsonld"))
+        );
+        assert!(
+            dataset
+                .contains(QuadRef::new(
+                    NamedNodeRef::new("urn:subject").unwrap(),
+                    NamedNodeRef::new("urn:new-predicate").unwrap(),
+                    LiteralRef::new_simple_literal("object"),
+                    NamedNodeRef::new("sparqld:source.jsonld").unwrap(),
                 ))
                 .unwrap()
         );
@@ -1296,8 +1441,7 @@ mod tests {
         fs::create_dir(&root).unwrap();
         fs::write(directory.path().join("outside.jsonld"), "{}").unwrap();
 
-        let error = local_context_path(&root.canonicalize().unwrap(), "sparqld:../outside.jsonld")
-            .unwrap_err();
+        let error = local_context_relative("sparqld:../outside.jsonld").unwrap_err();
 
         assert!(error.to_string().contains("outside the served directory"));
     }
