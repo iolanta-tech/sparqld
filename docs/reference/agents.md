@@ -25,5 +25,5 @@ dataset running, ask your agent:
 `sparqld` reloads a changed source after the editor's filesystem events settle.
 Changing a local context also reloads every source that declares it, directly
 or through `@import`. If parsing fails, it removes that source's graph and
-records an `rlog:Entry` with the error in the file catalog. Give the agent a
+records an [`rlog:Entry`](http://purl.org/NET/rlog#Entry) with the error in the file catalog. Give the agent a
 chance to inspect the error before asking it to query the changed data again.
