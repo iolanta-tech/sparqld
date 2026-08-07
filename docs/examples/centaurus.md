@@ -1,4 +1,7 @@
 ---
+"@context":
+  - https://json-ld.org/contexts/dollar-convenience.jsonld
+  - context.yamlld
 $id: dbr:Centaurus
 $type: schema:Place
 name: Centaurus
