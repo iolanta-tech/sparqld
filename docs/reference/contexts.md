@@ -32,13 +32,17 @@ Relative contexts resolve from the source's directory. They may also use
 `@import` to reference another relative context. Every referenced file must
 remain inside the directory served by `sparqld`.
 
+When a local context changes, `sparqld` reloads every source that reaches it
+through `@context` or `@import`.
+
 ## :material-folder-outline: Local context files
 
 Use a relative path in `@context` for a context stored beside a source or in a
 subdirectory. A file named `context.jsonld` or `context.yamlld` is ordinary:
 it is used only when a document explicitly names it. JSON-LD context files use
 an `@context` member; YAML-LD context files express the same structure in YAML
-1.2.
+1.2. Like other recognized files, context files are also loaded as source
+graphs.
 
 The Alpha Centauri source and its `context.yamlld` file live in the same
 directory. The context defines the terms used by the source; the source names
