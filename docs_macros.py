@@ -286,10 +286,11 @@ def define_env(env):
             f'</span>'
         )
         body = f'```{syntax}\n{source}\n```'
-        return (
+        rendered = (
             f'!!! example "{heading}"\n\n'
-            f'{_indent_block(body, indent + 4)}\n'
+            f'{_indent_block(body, 4)}\n'
         )
+        return _indent_block(rendered, indent)
 
     @env.macro
     def adr_metadata(date, status):
@@ -304,6 +305,13 @@ def define_env(env):
             indent,
             title,
         )
+
+    @env.macro
+    def example_code(name, indent=0):
+        path = _example_path(name)
+        source = path.read_text().rstrip('\n')
+        syntax = _EXAMPLE_SYNTAXES.get(path.suffix.lower(), 'text')
+        return _indent_block(f'```{syntax}\n{source}\n```\n', indent)
 
     @env.macro
     def result_data(name, indent=0, title='Result'):
