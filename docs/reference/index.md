@@ -45,12 +45,6 @@ sparqld [OPTIONS] <DIRECTORY>
 
     Load once without watching for file changes
 
--   :material-file-cog-outline:{ .lg .middle } **`--config <FILE>`**
-
-    ---
-
-    Reserved for a TOML configuration file
-
 -   :material-help-circle-outline:{ .lg .middle } **`-h`, `--help`**
 
     ---
@@ -70,3 +64,9 @@ sparqld [OPTIONS] <DIRECTORY>
 Options can be composed in any order:
 
 {{ command('sparqld ./examples --host 0.0.0.0 --port 8080 --no-watch') }}
+
+!!! warning
+
+    `--host 0.0.0.0` makes the endpoint reachable from the network. `sparqld`
+    provides neither authentication nor TLS, so use it only behind controls
+    that restrict access to trusted clients.
