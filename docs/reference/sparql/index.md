@@ -14,7 +14,8 @@ description: Practical SPARQL query patterns for exploring a sparqld endpoint.
 # :material-database-search-outline: SPARQL cheat sheet
 
 Every recipe is executed against the Quickstart dataset while this page is
-built. Queries without `GRAPH` use the union of all source graphs.
+built. Queries without `GRAPH` use the union of every named graph, including
+the file catalog.
 
 ## :material-format-list-bulleted: Select values with prefixes
 
@@ -53,9 +54,9 @@ Functions such as `LCASE`, `STR`, and `CONTAINS` narrow matching bindings.
 
 {{ live_query('construct-name.rq') }}
 
-## :material-counter: Count triples by source graph
+## :material-counter: Count triples by named graph
 
-Aggregate named graphs to inspect how data is distributed across files.
+Aggregate named graphs to inspect data and file-catalog triples separately.
 
 {{ live_query('graph-counts.rq') }}
 
