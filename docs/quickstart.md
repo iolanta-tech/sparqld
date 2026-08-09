@@ -49,7 +49,7 @@ Open a second terminal. This query shows what orbits what in the example.
 
 Save it as `orbits.rq`:
 
-{{ query_data('orbits.rq') }}
+{{ source('docs/queries/orbits.rq') }}
 
 Run it with `sq`:
 
