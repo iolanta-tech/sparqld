@@ -1,0 +1,8 @@
+[flake8]
+exclude =
+    .git,
+    .venv,
+    site,
+    target
+max-line-length = 88
+select = WPS
