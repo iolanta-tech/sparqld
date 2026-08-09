@@ -39,7 +39,13 @@ def _main_history():
 def _commit_timestamp(commit):
     """Return a commit's author timestamp."""
     return int(
-        sh.git.show(commit, no_patch=True, format='%at', _cwd=PROJECT_ROOT).strip()
+        sh.git.show(
+            commit,
+            no_patch=True,
+            format='%at',
+            _cwd=PROJECT_ROOT,
+            _tty_out=False,
+        ).strip()
     )
 
 
