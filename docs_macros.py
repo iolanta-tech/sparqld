@@ -14,7 +14,9 @@ from urllib.request import Request, urlopen
 
 
 ROOT_DIR = Path(__file__).resolve().parent
-EXAMPLES_DIR = ROOT_DIR / 'docs' / 'examples'
+DOCS_DIR = ROOT_DIR / 'docs'
+EXAMPLES_DIR = DOCS_DIR / 'examples'
+DECISIONS_DIR = DOCS_DIR / 'project' / 'decisions'
 CLIENTS_DIR = ROOT_DIR / 'docs' / 'reference' / 'clients'
 CONVERSATIONS_DIR = ROOT_DIR / 'docs' / 'conversations'
 LIBRARY_EXAMPLES_DIR = ROOT_DIR / 'docs' / 'reference' / 'libraries'
@@ -156,7 +158,7 @@ def _ensure_docs_server():
             'run',
             '--quiet',
             '--',
-            str(EXAMPLES_DIR),
+            str(DOCS_DIR),
             '--host',
             '127.0.0.1',
             '--port',
@@ -414,6 +416,38 @@ def define_env(env):
         return f'!!! example "{heading}"\n\n{_indent_block(body, 4)}\n'
 
     @env.macro
+    def decision_log():
+        query = (QUERIES_DIR / 'decisions.rq').read_text()
+        _, body = _query(query)
+        bindings = json.loads(body)['results']['bindings']
+        cards = ['<div class="grid cards adr-cards" markdown>', '']
+        for binding in bindings:
+            page = binding['graph']['value'].rsplit('/', 1)[-1]
+            title = binding['title']['value']
+            status_key = binding['status']['value'].lower()
+            status = _ADR_STATUS.get(
+                status_key,
+                status_key.replace('_', ' ').title(),
+            )
+            date = _human_date(binding['date']['value'])
+            cards.extend(
+                [
+                    f'-   __[{title}]({page})__',
+                    '',
+                    '    ---',
+                    '',
+                    f'    <span class="adr-status adr-status--{status_key}">'
+                    f'{status}</span>',
+                    '',
+                    f'    :material-calendar-outline: '
+                    f'<span class="adr-date">{date}</span>',
+                    '',
+                ]
+            )
+        cards.append('</div>')
+        return '\n'.join(cards)
+
+    @env.macro
     def live_api_examples():
         endpoint = _ensure_docs_server()
         curl = _command('curl')
@@ -524,7 +558,10 @@ def define_env(env):
             'sq': (
                 _command('sq'),
                 [
-                    (['-e', endpoint, 'graphs'], 'sparqld:alpha-centauri.yamlld'),
+                    (
+                        ['-e', endpoint, 'graphs'],
+                        'sparqld:examples/alpha-centauri.yamlld',
+                    ),
                     (['-e', endpoint, '-f', str(query_files['ask'])], 'true'),
                     (
                         ['-e', endpoint, '-f', str(query_files['construct'])],
@@ -612,12 +649,12 @@ def define_env(env):
             (config_directory / '.sq.toml').write_text(config)
             _run(
                 [sq, 'graphs'],
-                expected='data:alpha-centauri.yamlld',
+                expected='data:index.md',
                 cwd=directory,
             )
             _run(
                 [sq, '-f', str(QUERIES_DIR / 'sq-named-graph.rq')],
-                expected='Alpha Centauri',
+                expected='sparqld',
                 cwd=directory,
             )
         return (
