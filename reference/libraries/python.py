@@ -1,8 +1,7 @@
 import sys
 
-from SPARQLWrapper import JSON, TURTLE, SPARQLWrapper
 from rdflib import Graph
-
+from SPARQLWrapper import JSON, TURTLE, SPARQLWrapper
 
 client = SPARQLWrapper(sys.argv[1])
 
@@ -14,12 +13,12 @@ SELECT ?name WHERE {
 """)
 client.setReturnFormat(JSON)
 select_result = client.queryAndConvert()
-print(f"SELECT: {select_result['results']['bindings'][0]['name']['value']}")
+print(f'SELECT: {select_result["results"]["bindings"][0]["name"]["value"]}')
 
-client.setQuery("ASK { ?subject ?predicate ?object }")
+client.setQuery('ASK { ?subject ?predicate ?object }')
 client.setReturnFormat(JSON)
 ask_result = client.queryAndConvert()
-print(f"ASK: {str(ask_result['boolean']).lower()}")
+print(f'ASK: {str(ask_result["boolean"]).lower()}')
 
 client.setQuery("""
 CONSTRUCT {
@@ -37,4 +36,4 @@ construct_result = Graph().parse(
     format='turtle',
 )
 name = next(construct_result.objects()).toPython()
-print(f"CONSTRUCT: {name}")
+print(f'CONSTRUCT: {name}')

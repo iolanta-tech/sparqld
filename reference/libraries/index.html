@@ -1292,9 +1292,8 @@ against a temporary <code>sparqld</code> endpoint during every documentation bui
 <div class="tabbed-block">
 <div class="highlight"><pre><span></span><code><span class="kn">import</span><span class="w"> </span><span class="nn">sys</span>
 
-<span class="kn">from</span><span class="w"> </span><span class="nn">SPARQLWrapper</span><span class="w"> </span><span class="kn">import</span> <span class="n">JSON</span><span class="p">,</span> <span class="n">TURTLE</span><span class="p">,</span> <span class="n">SPARQLWrapper</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">rdflib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Graph</span>
-
+<span class="kn">from</span><span class="w"> </span><span class="nn">SPARQLWrapper</span><span class="w"> </span><span class="kn">import</span> <span class="n">JSON</span><span class="p">,</span> <span class="n">TURTLE</span><span class="p">,</span> <span class="n">SPARQLWrapper</span>
 
 <span class="n">client</span> <span class="o">=</span> <span class="n">SPARQLWrapper</span><span class="p">(</span><span class="n">sys</span><span class="o">.</span><span class="n">argv</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
 
@@ -1306,12 +1305,12 @@ against a temporary <code>sparqld</code> endpoint during every documentation bui
 <span class="s2">&quot;&quot;&quot;</span><span class="p">)</span>
 <span class="n">client</span><span class="o">.</span><span class="n">setReturnFormat</span><span class="p">(</span><span class="n">JSON</span><span class="p">)</span>
 <span class="n">select_result</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">queryAndConvert</span><span class="p">()</span>
-<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;SELECT: </span><span class="si">{</span><span class="n">select_result</span><span class="p">[</span><span class="s1">&#39;results&#39;</span><span class="p">][</span><span class="s1">&#39;bindings&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">][</span><span class="s1">&#39;name&#39;</span><span class="p">][</span><span class="s1">&#39;value&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;SELECT: </span><span class="si">{</span><span class="n">select_result</span><span class="p">[</span><span class="s2">&quot;results&quot;</span><span class="p">][</span><span class="s2">&quot;bindings&quot;</span><span class="p">][</span><span class="mi">0</span><span class="p">][</span><span class="s2">&quot;name&quot;</span><span class="p">][</span><span class="s2">&quot;value&quot;</span><span class="p">]</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
 
-<span class="n">client</span><span class="o">.</span><span class="n">setQuery</span><span class="p">(</span><span class="s2">&quot;ASK { ?subject ?predicate ?object }&quot;</span><span class="p">)</span>
+<span class="n">client</span><span class="o">.</span><span class="n">setQuery</span><span class="p">(</span><span class="s1">&#39;ASK { ?subject ?predicate ?object }&#39;</span><span class="p">)</span>
 <span class="n">client</span><span class="o">.</span><span class="n">setReturnFormat</span><span class="p">(</span><span class="n">JSON</span><span class="p">)</span>
 <span class="n">ask_result</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">queryAndConvert</span><span class="p">()</span>
-<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;ASK: </span><span class="si">{</span><span class="nb">str</span><span class="p">(</span><span class="n">ask_result</span><span class="p">[</span><span class="s1">&#39;boolean&#39;</span><span class="p">])</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;ASK: </span><span class="si">{</span><span class="nb">str</span><span class="p">(</span><span class="n">ask_result</span><span class="p">[</span><span class="s2">&quot;boolean&quot;</span><span class="p">])</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
 
 <span class="n">client</span><span class="o">.</span><span class="n">setQuery</span><span class="p">(</span><span class="s2">&quot;&quot;&quot;</span>
 <span class="s2">CONSTRUCT {</span>
@@ -1329,7 +1328,7 @@ against a temporary <code>sparqld</code> endpoint during every documentation bui
     <span class="nb">format</span><span class="o">=</span><span class="s1">&#39;turtle&#39;</span><span class="p">,</span>
 <span class="p">)</span>
 <span class="n">name</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="n">construct_result</span><span class="o">.</span><span class="n">objects</span><span class="p">())</span><span class="o">.</span><span class="n">toPython</span><span class="p">()</span>
-<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;CONSTRUCT: </span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;CONSTRUCT: </span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
 </code></pre></div>
 <div class="highlight"><span class="filename">Live result</span><pre><span></span><code>SELECT: Alpha Centauri
 ASK: true
