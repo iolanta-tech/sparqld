@@ -2,7 +2,10 @@ PREFIX schema: <https://schema.org/>
 
 SELECT ?name
 WHERE {
-  ?subject schema:name ?name .
+  GRAPH ?graph {
+    ?subject schema:name ?name .
+  }
+  FILTER(STRSTARTS(STR(?graph), "sparqld:examples/"))
 }
 ORDER BY ?name
 LIMIT 2
