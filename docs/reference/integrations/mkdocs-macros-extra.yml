@@ -1,0 +1,4 @@
+extra:
+  sparqld:
+    directory: data                    # default: docs
+    binary: target/debug/sparqld       # default: sparqld on PATH
