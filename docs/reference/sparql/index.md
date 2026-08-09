@@ -22,46 +22,66 @@ the file catalog.
 Declare prefixes once, then select named values from a specific set of source
 graphs.
 
-{{ live_query('names.rq') }}
+{{ source('docs/queries/names.rq') }}
+
+{{ stored_sparql('docs/queries/names.rq') | sparql_table }}
 
 ## :material-link-variant-plus: Join related resources
 
 Shared variables join statements about a star and its constellation.
 
-{{ live_query('alpha-centauri.rq') }}
+{{ source('docs/queries/alpha-centauri.rq') }}
+
+{{ stored_sparql('docs/queries/alpha-centauri.rq') | sparql_table }}
 
 ## :material-help-circle-outline: Keep optional values
 
 `OPTIONAL` retains rows when a property is absent.
 
-{{ live_query('optional-values.rq') }}
+{{ source('docs/queries/optional-values.rq') }}
+
+{{ stored_sparql('docs/queries/optional-values.rq') | sparql_table }}
 
 ## :material-filter-outline: Filter values
 
 Functions such as `LCASE`, `STR`, and `CONTAINS` narrow matching bindings.
 
-{{ live_query('filter-names.rq') }}
+{{ source('docs/queries/filter-names.rq') }}
+
+{{ stored_sparql('docs/queries/filter-names.rq') | sparql_table }}
 
 ## :material-check-decagram-outline: Ask whether data exists
 
 `ASK` returns one boolean instead of a result table.
 
-{{ live_query('ask-data.rq') }}
+{{ source('docs/queries/ask-data.rq') }}
+
+```text title="Result"
+{{ stored_sparql('docs/queries/ask-data.rq') }}
+```
 
 ## :material-graph-outline: Construct a graph
 
 `CONSTRUCT` returns RDF assembled from matching bindings.
 
-{{ live_query('construct-name.rq') }}
+{{ source('docs/queries/construct-name.rq') }}
+
+```turtle title="Result"
+{{ stored_sparql('docs/queries/construct-name.rq') }}
+```
 
 ## :material-counter: Count triples by named graph
 
 Aggregate named graphs to inspect data and file-catalog triples separately.
 
-{{ live_query('graph-counts.rq') }}
+{{ source('docs/queries/graph-counts.rq') }}
+
+{{ stored_sparql('docs/queries/graph-counts.rq') | sparql_table }}
 
 ## :material-page-next-outline: Order and paginate
 
 Always pair `LIMIT` and `OFFSET` with `ORDER BY` for stable pages.
 
-{{ live_query('paginated-names.rq') }}
+{{ source('docs/queries/paginated-names.rq') }}
+
+{{ stored_sparql('docs/queries/paginated-names.rq') | sparql_table }}
