@@ -3,4 +3,5 @@ WHERE {
   GRAPH ?graph {
     ?subject ?predicate ?object .
   }
+  FILTER(STRSTARTS(STR(?graph), "sparqld:examples/"))
 }

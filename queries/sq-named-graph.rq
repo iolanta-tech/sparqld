@@ -1,6 +1,6 @@
 SELECT ?name
 WHERE {
-  GRAPH data:alpha-centauri.yamlld {
+  GRAPH data:index.md {
     ?subject schema:name ?name .
   }
 }

@@ -6,31 +6,33 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="A live, read-only SPARQL endpoint for linked data stored in files.">
+        <meta name="description" content="Build-time sparqld queries for MkDocs through the mkdocs-macros-sparqld pluglet.">
       
       
       
       
+        <link rel="prev" href="../../agents/">
       
-        <link rel="next" href="quickstart/">
+      
+        <link rel="next" href="../../../project/">
       
       
         
       
       
-      <link rel="icon" href="assets/images/favicon.png">
+      <link rel="icon" href="../../../assets/images/favicon.png">
       <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
     
     
       
-        <title>sparqld - sparqld</title>
+        <title>MkDocs - sparqld</title>
       
     
     
-      <link rel="stylesheet" href="assets/stylesheets/main.ec1eaa64.min.css">
+      <link rel="stylesheet" href="../../../assets/stylesheets/main.ec1eaa64.min.css">
       
         
-        <link rel="stylesheet" href="assets/stylesheets/palette.ab4e12ef.min.css">
+        <link rel="stylesheet" href="../../../assets/stylesheets/palette.ab4e12ef.min.css">
       
       
 
@@ -49,9 +51,9 @@
       
     
     
-      <link rel="stylesheet" href="stylesheets/extra.css">
+      <link rel="stylesheet" href="../../../stylesheets/extra.css">
     
-    <script>__md_scope=new URL(".",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    <script>__md_scope=new URL("../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
     
       
 
@@ -76,7 +78,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#sparql-for-rdf-files" class="md-skip">
+        <a href="#mkdocs" class="md-skip">
           Skip to content
         </a>
       
@@ -90,7 +92,7 @@
 
 <header class="md-header" data-md-component="header">
   <nav class="md-header__inner md-grid" aria-label="Header">
-    <a href="." title="sparqld" class="md-header__button md-logo" aria-label="sparqld" data-md-component="logo">
+    <a href="../../.." title="sparqld" class="md-header__button md-logo" aria-label="sparqld" data-md-component="logo">
       
   
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 1 9 9l-8 3 8 3 3 8 3-8 8-3-8-3z"/></svg>
@@ -110,7 +112,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              sparqld
+              MkDocs
             
           </span>
         </div>
@@ -219,13 +221,11 @@
   
   
   
-    
-  
   
     
     
-      <li class="md-tabs__item md-tabs__item--active">
-        <a href="." class="md-tabs__link">
+      <li class="md-tabs__item">
+        <a href="../../.." class="md-tabs__link">
           
   
   
@@ -245,11 +245,13 @@
   
   
   
+    
+  
   
     
     
-      <li class="md-tabs__item">
-        <a href="reference/" class="md-tabs__link">
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../../" class="md-tabs__link">
           
   
   
@@ -273,7 +275,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="project/" class="md-tabs__link">
+        <a href="../../../project/" class="md-tabs__link">
           
   
   
@@ -313,7 +315,7 @@
 
 <nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
   <label class="md-nav__title" for="__drawer">
-    <a href="." title="sparqld" class="md-nav__button md-logo" aria-label="sparqld" data-md-component="logo">
+    <a href="../../.." title="sparqld" class="md-nav__button md-logo" aria-label="sparqld" data-md-component="logo">
       
   
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 1 9 9l-8 3 8 3 3 8 3-8 8-3-8-3z"/></svg>
@@ -340,8 +342,6 @@
       
   
   
-    
-  
   
   
     
@@ -357,23 +357,20 @@
     
     
       
-        
-        
-      
       
         
       
     
     
-    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--nested">
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_1" checked>
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_1" >
         
           
           <div class="md-nav__link md-nav__container">
-            <a href="." class="md-nav__link md-nav__link--active">
+            <a href="../../.." class="md-nav__link ">
               
   
   
@@ -393,13 +390,13 @@
             </a>
             
               
-              <label class="md-nav__link md-nav__link--active" for="__nav_1" id="__nav_1_label" tabindex="">
+              <label class="md-nav__link " for="__nav_1" id="__nav_1_label" tabindex="0">
                 <span class="md-nav__icon md-icon"></span>
               </label>
             
           </div>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_1_label" aria-expanded="true">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_1_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_1">
             <span class="md-nav__icon md-icon"></span>
             
@@ -419,7 +416,7 @@
   
   
     <li class="md-nav__item">
-      <a href="quickstart/" class="md-nav__link">
+      <a href="../../../quickstart/" class="md-nav__link">
         
   
   
@@ -453,6 +450,8 @@
       
   
   
+    
+  
   
   
     
@@ -486,20 +485,23 @@
     
     
       
+        
+        
+      
       
         
       
     
     
-    <li class="md-nav__item md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" checked>
         
           
           <div class="md-nav__link md-nav__container">
-            <a href="reference/" class="md-nav__link ">
+            <a href="../../" class="md-nav__link ">
               
   
   
@@ -519,13 +521,13 @@
             </a>
             
               
-              <label class="md-nav__link " for="__nav_2" id="__nav_2_label" tabindex="0">
+              <label class="md-nav__link " for="__nav_2" id="__nav_2_label" tabindex="">
                 <span class="md-nav__icon md-icon"></span>
               </label>
             
           </div>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="true">
           <label class="md-nav__title" for="__nav_2">
             <span class="md-nav__icon md-icon"></span>
             
@@ -545,7 +547,7 @@
   
   
     <li class="md-nav__item">
-      <a href="reference/api/" class="md-nav__link">
+      <a href="../../api/" class="md-nav__link">
         
   
   
@@ -573,7 +575,7 @@
   
   
     <li class="md-nav__item">
-      <a href="reference/libraries/" class="md-nav__link">
+      <a href="../../libraries/" class="md-nav__link">
         
   
   
@@ -601,7 +603,7 @@
   
   
     <li class="md-nav__item">
-      <a href="reference/sparql/" class="md-nav__link">
+      <a href="../../sparql/" class="md-nav__link">
         
   
   
@@ -629,7 +631,7 @@
   
   
     <li class="md-nav__item">
-      <a href="reference/formats/" class="md-nav__link">
+      <a href="../../formats/" class="md-nav__link">
         
   
   
@@ -657,7 +659,7 @@
   
   
     <li class="md-nav__item">
-      <a href="reference/named-graphs/" class="md-nav__link">
+      <a href="../../named-graphs/" class="md-nav__link">
         
   
   
@@ -685,7 +687,7 @@
   
   
     <li class="md-nav__item">
-      <a href="reference/file-catalog/" class="md-nav__link">
+      <a href="../../file-catalog/" class="md-nav__link">
         
   
   
@@ -713,7 +715,7 @@
   
   
     <li class="md-nav__item">
-      <a href="reference/contexts/" class="md-nav__link">
+      <a href="../../contexts/" class="md-nav__link">
         
   
   
@@ -755,10 +757,13 @@
       
       
         
+          
+          
+        
       
     
     
-    <li class="md-nav__item md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
       
         
         
@@ -766,7 +771,7 @@
         
           
           <div class="md-nav__link md-nav__container">
-            <a href="reference/clients/" class="md-nav__link ">
+            <a href="../../clients/" class="md-nav__link ">
               
   
   
@@ -784,7 +789,7 @@
             </a>
             
               
-              <label class="md-nav__link " for="__nav_2_9" id="__nav_2_9_label" tabindex="0">
+              <label class="md-nav__link " for="__nav_2_9" id="__nav_2_9_label" tabindex="">
                 <span class="md-nav__icon md-icon"></span>
               </label>
             
@@ -810,7 +815,7 @@
   
   
     <li class="md-nav__item">
-      <a href="reference/clients/sq/" class="md-nav__link">
+      <a href="../../clients/sq/" class="md-nav__link">
         
   
   
@@ -846,7 +851,7 @@
   
   
     <li class="md-nav__item">
-      <a href="reference/agents/" class="md-nav__link">
+      <a href="../../agents/" class="md-nav__link">
         
   
   
@@ -871,8 +876,10 @@
                 
   
   
+    
   
   
+  
     
     
       
@@ -883,18 +890,21 @@
     
       
       
-        
-      
-    
-    
-    <li class="md-nav__item md-nav__item--nested">
-      
-        
-        
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_11" >
         
           
-          <label class="md-nav__link" for="__nav_2_11" id="__nav_2_11_label" tabindex="0">
+          
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_11" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_2_11" id="__nav_2_11_label" tabindex="">
             
   
   
@@ -912,7 +922,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_11_label" aria-expanded="false">
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_11_label" aria-expanded="true">
           <label class="md-nav__title" for="__nav_2_11">
             <span class="md-nav__icon md-icon"></span>
             
@@ -927,10 +937,37 @@
                 
   
   
+    
   
   
-    <li class="md-nav__item">
-      <a href="reference/integrations/mkdocs/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    MkDocs
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         
   
   
@@ -946,6 +983,109 @@
   
 
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#install" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Install
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#required-configuration" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Required configuration
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#optional-customization" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Optional customization
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Optional customization">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#sparql" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        sparql
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#stored_sparql" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        stored_sparql
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sparql_table-filter" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        sparql_table filter
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#programmatic-helpers" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Programmatic helpers
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
     </li>
   
 
@@ -1000,7 +1140,7 @@
         
           
           <div class="md-nav__link md-nav__container">
-            <a href="project/" class="md-nav__link ">
+            <a href="../../../project/" class="md-nav__link ">
               
   
   
@@ -1046,7 +1186,7 @@
   
   
     <li class="md-nav__item">
-      <a href="project/roadmap/" class="md-nav__link">
+      <a href="../../../project/roadmap/" class="md-nav__link">
         
   
   
@@ -1101,7 +1241,7 @@
         
           
           <div class="md-nav__link md-nav__container">
-            <a href="project/decisions/" class="md-nav__link ">
+            <a href="../../../project/decisions/" class="md-nav__link ">
               
   
   
@@ -1145,7 +1285,7 @@
   
   
     <li class="md-nav__item">
-      <a href="project/decisions/implement-live-file-backed-sparql-access-with/" class="md-nav__link">
+      <a href="../../../project/decisions/implement-live-file-backed-sparql-access-with/" class="md-nav__link">
         
   
   
@@ -1180,7 +1320,7 @@
   
   
     <li class="md-nav__item">
-      <a href="project/decisions/implement-sparqld-in/" class="md-nav__link">
+      <a href="../../../project/decisions/implement-sparqld-in/" class="md-nav__link">
         
   
   
@@ -1252,10 +1392,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#a-local-endpoint-in-one-command" class="md-nav__link">
+  <a href="#install" class="md-nav__link">
     <span class="md-ellipsis">
       
-        A local endpoint in one command
+        Install
       
     </span>
   </a>
@@ -1263,10 +1403,71 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#a-queryable-knowledge-base-for-agents" class="md-nav__link">
+  <a href="#required-configuration" class="md-nav__link">
     <span class="md-ellipsis">
       
-        A queryable knowledge base for agents
+        Required configuration
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#optional-customization" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Optional customization
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Optional customization">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#sparql" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        sparql
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#stored_sparql" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        stored_sparql
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sparql_table-filter" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        sparql_table filter
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#programmatic-helpers" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Programmatic helpers
       
     </span>
   </a>
@@ -1295,59 +1496,120 @@
   
 
 
-<h1 id="sparql-for-rdf-files"><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M16.5 12c2.5 0 4.5 2 4.5 4.5 0 .88-.25 1.71-.69 2.4l3.08 3.1L22 23.39l-3.12-3.07c-.69.43-1.51.68-2.38.68-2.5 0-4.5-2-4.5-4.5s2-4.5 4.5-4.5m0 2a2.5 2.5 0 0 0-2.5 2.5 2.5 2.5 0 0 0 2.5 2.5 2.5 2.5 0 0 0 2.5-2.5 2.5 2.5 0 0 0-2.5-2.5M19 8H3v10h7.17c.17.72.46 1.39.83 2H3a2 2 0 0 1-2-2V6c0-1.11.89-2 2-2h6l2 2h8a2 2 0 0 1 2 2v3.81c-.58-.55-1.25-1-2-1.31z"/></svg></span> SPARQL for RDF files</h1>
-<p><img alt="sparqld logo: a linked-data graph inside a folder" src="images/logo-cropped.png" /></p>
-<p><code>sparqld</code> turns a directory of RDF files into a live, read-only SPARQL
-endpoint. Keep your data in version control and query its current state without
-importing it into a database.</p>
-<p><a href="https://github.com/iolanta-tech/sparqld/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/iolanta-tech/sparqld/actions/workflows/ci.yml/badge.svg" /></a>
-<a href="https://crates.io/crates/sparqld"><img alt="crates.io" src="https://img.shields.io/crates/v/sparqld.svg" /></a>
-<a href="https://github.com/iolanta-tech/sparqld#license"><img alt="License" src="https://img.shields.io/crates/l/sparqld.svg" /></a></p>
-<div class="grid cards">
-<ul>
-<li>
-<p><span class="twemoji lg middle"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M22 4h-8l-2-2H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2M2 6H0v14a2 2 0 0 0 2 2h18v-2H2z"/></svg></span> <strong>Files stay authoritative</strong></p>
-<hr />
-<p>Use Markdown-LD, YAML-LD, JSON-LD, and the rest of your repository as the
-source of truth.</p>
-</li>
-<li>
-<p><span class="twemoji lg middle"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18a6 6 0 0 1-6-6c0-1 .25-1.97.7-2.8L5.24 7.74A7.93 7.93 0 0 0 4 12a8 8 0 0 0 8 8v3l4-4-4-4m0-11V1L8 5l4 4V6a6 6 0 0 1 6 6c0 1-.25 1.97-.7 2.8l1.46 1.46A7.93 7.93 0 0 0 20 12a8 8 0 0 0-8-8"/></svg></span> <strong>Queries stay current</strong></p>
-<hr />
-<p><code>sparqld</code> watches the directory and makes each successful edit available
-atomically.</p>
-</li>
-<li>
-<p><span class="twemoji lg middle"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 11c0 5.55-3.84 10.74-9 12-5.16-1.26-9-6.45-9-12V5l9-4 9 4zm-9 10c3.75-1 7-5.46 7-9.78V6.3l-7-3.12L5 6.3v4.92C5 15.54 8.25 20 12 21m2.8-10V9.5C14.8 8.1 13.4 7 12 7S9.2 8.1 9.2 9.5V11c-.6 0-1.2.6-1.2 1.2v3.5c0 .7.6 1.3 1.2 1.3h5.5c.7 0 1.3-.6 1.3-1.2v-3.5c0-.7-.6-1.3-1.2-1.3m-1.3 0h-3V9.5c0-.8.7-1.3 1.5-1.3s1.5.5 1.5 1.3z"/></svg></span> <strong>Safe for people and agents</strong></p>
-<hr />
-<p>The endpoint is permanently read-only: queries explore the knowledge base
-without changing its files.</p>
-</li>
-</ul>
-</div>
-<h2 id="a-local-endpoint-in-one-command"><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M2 4.6v4.8c0 .9.5 1.6 1.2 1.6h17.7c.6 0 1.2-.7 1.2-1.6V4.6C22 3.7 21.5 3 20.8 3H3.2C2.5 3 2 3.7 2 4.6M10 8V6H9v2zM5 8h2V6H5zm15 1H4V5h16zM2 14.6v4.8c0 .9.5 1.6 1.2 1.6h17.7c.6 0 1.2-.7 1.2-1.6v-4.8c0-.9-.5-1.6-1.2-1.6H3.2c-.7 0-1.2.7-1.2 1.6m8 3.4v-2H9v2zm-5 0h2v-2H5zm15 1H4v-4h16z"/></svg></span> A local endpoint in one command</h2>
-<div class="install-command">
-<div class="admonition command">
-<p class="admonition-title">Command</p>
-<div class="highlight"><pre><span></span><code><span class="go">sparqld ./data</span>
+<h1 id="mkdocs"><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m17.029 18.772.777 1.166-5.417 2.709L0 16.451V4.063l5.417-2.709 5.298 7.948 7.867-5.24L24 1.354V16.84l-5.417 2.709zm2.023-13.827v13.253l3.949-1.975V2.97zM5.076 2.642 1.458 4.45 12.73 21.358l3.618-1.809z"/></svg></span> MkDocs</h1>
+<p><a href="https://pypi.org/project/mkdocs-macros-sparqld/"><code>mkdocs-macros-sparqld</code></a> is an
+<a href="https://mkdocs-macros-plugin.readthedocs.io/">mkdocs-macros</a> pluglet. During
+<code>mkdocs build</code> or <code>mkdocs serve</code> it starts a read-only <code>sparqld</code> endpoint over a
+configured directory and expands SPARQL macros into the rendered pages.</p>
+<p>This documentation site uses the pluglet for its live SPARQL examples.</p>
+<h2 id="install"><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 5v6h1.17L12 13.17 9.83 11H11V5zm2-2H9v6H5l7 7 7-7h-4zm4 15H5v2h14z"/></svg></span> Install</h2>
+<div class="highlight"><pre><span></span><code><span class="go">pip install mkdocs-macros-sparqld</span>
 </code></pre></div>
-</div>
-</div>
-<p>The directory is served at <code>http://127.0.0.1:7737/</code>. Query it from your shell,
-application, or coding agent; edit the files to change the data.</p>
-<p><a class="md-button md-button--primary" href="quickstart/"><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m13.13 22.19-1.63-3.83c1.57-.58 3.04-1.36 4.4-2.27zM5.64 12.5l-3.83-1.63 6.1-2.77C7 9.46 6.22 10.93 5.64 12.5M19.22 4c.28 0 .53 0 .74.05.17 1.39-.02 4.25-3.3 7.53-1.7 1.71-3.73 3.02-6.01 3.89l-2.15-2.1c.92-2.31 2.23-4.34 3.92-6.03C15.18 4.58 17.64 4 19.22 4m0-2c-1.98 0-4.98.69-8.22 3.93-2.19 2.19-3.5 4.6-4.35 6.71-.28.75-.09 1.57.46 2.13l2.13 2.12c.38.38.89.61 1.42.61.23 0 .47-.06.7-.15A19.1 19.1 0 0 0 18.07 13c5.66-5.66 3.54-10.61 3.54-10.61S20.7 2 19.22 2m-4.68 7.46c-.78-.78-.78-2.05 0-2.83s2.05-.78 2.83 0c.77.78.78 2.05 0 2.83s-2.05.78-2.83 0m-5.66 7.07-1.41-1.41zM6.24 22l3.64-3.64c-.34-.09-.67-.24-.97-.45L4.83 22zM2 22h1.41l4.77-4.76-1.42-1.41L2 20.59zm0-2.83 4.09-4.08c-.21-.3-.36-.62-.45-.97L2 17.76z"/></svg></span> Start the Quickstart</a>
-<a class="md-button" href="reference/"><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m19 1-5 5v11l5-4.5zm2 4v13.5c-1.1-.35-2.3-.5-3.5-.5-1.7 0-4.15.65-5.5 1.5V6c-1.45-1.1-3.55-1.5-5.5-1.5S2.45 4.9 1 6v14.65c0 .25.25.5.5.5.1 0 .15-.05.25-.05C3.1 20.45 5.05 20 6.5 20c1.95 0 4.05.4 5.5 1.5 1.35-.85 3.8-1.5 5.5-1.5 1.65 0 3.35.3 4.75 1.05.1.05.15.05.25.05.25 0 .5-.25.5-.5V6c-.6-.45-1.25-.75-2-1M10 18.41C8.75 18.09 7.5 18 6.5 18c-1.06 0-2.32.19-3.5.5V7.13c.91-.4 2.14-.63 3.5-.63s2.59.23 3.5.63z"/></svg></span> Browse the reference</a></p>
-<h2 id="a-queryable-knowledge-base-for-agents"><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M17.5 15.5c0 1.11-.89 2-2 2s-2-.89-2-2 .9-2 2-2 2 .9 2 2m-9-2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.89 2-2-.89-2-2-2M23 15v3c0 .55-.45 1-1 1h-1v1c0 1.11-.89 2-2 2H5a2 2 0 0 1-2-2v-1H2c-.55 0-1-.45-1-1v-3c0-.55.45-1 1-1h1c0-3.87 3.13-7 7-7h1V5.73c-.6-.34-1-.99-1-1.73 0-1.1.9-2 2-2s2 .9 2 2c0 .74-.4 1.39-1 1.73V7h1c3.87 0 7 3.13 7 7h1c.55 0 1 .45 1 1m-2 1h-2v-2c0-2.76-2.24-5-5-5h-4c-2.76 0-5 2.24-5 5v2H3v1h2v3h14v-3h2z"/></svg></span> A queryable knowledge base for agents</h2>
-<p>Give an agent the local endpoint and it can inspect the same versioned knowledge
-base that you edit. <code>sparqld</code> fits repositories that need reproducible RDF,
-fast feedback, and a clear boundary between querying and changing data.</p>
-<p>It is useful for:</p>
-<ul>
-<li>local knowledge bases and ontology repositories;</li>
-<li>generated RDF build output and application fixtures;</li>
-<li>documentation projects and agents that need to query their working data.</li>
-</ul>
-<p>No database service, import script, or synchronization layer is required.</p>
+<p>Also install the <a href="https://crates.io/crates/sparqld"><code>sparqld</code></a> binary and keep it
+on <code>PATH</code> unless you override <code>extra.sparqld.binary</code> below.</p>
+<h2 id="required-configuration"><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M6 2a2 2 0 0 0-2 2v16c0 1.11.89 2 2 2h6v-2H6V4h7v5h5v3h2V8l-6-6m4 12a.26.26 0 0 0-.26.21l-.19 1.32c-.3.13-.59.29-.85.47l-1.24-.5c-.11 0-.24 0-.31.13l-1 1.73c-.06.11-.04.24.06.32l1.06.82a4.2 4.2 0 0 0 0 1l-1.06.82a.26.26 0 0 0-.06.32l1 1.73c.06.13.19.13.31.13l1.24-.5c.26.18.54.35.85.47l.19 1.32c.02.12.12.21.26.21h2c.11 0 .22-.09.24-.21l.19-1.32c.3-.13.57-.29.84-.47l1.23.5c.13 0 .26 0 .33-.13l1-1.73a.26.26 0 0 0-.06-.32l-1.07-.82c.02-.17.04-.33.04-.5s-.01-.33-.04-.5l1.06-.82a.26.26 0 0 0 .06-.32l-1-1.73c-.06-.13-.19-.13-.32-.13l-1.23.5c-.27-.18-.54-.35-.85-.47l-.19-1.32A.236.236 0 0 0 20 14m-1 3.5c.83 0 1.5.67 1.5 1.5s-.67 1.5-1.5 1.5c-.84 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5"/></svg></span> Required configuration</h2>
+<p>Register the pluglet with mkdocs-macros:</p>
+<div class="highlight"><pre><span></span><code><span class="nt">plugins</span><span class="p">:</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">macros</span><span class="p">:</span>
+<span class="w">      </span><span class="nt">modules</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">mkdocs_macros_sparqld</span><span class="p p-Indicator">]</span>
+</code></pre></div>
+<p>Nothing else is required when <code>sparqld</code> is on <code>PATH</code> and the served tree is the
+project's <code>docs/</code> directory.</p>
+<h2 id="optional-customization"><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M8 13c-1.86 0-3.41 1.28-3.86 3H2v2h2.14c.45 1.72 2 3 3.86 3s3.41-1.28 3.86-3H22v-2H11.86c-.45-1.72-2-3-3.86-3m0 6c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2M19.86 6c-.45-1.72-2-3-3.86-3s-3.41 1.28-3.86 3H2v2h10.14c.45 1.72 2 3 3.86 3s3.41-1.28 3.86-3H22V6zM16 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2"/></svg></span> Optional customization</h2>
+<p>Override defaults under <code>extra.sparqld</code> only when you need them:</p>
+<div class="highlight"><pre><span></span><code><span class="nt">extra</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">sparqld</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">directory</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">data</span><span class="w">                    </span><span class="c1"># default: docs</span>
+<span class="w">    </span><span class="nt">binary</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">target/debug/sparqld</span><span class="w">       </span><span class="c1"># default: sparqld on PATH</span>
+</code></pre></div>
+<table>
+<thead>
+<tr>
+<th>Key</th>
+<th>Default</th>
+<th>When to set it</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>directory</code></td>
+<td><code>docs</code></td>
+<td>The RDF tree is not <code>docs/</code> (for example <code>data/</code>)</td>
+</tr>
+<tr>
+<td><code>binary</code></td>
+<td><code>sparqld</code></td>
+<td>The executable is not on <code>PATH</code>, or you want a project-local build such as <code>target/debug/sparqld</code></td>
+</tr>
+<tr>
+<td>## <span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12.42 5.29c-1.1-.1-2.07.71-2.17 1.82L10 10h2.82v2h-3l-.44 5.07A4.001 4.001 0 0 1 2 18.83l1.5-1.5c.33 1.05 1.46 1.64 2.5 1.3.78-.24 1.33-.93 1.4-1.74L7.82 12h-3v-2H8l.27-3.07a4.01 4.01 0 0 1 4.33-3.65c1.26.11 2.4.81 3.06 1.89l-1.5 1.5c-.25-.77-.93-1.31-1.74-1.38M22 13.65l-1.41-1.41-2.83 2.83-2.83-2.83-1.43 1.41 2.85 2.85-2.85 2.81 1.43 1.41 2.83-2.83 2.83 2.83L22 19.31l-2.83-2.81z"/></svg></span> Macros and filters</td>
+<td></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<h3 id="sparql"><code>sparql</code></h3>
+<p>Run a verbatim SPARQL query. A <code>SELECT</code> returns a list of binding dicts (one
+dict per row, keys are variable names).</p>
+<div class="highlight"><pre><span></span><code>{{ sparql(&#39;SELECT ?name WHERE { ?s &lt;https://schema.org/name&gt; ?name } LIMIT 3&#39;) | sparql_table }}
+</code></pre></div>
+<table>
+<thead>
+<tr>
+<th>name</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>SPARQL cheat sheet</td>
+</tr>
+<tr>
+<td>Named graphs</td>
+</tr>
+<tr>
+<td>SPARQL client libraries</td>
+</tr>
+</tbody>
+</table>
+<h3 id="stored_sparql"><code>stored_sparql</code></h3>
+<p>Run a <code>.rq</code> file whose path is relative to the MkDocs project root (the
+directory that contains <code>mkdocs.yml</code>).</p>
+<div class="highlight"><pre><span></span><code>{{ stored_sparql(&#39;docs/queries/names.rq&#39;) | sparql_table }}
+</code></pre></div>
+<table>
+<thead>
+<tr>
+<th>graph</th>
+<th>name</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>sparqld:examples/alpha-centauri.yamlld</td>
+<td>Alpha Centauri</td>
+</tr>
+<tr>
+<td>sparqld:examples/centaurus.md</td>
+<td>Centaurus</td>
+</tr>
+<tr>
+<td>sparqld:examples/proxima-centauri-b.jsonld</td>
+<td>Proxima Centauri b</td>
+</tr>
+</tbody>
+</table>
+<h3 id="sparql_table-filter"><code>sparql_table</code> filter</h3>
+<p>Render <code>SELECT</code> bindings as a Markdown table. Pipe the result of <code>sparql</code> or
+<code>stored_sparql</code>:</p>
+<div class="highlight"><pre><span></span><code>{{ stored_sparql(&#39;docs/queries/names.rq&#39;) | sparql_table }}
+</code></pre></div>
+<h2 id="programmatic-helpers"><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M8 3a2 2 0 0 0-2 2v4a2 2 0 0 1-2 2H3v2h1a2 2 0 0 1 2 2v4a2 2 0 0 0 2 2h2v-2H8v-5a2 2 0 0 0-2-2 2 2 0 0 0 2-2V5h2V3m6 0a2 2 0 0 1 2 2v4a2 2 0 0 0 2 2h1v2h-1a2 2 0 0 0-2 2v4a2 2 0 0 1-2 2h-2v-2h2v-5a2 2 0 0 1 2-2 2 2 0 0 1-2-2V5h-2V3z"/></svg></span> Programmatic helpers</h2>
+<p>A local MkDocs macros module can reuse the same endpoint:</p>
+<div class="highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">mkdocs_macros_sparqld</span><span class="w"> </span><span class="kn">import</span> <span class="n">ensure_endpoint</span><span class="p">,</span> <span class="n">run_query</span>
+
+<span class="n">endpoint</span> <span class="o">=</span> <span class="n">ensure_endpoint</span><span class="p">()</span>
+<span class="n">content_type</span><span class="p">,</span> <span class="n">body</span> <span class="o">=</span> <span class="n">run_query</span><span class="p">(</span><span class="s1">&#39;ASK { ?s ?p ?o }&#39;</span><span class="p">)</span>
+</code></pre></div>
 
 
 
@@ -1408,10 +1670,10 @@ fast feedback, and a clear boundary between querying and changing data.</p>
     
       
       
-      <script id="__config" type="application/json">{"annotate": null, "base": ".", "features": ["content.code.copy", "content.tooltips", "navigation.indexes", "navigation.sections", "navigation.tabs", "navigation.top"], "search": "assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+      <script id="__config" type="application/json">{"annotate": null, "base": "../../..", "features": ["content.code.copy", "content.tooltips", "navigation.indexes", "navigation.sections", "navigation.tabs", "navigation.top"], "search": "../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
     
     
-      <script src="assets/javascripts/bundle.d7400e89.min.js"></script>
+      <script src="../../../assets/javascripts/bundle.d7400e89.min.js"></script>
       
         <script src="https://unpkg.com/mermaid@11.16.1/dist/mermaid.min.js"></script>
       

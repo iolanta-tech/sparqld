@@ -1,0 +1,13 @@
+PREFIX schema: <https://schema.org/>
+
+SELECT ?graph ?title ?status ?date ?author
+WHERE {
+  GRAPH ?graph {
+    ?adr schema:keywords "decision" ;
+         schema:name ?title ;
+         schema:creativeWorkStatus ?status ;
+         schema:dateCreated ?date ;
+         schema:author ?author .
+  }
+}
+ORDER BY DESC(?date)
