@@ -62,7 +62,7 @@ therefore gives it a new graph IRI.
 
 Use `GRAPH` to retain source provenance in query results:
 
-{{ query_data('all-quads.rq') }}
+{{ source('docs/queries/all-quads.rq') }}
 
 ## :material-file-tree: Named graphs inside a source
 
