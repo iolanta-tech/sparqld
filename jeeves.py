@@ -4,13 +4,13 @@ import datetime
 import json
 import sys
 import tempfile
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 import matplotlib.dates as matplotlib_dates
-from matplotlib import pyplot
 import sh
 import typer
-
+from matplotlib import pyplot
 
 docs = typer.Typer(no_args_is_help=True)
 PROJECT_ROOT = Path(__file__).parent
@@ -31,8 +31,7 @@ def _serve():
 def _main_history():
     """Return first-parent main commits from oldest to newest."""
     return sh.git(
-        'rev-list',
-        'main', first_parent=True, reverse=True, _cwd=PROJECT_ROOT
+        'rev-list', 'main', first_parent=True, reverse=True, _cwd=PROJECT_ROOT
     ).splitlines()
 
 
@@ -123,5 +122,25 @@ def _language_history():
 
 def lint():
     """Autoformat & lint."""
-    # TODO: cargo fmt & lint
-    # TODO: in parallel, python fmt & lint
+    with ThreadPoolExecutor(max_workers=2) as executor:
+        tasks = (
+            executor.submit(_lint_rust),
+            executor.submit(_lint_python),
+        )
+        for task in tasks:
+            task.result()
+
+
+def _lint_rust():
+    """Autoformat and lint the Rust project."""
+    sh.cargo('fmt', _cwd=PROJECT_ROOT, _fg=True)
+    sh.cargo('clippy', _cwd=PROJECT_ROOT, _fg=True)
+
+
+def _lint_python():
+    """Autoformat and lint the Python project."""
+    ruff = sh.Command(sys.executable).bake('-m', 'ruff')
+    flake8 = sh.Command(sys.executable).bake('-m', 'flake8')
+    ruff('format', PROJECT_ROOT, _cwd=PROJECT_ROOT, _fg=True)
+    ruff('check', PROJECT_ROOT, _cwd=PROJECT_ROOT, _fg=True)
+    flake8(PROJECT_ROOT, _cwd=PROJECT_ROOT, _fg=True)

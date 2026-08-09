@@ -10,7 +10,6 @@ from pathlib import Path
 
 from mkdocs_macros_sparqld import ensure_endpoint, run_query, stop_server
 
-
 ROOT_DIR = Path(__file__).resolve().parent
 DOCS_DIR = ROOT_DIR / 'docs'
 EXAMPLES_DIR = DOCS_DIR / 'examples'
@@ -151,17 +150,20 @@ def _adr_metadata(value_date, status):
     return f'!!! {kind} "{title}"\n'
 
 
-def define_env(env):
-    """Register documentation macros."""
+class DocumentationMacros:
+    """Documentation macros bound to one MkDocs environment."""
 
-    def source_data(path, repository_path, indent, title):
+    def __init__(self, env):
+        self._env = env
+
+    def _source_data(self, path, repository_path, indent, title):
         if not path.is_file():
             raise ValueError(f'Documentation source does not exist: {path}')
         source = path.read_text().rstrip('\n')
         syntax = _EXAMPLE_SYNTAXES.get(path.suffix.lower(), 'text')
         github_url = _github_url(
             repository_path,
-            env.conf.get('repo_url') or REPO_URL,
+            self._env.conf.get('repo_url') or REPO_URL,
         )
         heading = (
             f'{title}<span class="example-source-link" markdown>'
@@ -169,64 +171,54 @@ def define_env(env):
             f'</span>'
         )
         body = f'```{syntax}\n{source}\n```'
-        rendered = (
-            f'!!! example "{heading}"\n\n'
-            f'{_indent_block(body, 4)}\n'
-        )
+        rendered = f'!!! example "{heading}"\n\n{_indent_block(body, 4)}\n'
         return _indent_block(rendered, indent)
 
-    @env.macro
-    def adr_metadata(date, status):
+    def adr_metadata(self, date, status):
         return _adr_metadata(date, status)
 
-    @env.macro
-    def source(path, indent=0, title='Source'):
+    def source(self, path, indent=0, title='Source'):
         """Render any project file as an example admonition."""
         file_path = (ROOT_DIR / path).resolve()
         if not file_path.is_relative_to(ROOT_DIR):
             raise ValueError(f'Invalid path outside the project: {path}')
-        return source_data(file_path, Path(path), indent, title)
+        return self._source_data(file_path, Path(path), indent, title)
 
-    @env.macro
-    def example_data(name, indent=0, title='Source'):
-        return source(Path('docs/examples') / name, indent=indent, title=title)
+    def example_data(self, name, indent=0, title='Source'):
+        return self.source(Path('docs/examples') / name, indent=indent, title=title)
 
-    @env.macro
-    def example_code(name, indent=0):
+    def example_code(self, name, indent=0):
         path = _example_path(name)
         source = path.read_text().rstrip('\n')
         syntax = _EXAMPLE_SYNTAXES.get(path.suffix.lower(), 'text')
         return _indent_block(f'```{syntax}\n{source}\n```\n', indent)
 
-    @env.macro
-    def result_data(name, indent=0, title='Result'):
+    def result_data(self, name, indent=0, title='Result'):
         path = RESULTS_DIR / name
-        return source_data(
+        return self._source_data(
             path,
             Path('docs/results') / name,
             indent,
             title,
         )
 
-    @env.macro
-    def client_data(name, indent=0, title='Configuration'):
+    def client_data(self, name, indent=0, title='Configuration'):
         path = CLIENTS_DIR / name
-        return source_data(
+        return self._source_data(
             path,
             Path('docs/reference/clients') / name,
             indent,
             title,
         )
 
-    @env.macro
-    def agent_conversation(name):
+    def agent_conversation(self, name):
         directory = CONVERSATIONS_DIR / name
         prompt_path = directory / 'user.prompt'
         response_path = directory / 'codex.response'
         if not prompt_path.is_file() or not response_path.is_file():
             raise ValueError(f'Agent conversation does not exist: {name}')
 
-        repo_url = env.conf.get('repo_url') or REPO_URL
+        repo_url = self._env.conf.get('repo_url') or REPO_URL
         prompt_url = _github_url(
             Path('docs/conversations') / name / prompt_path.name,
             repo_url,
@@ -254,8 +246,7 @@ def define_env(env):
             f'!!! agent-codex "{response_heading}"\n\n{response}\n'
         )
 
-    @env.macro
-    def decision_log():
+    def decision_log(self):
         query = (QUERIES_DIR / 'decisions.rq').read_text()
         _, body = run_query(query)
         bindings = json.loads(body)['results']['bindings']
@@ -275,19 +266,22 @@ def define_env(env):
                     '',
                     '    ---',
                     '',
-                    f'    <span class="adr-status adr-status--{status_key}">'
-                    f'{status}</span>',
+                    (
+                        f'    <span class="adr-status adr-status--{status_key}">'
+                        f'{status}</span>'
+                    ),
                     '',
-                    f'    :material-calendar-outline: '
-                    f'<span class="adr-date">{date}</span>',
+                    (
+                        f'    :material-calendar-outline: '
+                        f'<span class="adr-date">{date}</span>'
+                    ),
                     '',
                 ]
             )
         cards.append('</div>')
         return '\n'.join(cards)
 
-    @env.macro
-    def live_api_examples():
+    def live_api_examples(self):
         endpoint = ensure_endpoint()
         curl = _command('curl')
         query = 'ASK { ?subject ?predicate ?object }'
@@ -346,14 +340,12 @@ def define_env(env):
         for title, command, display in examples:
             output = json.dumps(json.loads(_run(command)), indent=2)
             body = (
-                f'```console\n{display}\n```\n\n'
-                f'```json title="Response"\n{output}\n```'
+                f'```console\n{display}\n```\n\n```json title="Response"\n{output}\n```'
             )
             tabs.append(f'=== "{title}"\n\n{_indent_block(body, 4)}')
         return '\n\n'.join(tabs)
 
-    @env.macro
-    def live_library_examples():
+    def live_library_examples(self):
         endpoint = ensure_endpoint()
         examples = [
             (
@@ -385,8 +377,7 @@ def define_env(env):
             tabs.append(f'=== "{title}"\n\n{_indent_block(body, 4)}')
         return '\n\n'.join(tabs)
 
-    @env.macro
-    def verify_clients():
+    def verify_clients(self):
         endpoint = ensure_endpoint()
         query_files = {
             'select': QUERIES_DIR / 'names.rq',
@@ -414,9 +405,7 @@ def define_env(env):
                     next(
                         iter(
                             sorted(
-                                (ROOT_DIR / '.tools').glob(
-                                    'apache-jena-*/bin/rsparql'
-                                )
+                                (ROOT_DIR / '.tools').glob('apache-jena-*/bin/rsparql')
                             )
                         ),
                         None,
@@ -474,14 +463,18 @@ def define_env(env):
                 ],
             ),
         }
-        for _, (executable, checks) in clients.items():
+        for executable, checks in clients.values():
             for arguments, expected in checks:
                 _run([executable, *arguments], expected=expected)
 
         sq = clients['sq'][0]
-        config = (CLIENTS_DIR / 'sq' / 'sq.toml').read_text().replace(
-            DISPLAY_ENDPOINT,
-            endpoint,
+        config = (
+            (CLIENTS_DIR / 'sq' / 'sq.toml')
+            .read_text()
+            .replace(
+                DISPLAY_ENDPOINT,
+                endpoint,
+            )
         )
         with tempfile.TemporaryDirectory(prefix='sparqld-docs-sq-') as directory:
             config_directory = Path(directory)
@@ -501,54 +494,65 @@ def define_env(env):
             'live compatibility checks. -->'
         )
 
-    @env.macro
-    def command(value, indent=0):
+    def command(self, value, indent=0):
         body = f'```console\n{value}\n```'
-        return (
-            '!!! command "Command"\n\n'
-            f'{_indent_block(body, indent + 4)}\n'
-        )
+        return f'!!! command "Command"\n\n{_indent_block(body, indent + 4)}\n'
 
-    @env.macro
-    def directory_tree(directory):
+    def _append_directory(self, lines, directory, depth, repo_url):
+        entries = sorted(
+            directory.iterdir(),
+            key=lambda entry: (not entry.is_dir(), entry.name.lower()),
+        )
+        for index, entry in enumerate(entries):
+            last = index == len(entries) - 1
+            connector = '└──' if last else '├──'
+            relative = entry.relative_to(ROOT_DIR)
+            padding = '&nbsp;&nbsp;&nbsp;&nbsp;' * depth
+            if entry.is_dir():
+                url = _github_url(relative, repo_url, directory=True)
+                lines.append(
+                    f'{padding}{connector} :material-folder: '
+                    f'**[`{entry.name}/`]({url})**  '
+                )
+                self._append_directory(lines, entry, depth + 1, repo_url)
+            else:
+                url = _github_url(relative, repo_url)
+                icon = _EXAMPLE_ICONS.get(
+                    entry.suffix.lower(), ':material-file-outline:'
+                )
+                lines.append(f'{padding}{connector} {icon} [`{entry.name}`]({url})  ')
+
+    def directory_tree(self, directory):
         root = (ROOT_DIR / directory).resolve()
         if not root.is_relative_to(ROOT_DIR):
             raise ValueError(f'Invalid directory path: {directory}')
         if not root.is_dir():
             raise ValueError(f'Directory does not exist: {directory}')
 
-        repo_url = env.conf.get('repo_url') or REPO_URL
+        repo_url = self._env.conf.get('repo_url') or REPO_URL
         root_relative = root.relative_to(ROOT_DIR)
         root_url = _github_url(root_relative, repo_url, directory=True)
         lines = [
             f':material-folder: **[`{root.name}/`]({root_url})**  ',
         ]
 
-        def append_directory(directory, depth):
-            entries = sorted(
-                directory.iterdir(),
-                key=lambda entry: (not entry.is_dir(), entry.name.lower()),
-            )
-            for index, entry in enumerate(entries):
-                last = index == len(entries) - 1
-                connector = '└──' if last else '├──'
-                relative = entry.relative_to(ROOT_DIR)
-                padding = '&nbsp;&nbsp;&nbsp;&nbsp;' * depth
-                if entry.is_dir():
-                    url = _github_url(relative, repo_url, directory=True)
-                    lines.append(
-                        f'{padding}{connector} :material-folder: '
-                        f'**[`{entry.name}/`]({url})**  '
-                    )
-                    append_directory(entry, depth + 1)
-                else:
-                    url = _github_url(relative, repo_url)
-                    icon = _EXAMPLE_ICONS.get(
-                        entry.suffix.lower(), ':material-file-outline:'
-                    )
-                    lines.append(
-                        f'{padding}{connector} {icon} [`{entry.name}`]({url})  '
-                    )
-
-        append_directory(root, 0)
+        self._append_directory(lines, root, 0, repo_url)
         return '\n'.join(lines)
+
+
+def define_env(env):
+    """Register documentation macros."""
+    macros = DocumentationMacros(env)
+    env.macro(macros.adr_metadata)
+    env.macro(macros.source)
+    env.macro(macros.example_data)
+    env.macro(macros.example_code)
+    env.macro(macros.result_data)
+    env.macro(macros.client_data)
+    env.macro(macros.agent_conversation)
+    env.macro(macros.decision_log)
+    env.macro(macros.live_api_examples)
+    env.macro(macros.live_library_examples)
+    env.macro(macros.verify_clients)
+    env.macro(macros.command)
+    env.macro(macros.directory_tree)
