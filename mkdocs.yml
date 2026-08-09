@@ -1,4 +1,5 @@
 site_name: sparqld
+repo_url: https://github.com/iolanta-tech/sparqld
 
 exclude_docs: |
   **/AGENTS.md
@@ -58,5 +59,10 @@ plugins:
       collapse_single_pages: true
   - macros:
       module_name: docs_macros
+      modules: [mkdocs_macros_sparqld]
       on_error_fail: true
   - search
+
+extra:
+  sparqld:
+    binary: target/debug/sparqld
