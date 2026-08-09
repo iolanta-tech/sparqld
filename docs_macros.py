@@ -1,22 +1,19 @@
 """MkDocs macros for project documentation."""
 
-import atexit
 import json
 import shutil
-import socket
 import subprocess
 import sys
 import tempfile
-import time
 from datetime import date
 from pathlib import Path
-from urllib.request import Request, urlopen
+
+from mkdocs_macros_sparqld import ensure_endpoint, run_query, stop_server
 
 
 ROOT_DIR = Path(__file__).resolve().parent
 DOCS_DIR = ROOT_DIR / 'docs'
 EXAMPLES_DIR = DOCS_DIR / 'examples'
-DECISIONS_DIR = DOCS_DIR / 'project' / 'decisions'
 CLIENTS_DIR = ROOT_DIR / 'docs' / 'reference' / 'clients'
 CONVERSATIONS_DIR = ROOT_DIR / 'docs' / 'conversations'
 LIBRARY_EXAMPLES_DIR = ROOT_DIR / 'docs' / 'reference' / 'libraries'
@@ -24,10 +21,6 @@ QUERIES_DIR = ROOT_DIR / 'docs' / 'queries'
 RESULTS_DIR = ROOT_DIR / 'docs' / 'results'
 REPO_URL = 'https://github.com/iolanta-tech/sparqld'
 DISPLAY_ENDPOINT = 'http://127.0.0.1:7737/'
-
-
-_docs_server = None
-_docs_endpoint = None
 
 
 _ADR_STATUS = {
@@ -78,13 +71,6 @@ def _example_path(name):
     return path
 
 
-def _query_path(name):
-    path = (QUERIES_DIR / name).resolve()
-    if not path.is_relative_to(QUERIES_DIR.resolve()):
-        raise ValueError(f'Invalid query path: {name}')
-    return path
-
-
 def _github_url(relative, repo_url, directory=False):
     relative = Path(relative).as_posix()
     operation = 'tree' if directory else 'blob'
@@ -119,129 +105,24 @@ def _run(command, expected=None, environment=None, cwd=ROOT_DIR):
             env=environment,
         )
     except FileNotFoundError as error:
-        _stop_docs_server()
+        stop_server()
         raise RuntimeError(
             f'Required documentation command `{command[0]}` was not found.'
         ) from error
     except subprocess.CalledProcessError as error:
-        _stop_docs_server()
+        stop_server()
         detail = (error.stderr or error.stdout).strip()
         raise RuntimeError(
             f'Documentation command failed: {" ".join(map(str, command))}\n{detail}'
         ) from error
     output = result.stdout.strip()
     if expected and expected not in output:
-        _stop_docs_server()
+        stop_server()
         raise RuntimeError(
             f'Documentation command did not return `{expected}`: '
             f'{" ".join(map(str, command))}\n{output}'
         )
     return output
-
-
-def _unused_port():
-    with socket.socket() as listener:
-        listener.bind(('127.0.0.1', 0))
-        return listener.getsockname()[1]
-
-
-def _ensure_docs_server():
-    global _docs_endpoint, _docs_server
-    if _docs_server is not None and _docs_server.poll() is None:
-        return _docs_endpoint
-
-    port = _unused_port()
-    endpoint = f'http://127.0.0.1:{port}/'
-    _docs_server = subprocess.Popen(
-        [
-            _command('cargo'),
-            'run',
-            '--quiet',
-            '--',
-            str(DOCS_DIR),
-            '--host',
-            '127.0.0.1',
-            '--port',
-            str(port),
-            '--no-watch',
-        ],
-        cwd=ROOT_DIR,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        text=True,
-    )
-    _docs_endpoint = endpoint
-
-    deadline = time.monotonic() + 30
-    while time.monotonic() < deadline:
-        if _docs_server.poll() is not None:
-            stdout, stderr = _docs_server.communicate()
-            _docs_server = None
-            _docs_endpoint = None
-            raise RuntimeError(
-                'Could not start sparqld for documentation examples.\n'
-                f'{stderr.strip() or stdout.strip()}'
-            )
-        try:
-            with urlopen(endpoint, timeout=0.25) as response:
-                if response.status == 200:
-                    return endpoint
-        except OSError:
-            time.sleep(0.1)
-
-    _stop_docs_server()
-    raise RuntimeError('Timed out starting sparqld for documentation examples.')
-
-
-def _stop_docs_server():
-    global _docs_endpoint, _docs_server
-    if _docs_server is None:
-        return
-    if _docs_server.poll() is None:
-        _docs_server.terminate()
-        try:
-            _docs_server.communicate(timeout=5)
-        except subprocess.TimeoutExpired:
-            _docs_server.kill()
-            _docs_server.communicate()
-    _docs_server = None
-    _docs_endpoint = None
-
-
-atexit.register(_stop_docs_server)
-
-
-def _query(query):
-    endpoint = _ensure_docs_server()
-    request = Request(
-        endpoint,
-        data=query.encode(),
-        headers={'Content-Type': 'application/sparql-query'},
-        method='POST',
-    )
-    try:
-        with urlopen(request, timeout=10) as response:
-            return response.headers.get_content_type(), response.read().decode()
-    except OSError:
-        _stop_docs_server()
-        raise
-
-
-def _result_text(content_type, body):
-    if content_type == 'text/turtle':
-        return 'turtle', body.strip()
-
-    result = json.loads(body)
-    if 'boolean' in result:
-        return 'text', str(result['boolean']).lower()
-
-    variables = result['head']['vars']
-    rows = ['\t'.join(variables)]
-    for binding in result['results']['bindings']:
-        rows.append(
-            '\t'.join(binding.get(name, {}).get('value', '') for name in variables)
-        )
-    return 'text', '\n'.join(rows)
 
 
 def _human_date(value):
@@ -299,14 +180,16 @@ def define_env(env):
         return _adr_metadata(date, status)
 
     @env.macro
+    def source(path, indent=0, title='Source'):
+        """Render any project file as an example admonition."""
+        file_path = (ROOT_DIR / path).resolve()
+        if not file_path.is_relative_to(ROOT_DIR):
+            raise ValueError(f'Invalid path outside the project: {path}')
+        return source_data(file_path, Path(path), indent, title)
+
+    @env.macro
     def example_data(name, indent=0, title='Source'):
-        path = _example_path(name)
-        return source_data(
-            path,
-            Path('docs/examples') / name,
-            indent,
-            title,
-        )
+        return source(Path('docs/examples') / name, indent=indent, title=title)
 
     @env.macro
     def example_code(name, indent=0):
@@ -372,53 +255,9 @@ def define_env(env):
         )
 
     @env.macro
-    def query_data(name, indent=0, title='SPARQL query'):
-        path = _query_path(name)
-        if not path.is_file():
-            raise ValueError(f'Query file does not exist: {name}')
-        source = path.read_text().rstrip('\n')
-        github_url = _github_url(
-            Path('docs/queries') / name,
-            env.conf.get('repo_url') or REPO_URL,
-        )
-        heading = (
-            f'{title}<span class="example-source-link" markdown>'
-            f':fontawesome-brands-github: [`{path.name}`]({github_url})'
-            '</span>'
-        )
-        body = f'```sparql\n{source}\n```'
-        return (
-            f'!!! example "{heading}"\n\n'
-            f'{_indent_block(body, indent + 4)}\n'
-        )
-
-    @env.macro
-    def live_query(name):
-        path = _query_path(name)
-        if not path.is_file():
-            raise ValueError(f'Query example does not exist: {name}')
-        query = path.read_text().rstrip('\n')
-        content_type, result = _query(query)
-        syntax, result = _result_text(content_type, result)
-        github_url = _github_url(
-            Path('docs/queries') / name,
-            env.conf.get('repo_url') or REPO_URL,
-        )
-        heading = (
-            'Live query<span class="example-source-link" markdown>'
-            f':fontawesome-brands-github: [`{path.name}`]({github_url})'
-            '</span>'
-        )
-        body = (
-            f'```sparql\n{query}\n```\n\n'
-            f'```{syntax} title="Result"\n{result}\n```'
-        )
-        return f'!!! example "{heading}"\n\n{_indent_block(body, 4)}\n'
-
-    @env.macro
     def decision_log():
         query = (QUERIES_DIR / 'decisions.rq').read_text()
-        _, body = _query(query)
+        _, body = run_query(query)
         bindings = json.loads(body)['results']['bindings']
         cards = ['<div class="grid cards adr-cards" markdown>', '']
         for binding in bindings:
@@ -449,7 +288,7 @@ def define_env(env):
 
     @env.macro
     def live_api_examples():
-        endpoint = _ensure_docs_server()
+        endpoint = ensure_endpoint()
         curl = _command('curl')
         query = 'ASK { ?subject ?predicate ?object }'
         examples = [
@@ -515,7 +354,7 @@ def define_env(env):
 
     @env.macro
     def live_library_examples():
-        endpoint = _ensure_docs_server()
+        endpoint = ensure_endpoint()
         examples = [
             (
                 ':simple-python: Python',
@@ -548,7 +387,7 @@ def define_env(env):
 
     @env.macro
     def verify_clients():
-        endpoint = _ensure_docs_server()
+        endpoint = ensure_endpoint()
         query_files = {
             'select': QUERIES_DIR / 'names.rq',
             'ask': QUERIES_DIR / 'ask-data.rq',
@@ -713,8 +552,3 @@ def define_env(env):
 
         append_directory(root, 0)
         return '\n'.join(lines)
-
-
-def on_post_build(env):
-    """Stop the endpoint used to render live documentation examples."""
-    _stop_docs_server()
