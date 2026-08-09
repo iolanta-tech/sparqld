@@ -1,17 +1,62 @@
-[project]
-name = "sparqld-tooling"
-version = "0.0.0"
-requires-python = ">=3.13"
-dependencies = []
-
-[dependency-groups]
-dev = [
-  "jeeves-shell[all]==2.3.4",
-  "mkdocs-awesome-pages-plugin>=2.10.1",
-  "mkdocs-macros-plugin==1.5.0",
-  "mkdocs-material==9.7.7",
-  "sparqlwrapper>=2.0.0",
+[tool.poetry]
+name = "mkdocs-macros-sparqld"
+version = "0.1.1"
+description = "mkdocs-macros pluglet for build-time sparqld queries"
+authors = ["Anatoly Scherbakov <altaisoft@gmail.com>"]
+license = "Apache-2.0 OR MIT"
+readme = "mkdocs_macros_sparqld/README.md"
+packages = [{ include = "mkdocs_macros_sparqld" }]
+include = [
+  { path = "LICENSE-APACHE", format = ["sdist", "wheel"] },
+  { path = "LICENSE-MIT", format = ["sdist", "wheel"] },
+]
+exclude = [
+  ".agents",
+  ".claude",
+  ".codex",
+  ".cursor",
+  ".github",
+  ".playwright-mcp",
+  ".tools",
+  ".zed",
+  "dist",
+  "docs",
+  "node_modules",
+  "scripts",
+  "site",
+  "skills",
+  "src",
+  "target",
+  "*.png",
+  "Cargo.toml",
+  "Cargo.lock",
+  "AGENTS.md",
+  "CLAUDE.md",
+  "docs_macros.py",
+  "jeeves.py",
+  "mkdocs.yml",
+  "package.json",
+  "package-lock.json",
+  "uv.lock",
 ]
 
-[tool.uv]
-package = false
+[tool.poetry.urls]
+Homepage = "https://github.com/iolanta-tech/sparqld"
+Documentation = "https://sparqld.iolanta.tech/reference/integrations/mkdocs/"
+Repository = "https://github.com/iolanta-tech/sparqld"
+
+[tool.poetry.dependencies]
+python = ">=3.13,<4.0"
+mkdocs-macros-plugin = ">=1.5.0"
+
+[tool.poetry.group.dev.dependencies]
+jeeves-shell = { version = "2.3.4", extras = ["all"] }
+matplotlib = ">=3.10.0"
+mkdocs-awesome-pages-plugin = ">=2.10.1"
+mkdocs-macros-plugin = "1.5.0"
+mkdocs-material = "9.7.7"
+sparqlwrapper = ">=2.0.0"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

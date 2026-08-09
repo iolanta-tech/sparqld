@@ -3,7 +3,10 @@ PREFIX schema: <https://schema.org/>
 
 SELECT ?name ?discovered
 WHERE {
-  ?body schema:name ?name .
-  OPTIONAL { ?body dbp:discovered ?discovered }
+  GRAPH ?graph {
+    ?body schema:name ?name .
+    OPTIONAL { ?body dbp:discovered ?discovered }
+  }
+  FILTER(STRSTARTS(STR(?graph), "sparqld:examples/"))
 }
 ORDER BY ?name

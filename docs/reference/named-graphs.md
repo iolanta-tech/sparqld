@@ -45,14 +45,16 @@ separate and are scoped to that source file.
 
 ## :material-link-variant: Graph IRIs
 
-For the tangible [`examples/`](https://github.com/iolanta-tech/sparqld/tree/main/docs/examples)
-directory:
+This documentation site is itself served with `sparqld`, so paths are relative
+to the served `docs/` directory. For the tangible
+[`examples/`](https://github.com/iolanta-tech/sparqld/tree/main/docs/examples)
+directory inside it:
 
 | Source path | Named graph |
 | --- | --- |
-| `alpha-centauri.yamlld` | `sparqld:alpha-centauri.yamlld` |
-| `centaurus.md` | `sparqld:centaurus.md` |
-| `proxima-centauri-b.jsonld` | `sparqld:proxima-centauri-b.jsonld` |
+| `examples/alpha-centauri.yamlld` | `sparqld:examples/alpha-centauri.yamlld` |
+| `examples/centaurus.md` | `sparqld:examples/centaurus.md` |
+| `examples/proxima-centauri-b.jsonld` | `sparqld:examples/proxima-centauri-b.jsonld` |
 
 Paths always use `/` as the separator, and characters that cannot appear
 literally in the graph IRI are percent-encoded. Renaming or moving a source
@@ -60,7 +62,7 @@ therefore gives it a new graph IRI.
 
 Use `GRAPH` to retain source provenance in query results:
 
-{{ query_data('all-quads.rq') }}
+{{ source('docs/queries/all-quads.rq') }}
 
 ## :material-file-tree: Named graphs inside a source
 

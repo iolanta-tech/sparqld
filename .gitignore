@@ -1,4 +1,5 @@
 /target/
 /node_modules/
 /.tools/
+/dist/
 __pycache__/

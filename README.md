@@ -1,5 +1,9 @@
 # sparqld
 
+<p align="center">
+  <img src="docs/images/logo-cropped.png" alt="sparqld logo" width="480">
+</p>
+
 [![CI](https://github.com/iolanta-tech/sparqld/actions/workflows/ci.yml/badge.svg)](https://github.com/iolanta-tech/sparqld/actions/workflows/ci.yml)
 [![crates.io](https://img.shields.io/crates/v/sparqld.svg)](https://crates.io/crates/sparqld)
 [![License](https://img.shields.io/crates/l/sparqld.svg)](#license)

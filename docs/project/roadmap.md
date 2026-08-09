@@ -10,7 +10,7 @@
 name: sparqld roadmap
 title: Roadmap
 description: Work identified by evaluating the sparqld website as its intended reader.
-datePublished: 2026-08-03
+datePublished: 2026-08-09
 ---
 
 # :material-map-marker-path: Roadmap
@@ -26,6 +26,11 @@ operating a database or duplicating the data.
    using a valid encoded mapping of its source and original IRI, including
    fragment identifiers. Apply that mapping consistently to rewritten graph
    references and catalog entries, and add a fragment-bearing dataset fixture.
+
+- [ ] **Scope the Integrations `sparql()` demo to example data.** The live
+   verbatim query on the MkDocs Integrations page currently returns documentation
+   page titles from the served `docs/` tree. Constrain it so the rendered table
+   shows the Quickstart star dataset a new reader expects.
 
 ## :material-information-outline: Medium
 
@@ -56,8 +61,25 @@ operating a database or duplicating the data.
    This keeps broad queries available without imposing an artificial result
    limit.
 
+- [ ] **Align the graph-counts cheat-sheet prose with its filter.** The recipe
+   still says aggregates can separate data from the file catalog, but the query
+   now keeps only `sparqld:examples/` graphs. Update the prose or restore catalog
+   rows in the live result.
+
+- [ ] **Render ASK results as SPARQL booleans.** The MkDocs pluglet currently
+   surfaces Python `True`/`False` in Jinja. Emit lowercase `true`/`false` so the
+   cheat-sheet ASK result matches SPARQL Protocol spelling.
+
+- [ ] **Relax the pluglet Python requirement.** Lower `requires-python` for
+   `mkdocs-macros-sparqld` so typical MkDocs environments on Python 3.11 or 3.12
+   can install it, instead of requiring 3.13 with this repository's tooling.
+
 ## :material-information-outline: Low
 
 - [ ] **Publish a minimal SPARQL Service Description.** Describe the root
    endpoint and its query capability so standards-aware clients and agents can
    discover it without application-specific source configuration.
+
+- [ ] **Fix Markdown spacing on the MkDocs Integrations page.** Insert a blank
+   line between the optional-configuration table and the following heading so
+   the page remains valid CommonMark.

@@ -4,9 +4,9 @@ WHERE {
     ?subject <https://schema.org/name> ?name .
   }
   VALUES ?graph {
-    <sparqld:alpha-centauri.yamlld>
-    <sparqld:centaurus.md>
-    <sparqld:proxima-centauri-b.jsonld>
+    <sparqld:examples/alpha-centauri.yamlld>
+    <sparqld:examples/centaurus.md>
+    <sparqld:examples/proxima-centauri-b.jsonld>
   }
 }
 ORDER BY ?graph

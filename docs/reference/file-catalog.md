@@ -56,4 +56,4 @@ flowchart TB
 This query lists every source file and its declared embedded graphs. A source
 without embedded graphs has an empty `?graph` value.
 
-{{ query_data('file-catalog.rq') }}
+{{ source('docs/queries/file-catalog.rq') }}

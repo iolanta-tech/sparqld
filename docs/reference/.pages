@@ -10,3 +10,4 @@ nav:
   - Contexts: contexts.md
   - clients
   - Agents: agents.md
+  - Integrations: integrations

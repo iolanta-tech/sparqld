@@ -9,6 +9,8 @@
   --format-supported-foreground: #246b2b;
   --format-development-background: #fff4ce;
   --format-development-foreground: #805700;
+  --adr-draft-background: #eceff1;
+  --adr-draft-foreground: #455a64;
 }
 
 [data-md-color-scheme="slate"] {
@@ -20,6 +22,8 @@
   --format-supported-foreground: #9fdaa8;
   --format-development-background: #453813;
   --format-development-foreground: #f4cf65;
+  --adr-draft-background: #263238;
+  --adr-draft-foreground: #b0bec5;
 }
 
 .md-typeset .format-status {
@@ -208,4 +212,44 @@
 .md-typeset table[data-adr-comparison] td:not(:first-child),
 .md-typeset table[data-adr-comparison] th:not(:first-child) {
   text-align: center;
+}
+
+.md-typeset .adr-status {
+  display: inline-block;
+  padding: 0.15rem 0.45rem;
+  border-radius: 999px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+.md-typeset .adr-status--decided {
+  background: var(--format-supported-background);
+  color: var(--format-supported-foreground);
+}
+
+.md-typeset .adr-status--undecided {
+  background: var(--format-development-background);
+  color: var(--format-development-foreground);
+}
+
+.md-typeset .adr-status--draft {
+  background: var(--adr-draft-background);
+  color: var(--adr-draft-foreground);
+}
+
+.md-typeset .adr-date {
+  color: var(--md-default-fg-color--light);
+}
+
+.md-typeset .adr-cards > ul > li:has(.adr-status--decided) {
+  border-top: 0.15rem solid var(--format-supported-foreground);
+}
+
+.md-typeset .adr-cards > ul > li:has(.adr-status--undecided) {
+  border-top: 0.15rem solid var(--format-development-foreground);
+}
+
+.md-typeset .adr-cards > ul > li:has(.adr-status--draft) {
+  border-top: 0.15rem solid var(--adr-draft-foreground);
 }

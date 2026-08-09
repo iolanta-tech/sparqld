@@ -25,7 +25,7 @@ description: Release, source, licensing, and development information for sparqld
 
     Review the decisions that shape the project.
 
-    [:octicons-arrow-right-24: Decisions](decisions/implement-sparqld-in.md)
+    [:octicons-arrow-right-24: Decisions](decisions/index.md)
 
 -   :material-tag-outline:{ .lg .middle } **Release and requirements**
 
@@ -54,3 +54,10 @@ description: Release, source, licensing, and development information for sparqld
     [Planned work](roadmap.md) and current limitations.
 
 </div>
+
+## Lines by language
+
+Rust and Python code lines, plus Markdown content lines, at each first-parent
+commit on `main`.
+
+![Rust, Python, and Markdown lines across main history](language-history.svg)

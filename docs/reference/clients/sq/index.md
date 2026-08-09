@@ -41,7 +41,7 @@ sq -f docs/queries/names.rq
 `sq` injects configured prefixes together with its built-in prefix set before
 sending a query. This query uses both project-specific prefixes:
 
-{{ query_data('sq-named-graph.rq') }}
+{{ source('docs/queries/sq-named-graph.rq') }}
 
 {{ command('sq -f docs/queries/sq-named-graph.rq') }}
 
