@@ -7,17 +7,19 @@
 "@id": reference/clients/index.md
 "@type": schema:TechArticle
 hide: [toc]
-name: Compatible SPARQL clients
+name: SPARQL clients and HTTP tools
 title: Clients
-description: Command-line SPARQL clients tested against sparqld.
+description: Command-line SPARQL clients and HTTP tools tested against sparqld.
 ---
 
 # :material-console-network-outline: Clients
 
-These command-line clients are exercised against the current `sparqld` binary
+These command-line tools are exercised against the current `sparqld` binary
 whenever this documentation is built.
 
 {{ verify_clients() }}
+
+## :material-database-search-outline: SPARQL clients
 
 <div class="grid cards client-gallery" markdown>
 
@@ -69,5 +71,18 @@ whenever this documentation is built.
     ```
 
     Queries the endpoint with RDFLib's Python command-line client.
+
+</div>
+
+## :material-web: Direct HTTP tools
+
+<div class="grid cards client-gallery" markdown>
+
+-   **[`curl`](curl.md)**
+
+    ---
+
+    Send SPARQL Protocol requests directly over HTTP. See the [`curl` examples](curl.md)
+    for GET and POST request forms.
 
 </div>
