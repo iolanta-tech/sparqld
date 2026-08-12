@@ -8,9 +8,9 @@ from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from types import MappingProxyType
 
-import matplotlib.dates as matplotlib_dates
 import sh
 import typer
+from matplotlib import dates as matplotlib_dates
 from matplotlib import pyplot
 
 docs = typer.Typer(no_args_is_help=True)
