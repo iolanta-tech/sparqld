@@ -6,6 +6,7 @@ import sys
 import tempfile
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
+from types import MappingProxyType
 
 import matplotlib.dates as matplotlib_dates
 import sh
@@ -15,11 +16,13 @@ from matplotlib import pyplot
 docs = typer.Typer(no_args_is_help=True)
 PROJECT_ROOT = Path(__file__).parent
 LANGUAGE_HISTORY_PATH = PROJECT_ROOT / 'docs/project/language-history.svg'
-LANGUAGE_MEASURES = {
-    'Rust': 'code',
-    'Python': 'code',
-    'Markdown': 'comments',
-}
+LANGUAGE_MEASURES = MappingProxyType(
+    {
+        'Rust': 'code',
+        'Python': 'code',
+        'Markdown': 'comments',
+    }
+)
 
 
 @docs.command(name='serve')

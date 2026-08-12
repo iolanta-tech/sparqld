@@ -7,6 +7,7 @@ import sys
 import tempfile
 from datetime import date
 from pathlib import Path
+from types import MappingProxyType
 
 from mkdocs_macros_sparqld import ensure_endpoint, run_query, stop_server
 
@@ -22,45 +23,53 @@ REPO_URL = 'https://github.com/iolanta-tech/sparqld'
 DISPLAY_ENDPOINT = 'http://127.0.0.1:7737/'
 
 
-_ADR_STATUS = {
-    'draft': 'Draft',
-    'undecided': 'Undecided',
-    'decided': 'Decided',
-}
+_ADR_STATUS = MappingProxyType(
+    {
+        'draft': 'Draft',
+        'undecided': 'Undecided',
+        'decided': 'Decided',
+    }
+)
 
 
-_ADR_STATUS_ADMONITION = {
-    'draft': 'note',
-    'undecided': 'warning',
-    'decided': 'success',
-}
+_ADR_STATUS_ADMONITION = MappingProxyType(
+    {
+        'draft': 'note',
+        'undecided': 'warning',
+        'decided': 'success',
+    }
+)
 
 
-_EXAMPLE_ICONS = {
-    '.json': ':material-code-json:',
-    '.jsonld': ':material-code-json:',
-    '.md': ':material-language-markdown:',
-    '.rq': ':material-database-search-outline:',
-    '.sh': ':material-console:',
-    '.yaml': ':simple-yaml:',
-    '.yamlld': ':simple-yaml:',
-    '.yml': ':simple-yaml:',
-}
+_EXAMPLE_ICONS = MappingProxyType(
+    {
+        '.json': ':material-code-json:',
+        '.jsonld': ':material-code-json:',
+        '.md': ':material-language-markdown:',
+        '.rq': ':material-database-search-outline:',
+        '.sh': ':material-console:',
+        '.yaml': ':simple-yaml:',
+        '.yamlld': ':simple-yaml:',
+        '.yml': ':simple-yaml:',
+    }
+)
 
 
-_EXAMPLE_SYNTAXES = {
-    '.json': 'json',
-    '.jsonld': 'json',
-    '.md': 'markdown',
-    '.rq': 'sparql',
-    '.sh': 'console',
-    '.toml': 'toml',
-    '.tsv': 'text',
-    '.txt': 'text',
-    '.yaml': 'yaml',
-    '.yamlld': 'yaml',
-    '.yml': 'yaml',
-}
+_EXAMPLE_SYNTAXES = MappingProxyType(
+    {
+        '.json': 'json',
+        '.jsonld': 'json',
+        '.md': 'markdown',
+        '.rq': 'sparql',
+        '.sh': 'console',
+        '.toml': 'toml',
+        '.tsv': 'text',
+        '.txt': 'text',
+        '.yaml': 'yaml',
+        '.yamlld': 'yaml',
+        '.yml': 'yaml',
+    }
+)
 
 
 def _example_path(name):
@@ -95,7 +104,7 @@ def _command(name, fallback=None):
 
 def _run(command, expected=None, environment=None, cwd=ROOT_DIR):
     try:
-        result = subprocess.run(
+        completed_process = subprocess.run(
             command,
             capture_output=True,
             text=True,
@@ -114,7 +123,7 @@ def _run(command, expected=None, environment=None, cwd=ROOT_DIR):
         raise RuntimeError(
             f'Documentation command failed: {" ".join(map(str, command))}\n{detail}'
         ) from error
-    output = result.stdout.strip()
+    output = completed_process.stdout.strip()
     if expected and expected not in output:
         stop_server()
         raise RuntimeError(
@@ -124,10 +133,12 @@ def _run(command, expected=None, environment=None, cwd=ROOT_DIR):
     return output
 
 
-def _human_date(value):
-    if not value:
+def _human_date(date_value):
+    if not date_value:
         return ''
-    parsed = date.fromisoformat(value) if isinstance(value, str) else value
+    parsed = (
+        date.fromisoformat(date_value) if isinstance(date_value, str) else date_value
+    )
     return f'{parsed.day} {parsed.strftime("%B %Y")}'
 
 
@@ -494,8 +505,8 @@ class DocumentationMacros:
             'live compatibility checks. -->'
         )
 
-    def command(self, value, indent=0):
-        body = f'```console\n{value}\n```'
+    def command(self, command_text, indent=0):
+        body = f'```console\n{command_text}\n```'
         return f'!!! command "Command"\n\n{_indent_block(body, indent + 4)}\n'
 
     def _append_directory(self, lines, directory, depth, repo_url):
