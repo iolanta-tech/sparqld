@@ -1,8 +1,8 @@
 [tool.poetry]
 name = "mkdocs-macros-sparqld"
-version = "0.1.1"
+version = "0.2.0"
 description = "mkdocs-macros pluglet for build-time sparqld queries"
-authors = ["Anatoly Scherbakov <altaisoft@gmail.com>"]
+authors = ["Anatoly Scherbakov <anatoly@yeti.sh>"]
 license = "Apache-2.0 OR MIT"
 readme = "mkdocs_macros_sparqld/README.md"
 packages = [{ include = "mkdocs_macros_sparqld" }]
