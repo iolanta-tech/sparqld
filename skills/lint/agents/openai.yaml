@@ -1,0 +1,4 @@
+interface:
+  display_name: "Lint"
+  short_description: "Resolve grouped project lint findings"
+  default_prompt: "Use $lint to resolve the next coherent lint issue group."
