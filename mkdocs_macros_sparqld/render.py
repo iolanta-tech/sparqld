@@ -44,10 +44,10 @@ def bindings_table(rows: list[dict[str, str]]) -> str:
                 columns.append(key)
 
     lines = [
-        '| ' + ' | '.join(columns) + ' |',
-        '| ' + ' | '.join('---' for _ in columns) + ' |',
+        '| {values} |'.format(values=' | '.join(columns)),
+        '| {values} |'.format(values=' | '.join('---' for _ in columns)),
     ]
     for row in rows:
         cells = [str(row.get(name, '')) for name in columns]
-        lines.append('| ' + ' | '.join(cells) + ' |')
+        lines.append('| {values} |'.format(values=' | '.join(cells)))
     return '\n'.join(lines)
