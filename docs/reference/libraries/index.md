@@ -9,21 +9,15 @@
 hide: [toc]
 name: SPARQL client libraries
 title: Libraries
-description: Live Python and JavaScript client-library examples for sparqld.
+description: Python and JavaScript SPARQL client-library examples for sparqld.
 ---
 
 # :material-code-block-tags: Libraries
 
-Use a SPARQL client library to keep HTTP serialization and result parsing out
-of application code. These examples run `SELECT`, `ASK`, and `CONSTRUCT`
-against a temporary `sparqld` endpoint during every documentation build.
+<div class="grid cards" markdown>
 
-{{ live_library_examples() }}
+-   [:simple-python: **SPARQLWrapper**](sparqlwrapper.md)
 
-The Python example uses
-[:simple-python: SPARQLWrapper](https://sparqlwrapper.readthedocs.io/en/latest/main.html).
-The JavaScript example runs in Node.js and uses
-[:simple-javascript: Comunica](https://comunica.dev/docs/query/getting_started/query_app/)
-with an explicit `sparql` source type because `sparqld` does not publish a
-Service Description. Browser applications need a proxy or another CORS policy
-because the endpoint does not send CORS headers.
+-   [:simple-javascript: **Comunica**](comunica.md)
+
+</div>
