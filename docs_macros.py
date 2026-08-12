@@ -7,6 +7,7 @@ import sys
 import tempfile
 from datetime import date
 from pathlib import Path
+from types import MappingProxyType
 
 from mkdocs_macros_sparqld import ensure_endpoint, run_query, stop_server
 
@@ -22,45 +23,53 @@ REPO_URL = 'https://github.com/iolanta-tech/sparqld'
 DISPLAY_ENDPOINT = 'http://127.0.0.1:7737/'
 
 
-_ADR_STATUS = {
-    'draft': 'Draft',
-    'undecided': 'Undecided',
-    'decided': 'Decided',
-}
+_ADR_STATUS = MappingProxyType(
+    {
+        'draft': 'Draft',
+        'undecided': 'Undecided',
+        'decided': 'Decided',
+    }
+)
 
 
-_ADR_STATUS_ADMONITION = {
-    'draft': 'note',
-    'undecided': 'warning',
-    'decided': 'success',
-}
+_ADR_STATUS_ADMONITION = MappingProxyType(
+    {
+        'draft': 'note',
+        'undecided': 'warning',
+        'decided': 'success',
+    }
+)
 
 
-_EXAMPLE_ICONS = {
-    '.json': ':material-code-json:',
-    '.jsonld': ':material-code-json:',
-    '.md': ':material-language-markdown:',
-    '.rq': ':material-database-search-outline:',
-    '.sh': ':material-console:',
-    '.yaml': ':simple-yaml:',
-    '.yamlld': ':simple-yaml:',
-    '.yml': ':simple-yaml:',
-}
+_EXAMPLE_ICONS = MappingProxyType(
+    {
+        '.json': ':material-code-json:',
+        '.jsonld': ':material-code-json:',
+        '.md': ':material-language-markdown:',
+        '.rq': ':material-database-search-outline:',
+        '.sh': ':material-console:',
+        '.yaml': ':simple-yaml:',
+        '.yamlld': ':simple-yaml:',
+        '.yml': ':simple-yaml:',
+    }
+)
 
 
-_EXAMPLE_SYNTAXES = {
-    '.json': 'json',
-    '.jsonld': 'json',
-    '.md': 'markdown',
-    '.rq': 'sparql',
-    '.sh': 'console',
-    '.toml': 'toml',
-    '.tsv': 'text',
-    '.txt': 'text',
-    '.yaml': 'yaml',
-    '.yamlld': 'yaml',
-    '.yml': 'yaml',
-}
+_EXAMPLE_SYNTAXES = MappingProxyType(
+    {
+        '.json': 'json',
+        '.jsonld': 'json',
+        '.md': 'markdown',
+        '.rq': 'sparql',
+        '.sh': 'console',
+        '.toml': 'toml',
+        '.tsv': 'text',
+        '.txt': 'text',
+        '.yaml': 'yaml',
+        '.yamlld': 'yaml',
+        '.yml': 'yaml',
+    }
+)
 
 
 def _example_path(name):
