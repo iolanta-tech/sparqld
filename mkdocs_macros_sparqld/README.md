@@ -46,6 +46,8 @@ extra:
   MkDocs project root
 - `sparql_table` — Jinja filter that renders `SELECT` bindings as a Markdown
   table
+- `sparqld_port` — Jinja variable containing the local endpoint port assigned
+  during MkDocs setup
 
 ```markdown
 {{ stored_sparql('docs/queries/names.rq') | sparql_table }}
