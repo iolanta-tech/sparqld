@@ -1,10 +1,12 @@
 """MkDocs macros for project documentation."""
 
 import json
+import os
 import shutil
 import subprocess
 import sys
 import tempfile
+import textwrap
 from datetime import date
 from pathlib import Path
 from types import MappingProxyType
@@ -86,8 +88,7 @@ def _github_url(relative, repo_url, directory=False):
 
 
 def _indent_block(body, indent):
-    pad = ' ' * indent
-    return '\n'.join(f'{pad}{line}' for line in body.splitlines())
+    return textwrap.indent(body, ' ' * indent, lambda _: True)
 
 
 def _command(name, fallback=None):
@@ -102,7 +103,9 @@ def _command(name, fallback=None):
     )
 
 
-def _run(command, expected=None, environment=None, cwd=ROOT_DIR):
+def _run(command, expected=None, environment=None, cwd=ROOT_DIR, shell=False):
+    if shell:
+        command = ['/bin/sh', '-c', command]
     try:
         completed_process = subprocess.run(
             command,
@@ -292,69 +295,39 @@ class DocumentationMacros:
         cards.append('</div>')
         return '\n'.join(cards)
 
-    def live_api_examples(self):
-        endpoint = ensure_endpoint()
-        curl = _command('curl')
-        query = 'ASK { ?subject ?predicate ?object }'
-        examples = [
-            (
-                'GET',
-                [
-                    curl,
-                    '--silent',
-                    '--show-error',
-                    '--fail-with-body',
-                    '--get',
-                    endpoint,
-                    '--data-urlencode',
-                    f'query={query}',
-                ],
-                (
-                    f"curl --get '{DISPLAY_ENDPOINT}' \\\n"
-                    f"  --data-urlencode 'query={query}'"
+    def shell(self, command, env=None, output_format=None, indent=0):
+        """Run a shell command and render its JSON output."""
+        if output_format is None:
+            output_format = json.__name__
+        if output_format != json.__name__:
+            raise ValueError(f'Unsupported shell output format: {output_format}')
+        try:
+            output = json.dumps(
+                json.loads(
+                    _run(
+                        command,
+                        environment={
+                            **os.environ,
+                            **{
+                                name: str(env_value)
+                                for name, env_value in (env or {}).items()
+                            },
+                        },
+                        shell=True,
+                    )
                 ),
-            ),
-            (
-                'POST query body',
-                [
-                    curl,
-                    '--silent',
-                    '--show-error',
-                    '--fail-with-body',
-                    endpoint,
-                    '--header',
-                    'Content-Type: application/sparql-query',
-                    '--data-binary',
-                    query,
-                ],
-                (
-                    f"curl '{DISPLAY_ENDPOINT}' \\\n"
-                    "  --header 'Content-Type: application/sparql-query' \\\n"
-                    f"  --data-binary '{query}'"
-                ),
-            ),
-            (
-                'POST form',
-                [
-                    curl,
-                    '--silent',
-                    '--show-error',
-                    '--fail-with-body',
-                    endpoint,
-                    '--data-urlencode',
-                    f'query={query}',
-                ],
-                f"curl '{DISPLAY_ENDPOINT}' \\\n  --data-urlencode 'query={query}'",
-            ),
-        ]
-        tabs = []
-        for title, command, display in examples:
-            output = json.dumps(json.loads(_run(command)), indent=2)
-            body = (
-                f'```console\n{display}\n```\n\n```json title="Response"\n{output}\n```'
+                indent=2,
             )
-            tabs.append(f'=== "{title}"\n\n{_indent_block(body, 4)}')
-        return '\n\n'.join(tabs)
+        except json.JSONDecodeError as error:
+            stop_server()
+            raise RuntimeError(
+                f'Documentation shell command did not return JSON: {command}'
+            ) from error
+        return _indent_block(
+            f'```console\n{command}\n```\n\n'
+            f'```{json.__name__} title="Response"\n{output}\n```',
+            indent,
+        )
 
     def live_library_examples(self):
         endpoint = ensure_endpoint()
@@ -478,6 +451,20 @@ class DocumentationMacros:
             for arguments, expected in checks:
                 _run([executable, *arguments], expected=expected)
 
+        _run(
+            [
+                _command('curl'),
+                '--silent',
+                '--show-error',
+                '--fail-with-body',
+                '--get',
+                endpoint,
+                '--data-urlencode',
+                'query=ASK { ?subject ?predicate ?object }',
+            ],
+            expected='"boolean":true',
+        )
+
         sq = clients['sq'][0]
         config = (
             (CLIENTS_DIR / 'sq' / 'sq.toml')
@@ -501,7 +488,7 @@ class DocumentationMacros:
                 cwd=directory,
             )
         return (
-            '<!-- sq, rsparql, Comunica, and sparqlquery passed '
+            '<!-- curl, sq, rsparql, Comunica, and sparqlquery passed '
             'live compatibility checks. -->'
         )
 
@@ -562,7 +549,7 @@ def define_env(env):
     env.macro(macros.client_data)
     env.macro(macros.agent_conversation)
     env.macro(macros.decision_log)
-    env.macro(macros.live_api_examples)
+    env.macro(macros.shell)
     env.macro(macros.live_library_examples)
     env.macro(macros.verify_clients)
     env.macro(macros.command)

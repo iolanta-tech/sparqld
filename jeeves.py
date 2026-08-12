@@ -134,6 +134,13 @@ def lint():
             task.result()
 
 
+def publish_pluglet():
+    """Build a clean pluglet distribution and publish it."""
+    poetry = sh.Command(PROJECT_ROOT / '.venv/bin/poetry')
+    poetry('build', '--clean', _cwd=PROJECT_ROOT, _fg=True)
+    poetry('publish', _cwd=PROJECT_ROOT, _fg=True)
+
+
 def _lint_rust():
     """Autoformat and lint the Rust project."""
     sh.cargo('fmt', _cwd=PROJECT_ROOT, _fg=True)
