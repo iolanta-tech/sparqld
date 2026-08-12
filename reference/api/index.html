@@ -829,6 +829,8 @@
       
         
       
+        
+      
     
     
     
@@ -884,6 +886,34 @@
           </label>
           <ul class="md-nav__list" data-md-scrollfix>
             
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../clients/curl/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    curl
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
               
             
               
@@ -1391,46 +1421,34 @@
 <h1 id="http-api"><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M7 7H5a2 2 0 0 0-2 2v8h2v-4h2v4h2V9a2 2 0 0 0-2-2m0 4H5V9h2m7-2h-4v10h2v-4h2a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2m0 4h-2V9h2m6 0v6h1v2h-4v-2h1V9h-1V7h4v2Z"/></svg></span> HTTP API</h1>
 <p><code>sparqld</code> exposes one read-only SPARQL query endpoint at <code>/</code>.</p>
 <h2 id="query-requests"><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m2 21 21-9L2 3v7l15 2-15 2z"/></svg></span> Query requests</h2>
-<p>The endpoint accepts the SPARQL Protocol GET form and both standard POST forms.
-Each example below is executed during the documentation build.</p>
-<div class="tabbed-set tabbed-alternate" data-tabs="1:3"><input checked="checked" id="__tabbed_1_1" name="__tabbed_1" type="radio" /><input id="__tabbed_1_2" name="__tabbed_1" type="radio" /><input id="__tabbed_1_3" name="__tabbed_1" type="radio" /><div class="tabbed-labels"><label for="__tabbed_1_1">GET</label><label for="__tabbed_1_2">POST query body</label><label for="__tabbed_1_3">POST form</label></div>
-<div class="tabbed-content">
-<div class="tabbed-block">
-<div class="highlight"><pre><span></span><code><span class="go">curl --get &#39;http://127.0.0.1:7737/&#39; \</span>
-<span class="go">  --data-urlencode &#39;query=ASK { ?subject ?predicate ?object }&#39;</span>
-</code></pre></div>
-<div class="highlight"><span class="filename">Response</span><pre><span></span><code><span class="p">{</span>
-<span class="w">  </span><span class="nt">&quot;head&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{},</span>
-<span class="w">  </span><span class="nt">&quot;boolean&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span>
-<span class="p">}</span>
-</code></pre></div>
-</div>
-<div class="tabbed-block">
-<div class="highlight"><pre><span></span><code><span class="go">curl &#39;http://127.0.0.1:7737/&#39; \</span>
-<span class="go">  --header &#39;Content-Type: application/sparql-query&#39; \</span>
-<span class="go">  --data-binary &#39;ASK { ?subject ?predicate ?object }&#39;</span>
-</code></pre></div>
-<div class="highlight"><span class="filename">Response</span><pre><span></span><code><span class="p">{</span>
-<span class="w">  </span><span class="nt">&quot;head&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{},</span>
-<span class="w">  </span><span class="nt">&quot;boolean&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span>
-<span class="p">}</span>
-</code></pre></div>
-</div>
-<div class="tabbed-block">
-<div class="highlight"><pre><span></span><code><span class="go">curl &#39;http://127.0.0.1:7737/&#39; \</span>
-<span class="go">  --data-urlencode &#39;query=ASK { ?subject ?predicate ?object }&#39;</span>
-</code></pre></div>
-<div class="highlight"><span class="filename">Response</span><pre><span></span><code><span class="p">{</span>
-<span class="w">  </span><span class="nt">&quot;head&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{},</span>
-<span class="w">  </span><span class="nt">&quot;boolean&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span>
-<span class="p">}</span>
-</code></pre></div>
-</div>
-</div>
-</div>
-<p>A GET request without a query returns a plain-text landing response. The root
-does not currently publish a SPARQL Service Description, so clients that infer
-source types may need to be told explicitly that the URL is a SPARQL endpoint.</p>
+<p>The endpoint accepts the SPARQL Protocol GET form and both standard POST forms.</p>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Query encoding</th>
+<th>Content type</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>GET</code></td>
+<td>URL-encoded <code>query</code> parameter</td>
+<td></td>
+</tr>
+<tr>
+<td><code>POST</code></td>
+<td>SPARQL query in the request body</td>
+<td><code>application/sparql-query</code></td>
+</tr>
+<tr>
+<td><code>POST</code></td>
+<td>URL-encoded <code>query</code> parameter in the request body</td>
+<td><code>application/x-www-form-urlencoded</code></td>
+</tr>
+</tbody>
+</table>
+<p>A plain <code>GET /</code> returns a text landing response.</p>
 <h2 id="responses"><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M2 12h2v5h16v-5h2v5c0 1.11-.89 2-2 2H4a2 2 0 0 1-2-2zm10 3 5.55-5.46-1.42-1.41L13 11.25V2h-2v9.25L7.88 8.13 6.46 9.55z"/></svg></span> Responses</h2>
 <table>
 <thead>
