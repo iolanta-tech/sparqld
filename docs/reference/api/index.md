@@ -18,13 +18,14 @@ description: SPARQL Protocol request and response behavior exposed by sparqld.
 ## :material-send: Query requests
 
 The endpoint accepts the SPARQL Protocol GET form and both standard POST forms.
-Each example below is executed during the documentation build.
 
-{{ live_api_examples() }}
+| Method | Query encoding | Content type |
+| --- | --- | --- |
+| `GET` | URL-encoded `query` parameter | |
+| `POST` | SPARQL query in the request body | `application/sparql-query` |
+| `POST` | URL-encoded `query` parameter in the request body | `application/x-www-form-urlencoded` |
 
-A GET request without a query returns a plain-text landing response. The root
-does not currently publish a SPARQL Service Description, so clients that infer
-source types may need to be told explicitly that the URL is a SPARQL endpoint.
+A plain `GET /` returns a text landing response.
 
 ## :material-tray-arrow-down: Responses
 
