@@ -10,13 +10,13 @@ def parse_result(content_type: str, body: str) -> list[dict[str, str]] | bool | 
     if content_type == 'text/turtle':
         return body.strip()
 
-    result = json.loads(body)
-    if 'boolean' in result:
-        return bool(result['boolean'])
+    response = json.loads(body)
+    if 'boolean' in response:
+        return bool(response['boolean'])
 
-    variables = result['head']['vars']
+    variables = response['head']['vars']
     rows: list[dict[str, str]] = []
-    for binding in result['results']['bindings']:
+    for binding in response['results']['bindings']:
         rows.append(
             {name: binding.get(name, {}).get('value', '') for name in variables}
         )
