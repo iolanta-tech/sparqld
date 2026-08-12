@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from urllib.parse import urlparse
 
 from . import render
 from .server import configure as configure_server
@@ -65,6 +66,10 @@ class SparqldMacros:
 
     def __init__(self, env):
         self._project_dir = configure(env)
+        port = urlparse(ensure_endpoint()).port
+        if port is None:
+            raise RuntimeError('sparqld endpoint does not include a port')
+        env.variables['sparqld_port'] = port
 
     def sparql(self, query):
         """Run a verbatim SPARQL query. SELECT returns a list of binding dicts."""
