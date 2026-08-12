@@ -1,0 +1,5 @@
+title: Libraries
+nav:
+  - index.md
+  - SPARQLWrapper: sparqlwrapper.md
+  - Comunica: comunica.md

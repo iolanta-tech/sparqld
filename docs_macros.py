@@ -4,7 +4,6 @@ import json
 import os
 import shutil
 import subprocess
-import sys
 import tempfile
 import textwrap
 from datetime import date
@@ -18,7 +17,6 @@ DOCS_DIR = ROOT_DIR / 'docs'
 EXAMPLES_DIR = DOCS_DIR / 'examples'
 CLIENTS_DIR = ROOT_DIR / 'docs' / 'reference' / 'clients'
 CONVERSATIONS_DIR = ROOT_DIR / 'docs' / 'conversations'
-LIBRARY_EXAMPLES_DIR = ROOT_DIR / 'docs' / 'reference' / 'libraries'
 QUERIES_DIR = ROOT_DIR / 'docs' / 'queries'
 RESULTS_DIR = ROOT_DIR / 'docs' / 'results'
 REPO_URL = 'https://github.com/iolanta-tech/sparqld'
@@ -62,6 +60,8 @@ _EXAMPLE_SYNTAXES = MappingProxyType(
         '.json': 'json',
         '.jsonld': 'json',
         '.md': 'markdown',
+        '.mjs': 'javascript',
+        '.py': 'python',
         '.rq': 'sparql',
         '.sh': 'console',
         '.toml': 'toml',
@@ -329,38 +329,6 @@ class DocumentationMacros:
             indent,
         )
 
-    def live_library_examples(self):
-        endpoint = ensure_endpoint()
-        examples = [
-            (
-                ':simple-python: Python',
-                'python.py',
-                [sys.executable, str(LIBRARY_EXAMPLES_DIR / 'python.py'), endpoint],
-                'python',
-            ),
-            (
-                ':simple-javascript: JavaScript',
-                'javascript.mjs',
-                [
-                    _command('node'),
-                    str(LIBRARY_EXAMPLES_DIR / 'javascript.mjs'),
-                    endpoint,
-                ],
-                'javascript',
-            ),
-        ]
-        tabs = []
-        for title, name, command, syntax in examples:
-            path = LIBRARY_EXAMPLES_DIR / name
-            output = _run(command, expected='CONSTRUCT: Alpha Centauri')
-            source = path.read_text().rstrip('\n')
-            body = (
-                f'```{syntax}\n{source}\n```\n\n'
-                f'```text title="Live result"\n{output}\n```'
-            )
-            tabs.append(f'=== "{title}"\n\n{_indent_block(body, 4)}')
-        return '\n\n'.join(tabs)
-
     def verify_clients(self):
         endpoint = ensure_endpoint()
         query_files = {
@@ -550,7 +518,6 @@ def define_env(env):
     env.macro(macros.agent_conversation)
     env.macro(macros.decision_log)
     env.macro(macros.shell)
-    env.macro(macros.live_library_examples)
     env.macro(macros.verify_clients)
     env.macro(macros.command)
     env.macro(macros.directory_tree)
