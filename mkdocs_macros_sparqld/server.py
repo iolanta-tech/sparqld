@@ -17,6 +17,52 @@ _server: subprocess.Popen | None = None
 _endpoint: str | None = None
 
 
+# @todo(existing-sparqld-endpoint): Query an already running sparqld server.
+# description: >
+#   Support an optional `extra.sparqld.endpoint` MkDocs setting, for example
+#   `http://127.0.0.1:7737/`. It selects an externally managed sparqld endpoint
+#   instead of starting a documentation-only subprocess.
+# configuration:
+#   - endpoint must be an absolute http or https URL with an explicit port.
+#   - Reject a configuration that supplies endpoint together with an explicit
+#     directory or binary override; these settings apply only to managed mode.
+# behavior:
+#   - Extend configure() to retain the optional endpoint. In endpoint mode,
+#     ensure_endpoint() verifies a 200 landing response before returning it.
+#   - Never start, terminate, kill, or clear an externally managed endpoint.
+#     Keep the current temporary localhost process, automatic port, and cleanup
+#     behavior when endpoint is omitted.
+#   - Continue exporting sparqld_port from the explicit endpoint port so the
+#     existing curl and library documentation examples keep working.
+# tests:
+#   - Test endpoint validation and conflicts with explicit directory/binary.
+#   - Test that endpoint mode performs its readiness request without spawning a
+#     process and that stop_server() leaves the endpoint usable.
+#   - Test the existing managed-server path unchanged.
+
+# @todo(pdd-ld-integration): Serve PDD-LD output through sparqld.
+# description: >
+#   Add this repository's pdd-ld extractor declaration to sparqld.toml:
+#
+#   [[extractors]]
+#   id = "pdd-ld"
+#   command = "target/debug/pdd-ld"
+#   patterns = ["**/*.py", "**/*.rs", "**/*.toml", "!target/**"]
+#
+#   Preserve pdd-ld's executable boundary: sparqld invokes it once per matching
+#   relative path and only consumes its JSON-LD. Add source annotations that
+#   exercise a cross-file `blocked-by` relationship. Query the live endpoint to
+#   prove both resources, their source locations, and the RDF edge exist.
+# tests:
+#   - Add an end-to-end fixture with Python, Rust, and TOML puzzles.
+#   - Build the real pdd-ld binary, configure sparqld with it, and query the
+#     resulting dataset rather than mocking subprocess output.
+#   - Cover pdd-ld's stderr JSON-LD/nonzero failure as a catalogued sparqld
+#     extractor failure.
+# blocked-by:
+#   - extractor-contributions
+#   - extractor-reload
+#   - pdd-ld
 def configure(*, project_dir: Path, directory: Path, binary: str | Path) -> None:
     """Store paths used to launch sparqld for this MkDocs project."""
     global _project_dir, _directory, _binary

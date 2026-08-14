@@ -1,4 +1,60 @@
 [package]
+# @todo(pdd-ld): Add an independent PDD-LD command-line extractor.
+# description: >
+#   Convert this package into a Cargo workspace and add a pdd-ld member crate.
+#   Its public interface is `pdd-ld [--context CONTEXT] FILE`: read one Python,
+#   Rust, or TOML source file and write one JSON-LD document to stdout. It must
+#   not depend on sparqld code or Rust types.
+# syntax: |
+#   # @todo(puzzle-id): Scanner-visible summary.
+#   # description: >-
+#   #   Required multiline description.
+#   # blocked-by:
+#   #   - prerequisite-puzzle-id
+# output:
+#   contributionGraph: sparqld:<relative-file>@pdd-ld
+#   puzzleIri: sparqld:<relative-file>@pdd-ld#<puzzle-id>
+#   type: urn:pdd:Puzzle
+#   properties:
+#     - schema:headline
+#     - schema:description
+#     - urn:pdd:blocked-by
+#     - urn:pdd:source
+#     - urn:pdd:startLine
+#     - urn:pdd:endLine
+# context:
+#   - Without --context, emit pdd-ld's built-in inline JSON-LD context.
+#   - With --context CONTEXT, replace the built-in context; do not merge them.
+#   - Treat a context URI as an opaque reference and emit it unchanged. Resolve
+#     a context path against the command's working directory, then emit its
+#     path relative to FILE's parent so every source references the same local
+#     context. For example, from the project root,
+#     `pdd-ld --context somecontext.jsonld src/module.rs` emits
+#     `../somecontext.jsonld` as that document's @context.
+#   - Do not fetch or validate the selected context, so callers remain free to
+#     use the CLI independently of sparqld.
+# behavior:
+#   - Accept contiguous hash-comment blocks in Python and TOML and
+#     slash-comment blocks in Rust; stop at the first non-comment line.
+#   - Strip each language comment prefix, parse the remaining YAML, and require
+#     the marker label/message and description.
+#   - Emit every puzzle in the one contribution graph for FILE and pdd-ld. Map
+#     the marker message to schema:headline and source to sparqld:<relative-file>.
+#   - Resolve a local blocked-by ID to that graph's #<id> resource. Resolve a
+#     cross-file blocker written as `path/to/file@pdd-ld#id` by prefixing it
+#     with sparqld:. Do not create a named graph per puzzle.
+#   - Use an inline JSON-LD context; never fetch a remote context.
+# failures:
+#   - For malformed YAML, missing required data, invalid relationship values,
+#     or duplicate IDs in one file, write a JSON-LD diagnostic to stderr with
+#     source, line, column when available, code, and message, then exit nonzero.
+# acceptance:
+#   - Golden-test deterministic output for Python, Rust, and TOML, multiple
+#     puzzles in one graph, multiline descriptions, local and cross-file
+#     blocked-by relationships, source positions, and ordinary comments.
+#   - Test the built-in context, an unchanged URI context, and a root-relative
+#     local context for source files at the root and in a nested directory.
+#   - Test every declared failure mode and successful `pdd-ld FILE | jq .`.
 name = "sparqld"
 version = "0.1.2"
 edition = "2024"

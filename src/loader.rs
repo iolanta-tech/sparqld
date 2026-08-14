@@ -14,6 +14,57 @@ use oxigraph::store::Store;
 use percent_encoding::{AsciiSet, CONTROLS, percent_decode_str, utf8_percent_encode};
 use serde_json::Value;
 
+// @todo(extractor-contributions): Load configured extractor output as JSON-LD.
+// description: >
+//   For each [[extractors]] declaration whose positive patterns match and whose
+//   `!` exclusion patterns do not match a relative source path, execute
+//   `command`, then `arguments`, then that
+//   relative path. Run the process with the served root as its working
+//   directory and never invoke a shell. Parse successful stdout through the
+//   existing JSON-LD loader, including local-context restrictions and named
+//   graph rewriting.
+// discovery:
+//   - Enumerate every regular file once. A file is a source when its native RDF
+//     format is recognized, at least one extractor matches it, or both do.
+//   - Count every other regular file as ignored; retain native loader behavior
+//     for recognized RDF files that no extractor matches.
+// ownership:
+//   - Track each result by (relative source path, producer), where producer is
+//     native input or the stable extractor ID.
+//   - Keep native data in sparqld:<path>.
+//   - Load extractor default-graph data in
+//     sparqld:<path>@<percent-encoded-id>; namespace embedded graphs below that
+//     contribution graph with the current scoping mechanism.
+// failures:
+//   - Treat a missing executable, I/O error, nonzero exit, or invalid stdout
+//     JSON-LD as an extractor failure; remove its prior contribution and record
+//     its diagnostic in the existing rlog catalog entry for that contribution.
+//   - Do not add PDD-specific logic to sparqld.
+// acceptance:
+//   - Test positive and `!` exclusion pattern selection, argv/CWD, ignored
+//     files, JSON-LD triples visible by SPARQL, malformed stdout, process
+//     failure, two extractors for one source, and extractor named-graph rewriting.
+// blocked-by:
+//   - sparqld-configuration
+
+// @todo(extractor-reload): Replace every graph owned by a changed extractor.
+// description: >
+//   Extend the current staged reload transaction to replace the complete
+//   contribution identified by (relative source path, extractor ID). Run the
+//   extractor again, stage all new quads, remove its contribution graph and
+//   every graph scoped beneath it, then insert the staged quads atomically.
+//   Preserve unrelated native and extractor contributions for the same file.
+// failures:
+//   - When re-extraction fails, remove the old contribution and leave the
+//     catalog error that the extractor-contributions puzzle specifies.
+// acceptance:
+//   - Regression-test an extractor result changing from named graphs A and B
+//     to B and C: A is absent and new B/C are present after reload.
+//   - Test source deletion, failure after a successful extraction, and that a
+//     second extractor and native source graph remain unchanged.
+// blocked-by:
+//   - extractor-contributions
+
 type LoadResult<T> = Result<T, Box<dyn Error + Send + Sync>>;
 pub(crate) type ContextDependents = BTreeMap<PathBuf, BTreeSet<PathBuf>>;
 
