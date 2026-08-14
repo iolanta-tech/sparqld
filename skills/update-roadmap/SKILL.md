@@ -1,100 +1,94 @@
 ---
 name: update-roadmap
 description: >-
-  Review the project as the documented intended reader, propose Roadmap items,
-  ask which to apply, then edit docs/project/roadmap.md. Use when the user asks
-  to update the roadmap, refresh roadmap findings, or run /update-roadmap.
+  Review sparqld as its documented intended reader and update its mission-led
+  Mermaid roadmap. Use when the user asks to update or refresh the roadmap, or
+  runs /update-roadmap.
 ---
 
 # Update Roadmap
 
-Read-only review first; edit `docs/project/roadmap.md` only after the user
-chooses which proposed items to apply.
+Review first. Edit `docs/project/roadmap.md` only after the user chooses which
+proposed outcomes to apply.
 
-## Persona
+## Read first
 
-Adopt the intended reader from [docs/AGENTS.md](../../docs/AGENTS.md):
+Read [AGENTS.md](../../AGENTS.md), [docs/AGENTS.md](../../docs/AGENTS.md), and
+the current [roadmap](../../docs/project/roadmap.md).
 
-> A developer with a version-controlled, file-based knowledge base who wants
-> immediate, safe SPARQL access for themselves and their agents, without
-> operating a database or duplicating the data.
->
-> Comfortable with command-line tools, but not prior exposure to RDF or JSON-LD
-> syntax. In a Quickstart, optimize for the first successful query.
+## Review
 
-Also read [AGENTS.md](../../AGENTS.md) and the current
-[docs/project/roadmap.md](../../docs/project/roadmap.md).
+Spawn a read-only subagent. It must not edit files, commit, or push. Ask it to:
 
-## Workflow
+1. Apply the Roadmap's intended audience and defect-first review rules: report discrete,
+   evidenced problems affecting correctness, security, performance,
+   maintainability, or documentation clarity. Do not invent findings.
+2. Inspect commits against the default base (`origin/main` when available),
+   the working tree, and the published-site journey: install → Quickstart →
+   query → reference → project docs.
+3. Return findings first, ordered by severity, in the form
+   `[P1] Imperative title — path:line`, with a brief scenario and impact. Then
+   report the overall assessment and material test gaps or residual risks.
 
-### 1. Subagent persona review
+Use `P0` for a release blocker, `P1` for urgent work, `P2` for ordinary work,
+and `P3` for a lower-impact issue. Report `No findings.` when appropriate.
+Treat the working-tree roadmap as authoritative. Use the default base only to
+identify regressions; do not turn a pre-existing roadmap format or an
+uncommitted user edit into a finding.
 
-Spawn a **read-only** subagent. Do not let it edit files, commit, or push.
+## Propose outcomes
 
-Instruct it to:
+Use the findings and confirmed related friction to propose candidate roadmap
+outcomes. Do not edit the roadmap yet.
 
-1. Use the persona above.
-2. Apply defect-first review rules: discrete, actionable issues that affect
-   correctness, security, performance, maintainability, or documentation clarity
-   for that persona; prefer issues introduced by the current branch and working
-   tree over ancient pre-existing nits; do not invent findings.
-3. Inspect commits vs the default base (`origin/main` when available), the
-   working tree, and the published-site journey (install → Quickstart → query →
-   reference → project docs).
-4. Return findings first, ordered by severity:
+Each candidate must:
 
-   `[P1] Imperative title — path:line`
+- name a finite, observable outcome for a person or agent;
+- have a clear completion test in its wording;
+- be grounded in review evidence; and
+- be distinct from an existing outcome.
 
-   with one short paragraph each (scenario + why wrong), then a brief overall
-   assessment and material test gaps / residual risks.
+State outcomes, not implementation activities or undefined quality claims.
+For example, write “Users can query embedded graph IRIs with fragments without
+graph-identity collisions,” not “Support fragments” or “Correct named-graph
+querying.” Do not turn severity, priorities, release numbers, or maintenance
+labels into roadmap goals.
 
-Priorities: `P0` release blocker, `P1` urgent, `P2` ordinary, `P3` low-impact
-still worth fixing. If none: `No findings.`
+Identify a dependency only when the evidence establishes it. In the graph,
+`A --> B` means that completing B is blocked by A. Do not manufacture
+dependencies merely to make the graph look structured.
 
-### 2. Propose Roadmap changes
+Present a short review summary, then a numbered list of candidate outcomes with
+their evidence and any proposed dependency arrows. Ask the user which outcomes
+to apply. Do not edit if they select none.
 
-From the subagent findings (and any clearly related persona friction you confirm
-in the tree), draft **candidate Roadmap checklist items**. Do not edit the
-Roadmap yet.
-
-Rules for each candidate:
-
-- Match existing Roadmap style: bold short title, then one or two sentences of
-  concrete work.
-- Map severity to sections: `P0`/`P1` → High, `P2` → Medium, `P3` → Low.
-- Skip duplicates of items already present on the Roadmap (same intent).
-- Skip speculative product ideas that are not grounded in the review.
-- Prefer site/docs/pluglet/install friction visible to the persona.
-
-Present to the user:
-
-1. A short review summary (or “No findings”).
-2. A **numbered list** of proposed Roadmap additions, each showing target
-   section (High / Medium / Low) and the full checklist text that would be
-   inserted.
-
-### 3. Ask which changes to apply
-
-Ask which numbered proposals to apply. Prefer a multi-select question when the
-runtime supports it; otherwise ask for numbers (e.g. `1, 3`).
-
-Do **not** edit the Roadmap until the user answers. If they choose none, stop.
-
-### 4. Apply selected changes
+## Apply selected outcomes
 
 Edit only [docs/project/roadmap.md](../../docs/project/roadmap.md):
 
-1. Insert each selected item under the matching High / Medium / Low section as
-   an unchecked `- [ ]` entry.
-2. Keep existing items; do not reorder unrelated entries unless needed for a
-   coherent High→Low severity grouping of the new ones.
-3. Set `datePublished` in the frontmatter to today’s date (`YYYY-MM-DD`).
-4. Do not commit unless the user asks.
+1. Preserve the existing project mission. If it is absent, ask the user to
+   provide one; do not invent it from a product backlog.
+2. Maintain a single `flowchart LR` Mermaid diagram immediately after the
+   roadmap's one-sentence arrow explanation. Use rounded nodes (`goal("…")`),
+   make the rightmost mission node begin with `<strong>Mission</strong>`, and
+   point arrows from blockers on the left toward outcomes they enable.
+3. Add each selected outcome as its own rounded node. Connect it directly to
+   the mission unless a real intermediate dependency is evidenced. The mission
+   is an enduring direction, not a completion criterion.
+4. Remove completed, superseded, or duplicate outcome nodes when the evidence
+   supports doing so. Do not add a checklist, priority sections, synthetic
+   aggregate nodes, or explanatory implementation backlog beneath the diagram.
+5. Update `datePublished` to today (`YYYY-MM-DD`). Preserve unrelated
+   frontmatter and page structure.
+6. Do not commit unless the user asks.
 
-Report what was added and where.
+After editing, build the documentation and validate the rendered roadmap in
+Chromium through Playwright. Confirm that Mermaid rendered, every node is a
+rounded rectangle, the mission is rightmost, and the page has no horizontal
+overflow at desktop width.
 
 ## Out of scope
 
-- Implementing the Roadmap work items themselves.
-- Editing ADRs, code, or docs beyond `docs/project/roadmap.md` in step 4.
-- Publishing releases or opening PRs unless the user separately asks.
+- Implementing roadmap outcomes.
+- Editing ADRs, code, or documentation outside `docs/project/roadmap.md`.
+- Publishing releases or opening pull requests.
