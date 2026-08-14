@@ -45,6 +45,12 @@ sparqld [OPTIONS] <DIRECTORY>
 
     Load once without watching for file changes
 
+-   :material-filter-outline:{ .lg .middle } **`--pattern <GLOB>`**
+
+    ---
+
+    Include or exclude source paths; repeat for multiple patterns
+
 -   :material-help-circle-outline:{ .lg .middle } **`-h`, `--help`**
 
     ---
@@ -64,6 +70,24 @@ sparqld [OPTIONS] <DIRECTORY>
 Options can be composed in any order:
 
 {{ command('sparqld ./examples --host 0.0.0.0 --port 8080 --no-watch') }}
+
+## :material-filter-outline: Select source files
+
+`--pattern` matches paths relative to the directory being served. A normal
+pattern includes matching supported RDF files. Prefix a pattern with `!` to
+exclude matches. When no include patterns are supplied, every supported RDF
+file remains eligible, so an exclusion alone removes paths from the default
+set. A plain directory path matches that directory and everything below it.
+
+For example, serve Turtle files while leaving an archive outside the dataset:
+
+{{ command("sparqld ./data --pattern '**/*.ttl' --pattern '!archive'") }}
+
+Patterns filter source files after `sparqld` recognizes their extensions. A
+matching file with an unsupported format remains ignored. Excluded files do not
+appear in the file catalog. A local JSON-LD context remains available to an
+included source that declares it, even when the context file is excluded from
+the dataset.
 
 !!! warning
 
