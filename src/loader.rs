@@ -14,6 +14,8 @@ use oxigraph::store::Store;
 use percent_encoding::{AsciiSet, CONTROLS, percent_decode_str, utf8_percent_encode};
 use serde_json::Value;
 
+use crate::patterns::SourcePatterns;
+
 // @todo(extractor-contributions): Load configured extractor output as JSON-LD.
 // description: >
 //   For each [[extractors]] declaration whose positive patterns match and whose
@@ -340,9 +342,18 @@ fn load_directory(directory: &Path, dataset: &Store) -> LoadResult<BTreeSet<Path
     Ok(load_directory_with_stats(directory, dataset)?.loaded_sources)
 }
 
+#[cfg(test)]
 pub(crate) fn load_directory_with_stats(
     directory: &Path,
     dataset: &Store,
+) -> LoadResult<DirectoryLoad> {
+    load_directory_with_patterns(directory, dataset, &SourcePatterns::all())
+}
+
+pub(crate) fn load_directory_with_patterns(
+    directory: &Path,
+    dataset: &Store,
+    source_patterns: &SourcePatterns,
 ) -> LoadResult<DirectoryLoad> {
     let root = directory.canonicalize()?;
     let mut files = directory_files(&root)?;
@@ -359,6 +370,10 @@ pub(crate) fn load_directory_with_stats(
             continue;
         };
         let relative = file.strip_prefix(&root).map_err(io::Error::other)?;
+        if !source_patterns.matches(relative) {
+            ignored_files += 1;
+            continue;
+        }
         let mut context_dependencies = BTreeSet::new();
         let result = load_file(&root, file, dataset, &mut context_dependencies);
         update_context_dependents(&mut context_dependents, relative, &context_dependencies);
@@ -391,6 +406,7 @@ pub(crate) fn load_directory_with_stats(
     })
 }
 
+#[cfg(test)]
 pub(crate) fn reload_changed(
     directory: &Path,
     changed_paths: &BTreeSet<PathBuf>,
@@ -399,8 +415,28 @@ pub(crate) fn reload_changed(
     context_dependents: &ContextDependents,
     dataset: &Store,
 ) -> LoadResult<ReloadReport> {
+    reload_changed_with_patterns(
+        directory,
+        changed_paths,
+        loaded_sources,
+        load_errors,
+        context_dependents,
+        dataset,
+        &SourcePatterns::all(),
+    )
+}
+
+pub(crate) fn reload_changed_with_patterns(
+    directory: &Path,
+    changed_paths: &BTreeSet<PathBuf>,
+    loaded_sources: &BTreeSet<PathBuf>,
+    load_errors: &BTreeMap<PathBuf, String>,
+    context_dependents: &ContextDependents,
+    dataset: &Store,
+    source_patterns: &SourcePatterns,
+) -> LoadResult<ReloadReport> {
     let root = directory.canonicalize()?;
-    let current_sources = source_paths(&root)?;
+    let current_sources = source_paths(&root, source_patterns)?;
     let tracked_sources = loaded_sources
         .iter()
         .chain(load_errors.keys())
@@ -560,8 +596,8 @@ fn source_triple_count(dataset: &Store, relative: &Path) -> LoadResult<usize> {
     )
 }
 
-fn source_paths(root: &Path) -> LoadResult<BTreeSet<PathBuf>> {
-    source_files(root)?
+fn source_paths(root: &Path, source_patterns: &SourcePatterns) -> LoadResult<BTreeSet<PathBuf>> {
+    source_files(root, source_patterns)?
         .into_iter()
         .map(|file| {
             file.strip_prefix(root)
@@ -678,10 +714,15 @@ fn collect_quads(dataset: &Store) -> LoadResult<Vec<Quad>> {
         .map_err(Into::into)
 }
 
-fn source_files(directory: &Path) -> LoadResult<Vec<PathBuf>> {
+fn source_files(directory: &Path, source_patterns: &SourcePatterns) -> LoadResult<Vec<PathBuf>> {
     Ok(directory_files(directory)?
         .into_iter()
-        .filter(|path| source_format(path).is_some())
+        .filter(|path| {
+            source_format(path).is_some()
+                && path
+                    .strip_prefix(directory)
+                    .is_ok_and(|relative| source_patterns.matches(relative))
+        })
         .collect())
 }
 
@@ -1506,6 +1547,93 @@ mod tests {
     }
 
     #[test]
+    fn loads_only_supported_sources_matching_patterns() {
+        let directory = tempfile::tempdir().unwrap();
+        fs::create_dir(directory.path().join("archive")).unwrap();
+        fs::write(
+            directory.path().join("current.ttl"),
+            "<urn:current> <urn:value> <urn:included> .",
+        )
+        .unwrap();
+        fs::write(
+            directory.path().join("archive/old.ttl"),
+            "<urn:archive> <urn:value> <urn:excluded> .",
+        )
+        .unwrap();
+        fs::write(
+            directory.path().join("notes.jsonld"),
+            r#"{"@id":"urn:notes","urn:value":"ignored"}"#,
+        )
+        .unwrap();
+        let patterns =
+            SourcePatterns::compile(&["**/*.ttl".to_owned(), "!archive".to_owned()]).unwrap();
+        let dataset = Store::new().unwrap();
+
+        let load = load_directory_with_patterns(directory.path(), &dataset, &patterns).unwrap();
+
+        assert_eq!(
+            load.loaded_sources,
+            BTreeSet::from([PathBuf::from("current.ttl")])
+        );
+        assert_eq!(load.ignored_files, 2);
+        assert!(
+            dataset
+                .contains_named_graph(NamedNodeRef::new("sparqld:current.ttl").unwrap())
+                .unwrap()
+        );
+        assert!(
+            !dataset
+                .contains_named_graph(NamedNodeRef::new("sparqld:archive/old.ttl").unwrap())
+                .unwrap()
+        );
+        assert!(
+            !dataset
+                .contains_named_graph(NamedNodeRef::new("sparqld:notes.jsonld").unwrap())
+                .unwrap()
+        );
+    }
+
+    #[test]
+    fn ignores_changes_to_an_excluded_source() {
+        let directory = tempfile::tempdir().unwrap();
+        let included = directory.path().join("current.ttl");
+        let excluded = directory.path().join("archive.ttl");
+        fs::write(&included, "<urn:current> <urn:value> <urn:included> .").unwrap();
+        fs::write(&excluded, "<urn:archive> <urn:value> <urn:old> .").unwrap();
+        let patterns = SourcePatterns::compile(&["!archive.ttl".to_owned()]).unwrap();
+        let dataset = Store::new().unwrap();
+        let load = load_directory_with_patterns(directory.path(), &dataset, &patterns).unwrap();
+
+        fs::write(&excluded, "<urn:archive> <urn:value> <urn:new> .").unwrap();
+        let report = reload_changed_with_patterns(
+            directory.path(),
+            &BTreeSet::from([excluded]),
+            &load.loaded_sources,
+            &load.load_errors,
+            &load.context_dependents,
+            &dataset,
+            &patterns,
+        )
+        .unwrap();
+
+        assert!(report.updates.is_empty());
+        assert_eq!(
+            report.loaded_sources,
+            BTreeSet::from([PathBuf::from("current.ttl")])
+        );
+        assert!(
+            dataset
+                .contains_named_graph(NamedNodeRef::new("sparqld:current.ttl").unwrap())
+                .unwrap()
+        );
+        assert!(
+            !dataset
+                .contains_named_graph(NamedNodeRef::new("sparqld:archive.ttl").unwrap())
+                .unwrap()
+        );
+    }
+
+    #[test]
     fn records_a_reload_error_and_empties_the_source_graph() {
         let directory = tempfile::tempdir().unwrap();
         let source = directory.path().join("source.ttl");
@@ -1742,6 +1870,59 @@ mod tests {
                     NamedNodeRef::new("urn:new-predicate").unwrap(),
                     LiteralRef::new_simple_literal("object"),
                     NamedNodeRef::new("sparqld:source.jsonld").unwrap(),
+                ))
+                .unwrap()
+        );
+    }
+
+    #[test]
+    fn reloads_an_included_source_when_its_excluded_context_changes() {
+        let directory = tempfile::tempdir().unwrap();
+        let context = directory.path().join("main.jsonld");
+        let source = directory.path().join("source.json");
+        fs::write(&context, r#"{"@context":{"value":"urn:old"}}"#).unwrap();
+        fs::write(
+            &source,
+            r#"{"@context":"main.jsonld","@id":"urn:subject","value":"object"}"#,
+        )
+        .unwrap();
+        let patterns =
+            SourcePatterns::compile(&["source.json".to_owned(), "!main.jsonld".to_owned()])
+                .unwrap();
+        let dataset = Store::new().unwrap();
+
+        let load = load_directory_with_patterns(directory.path(), &dataset, &patterns).unwrap();
+        assert_eq!(
+            load.loaded_sources,
+            BTreeSet::from([PathBuf::from("source.json")])
+        );
+        assert!(
+            !dataset
+                .contains_named_graph(NamedNodeRef::new("sparqld:main.jsonld").unwrap())
+                .unwrap()
+        );
+
+        fs::write(&context, r#"{"@context":{"value":"urn:new"}}"#).unwrap();
+        let report = reload_changed_with_patterns(
+            directory.path(),
+            &BTreeSet::from([context]),
+            &load.loaded_sources,
+            &load.load_errors,
+            &load.context_dependents,
+            &dataset,
+            &patterns,
+        )
+        .unwrap();
+
+        assert_eq!(report.updates.len(), 1);
+        assert_eq!(report.updates[0].path, PathBuf::from("source.json"));
+        assert!(
+            dataset
+                .contains(QuadRef::new(
+                    NamedNodeRef::new("urn:subject").unwrap(),
+                    NamedNodeRef::new("urn:new").unwrap(),
+                    LiteralRef::new_simple_literal("object"),
+                    NamedNodeRef::new("sparqld:source.json").unwrap(),
                 ))
                 .unwrap()
         );
