@@ -7,6 +7,7 @@ use std::time::{Duration, Instant};
 use notify::event::{CreateKind, RemoveKind};
 use notify::{Event, EventKind, RecommendedWatcher, RecursiveMode, Watcher};
 
+use crate::patterns::SourcePatterns;
 use crate::{DatasetStats, SharedDataset, SparqldResult, loader, reload_dataset};
 
 const RELOAD_DEBOUNCE: Duration = Duration::from_millis(500);
@@ -83,9 +84,18 @@ pub(crate) struct DirectoryWatcher {
 }
 
 impl DirectoryWatcher {
+    #[cfg(test)]
     pub(crate) fn start(
         directory: PathBuf,
         dataset: SharedDataset,
+    ) -> SparqldResult<(Self, DatasetStats)> {
+        Self::start_with_patterns(directory, dataset, SourcePatterns::all())
+    }
+
+    pub(crate) fn start_with_patterns(
+        directory: PathBuf,
+        dataset: SharedDataset,
+        source_patterns: SourcePatterns,
     ) -> SparqldResult<(Self, DatasetStats)> {
         let (control, events) = mpsc::channel();
         let event_control = control.clone();
@@ -96,7 +106,7 @@ impl DirectoryWatcher {
 
         // The watch is active before the initial load, so changes made while it
         // is loading remain queued for the worker and cannot be missed.
-        let load = reload_dataset(&directory, &dataset)?;
+        let load = reload_dataset(&directory, &dataset, &source_patterns)?;
         let stats = load.stats();
         let loaded_sources = load.loaded_sources;
         let load_errors = load.load_errors;
@@ -108,6 +118,7 @@ impl DirectoryWatcher {
                     events,
                     directory,
                     dataset,
+                    source_patterns,
                     loaded_sources,
                     load_errors,
                     context_dependents,
@@ -139,6 +150,7 @@ fn watch(
     events: Receiver<Message>,
     directory: PathBuf,
     dataset: SharedDataset,
+    source_patterns: SourcePatterns,
     mut loaded_sources: BTreeSet<PathBuf>,
     mut load_errors: BTreeMap<PathBuf, String>,
     mut context_dependents: loader::ContextDependents,
@@ -158,6 +170,7 @@ fn watch(
                         &mut loaded_sources,
                         &mut load_errors,
                         &mut context_dependents,
+                        &source_patterns,
                     );
                     changed_paths.clear();
                     reload_at = None;
@@ -271,6 +284,7 @@ fn reload(
     loaded_sources: &mut BTreeSet<PathBuf>,
     load_errors: &mut BTreeMap<PathBuf, String>,
     context_dependents: &mut loader::ContextDependents,
+    source_patterns: &SourcePatterns,
 ) {
     let path_set = changed_paths.keys().cloned().collect::<BTreeSet<_>>();
     let paths = format_changed_paths(directory, &path_set);
@@ -281,13 +295,14 @@ fn reload(
             return;
         }
     };
-    match loader::reload_changed(
+    match loader::reload_changed_with_patterns(
         directory,
         &path_set,
         loaded_sources,
         load_errors,
         context_dependents,
         &dataset,
+        source_patterns,
     ) {
         Ok(report) => {
             for message in reload_messages(directory, changed_paths, &report) {
