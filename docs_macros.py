@@ -24,11 +24,10 @@ DISPLAY_ENDPOINT = 'http://127.0.0.1:7737/'
 
 # @todo(generated-roadmap): Render the roadmap from the sparqld dataset.
 # description: >
-#   Change mkdocs_macros_sparqld.__init__.configure and server.ensure_endpoint
-#   so that, when <project>/sparqld.toml exists, they start sparqld with
-#   <project> as CWD and no directory argument; sparqld.toml then selects the
-#   repository root. Keep the present `docs` directory argument when no
-#   configuration file exists.
+#   Configure the documentation build with `extra.sparqld.endpoint` pointing to
+#   an already running sparqld server over the repository root. That server
+#   loads sparqld.toml and PDD-LD; the pluglet only queries it and does not own
+#   its process lifecycle.
 #
 #   Add docs/project/mission.yamlld declaring `sparqld:mission`, the enduring
 #   project mission, and any roadmap outcome that is not owned by a code
@@ -46,11 +45,12 @@ DISPLAY_ENDPOINT = 'http://127.0.0.1:7737/'
 # acceptance:
 #   - Unit-test macro rendering for a graph with two blockers, a transitive
 #     blocker, titles requiring escaping, and a mission node.
-#   - Test both macro server launch modes and build the documentation.
+#   - Build the documentation against an externally managed endpoint.
 #   - Validate the rendered roadmap in Chromium through Playwright after the
 #     documentation change.
 # blocked-by:
 #   - pdd-ld-integration
+#   - existing-sparqld-endpoint
 
 _ADR_STATUS = MappingProxyType(
     {
