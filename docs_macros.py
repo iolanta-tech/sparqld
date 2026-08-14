@@ -22,6 +22,35 @@ RESULTS_DIR = ROOT_DIR / 'docs' / 'results'
 REPO_URL = 'https://github.com/iolanta-tech/sparqld'
 DISPLAY_ENDPOINT = 'http://127.0.0.1:7737/'
 
+# @todo(generated-roadmap): Render the roadmap from the sparqld dataset.
+# description: >
+#   Change mkdocs_macros_sparqld.__init__.configure and server.ensure_endpoint
+#   so that, when <project>/sparqld.toml exists, they start sparqld with
+#   <project> as CWD and no directory argument; sparqld.toml then selects the
+#   repository root. Keep the present `docs` directory argument when no
+#   configuration file exists.
+#
+#   Add docs/project/mission.yamlld declaring `sparqld:mission`, the enduring
+#   project mission, and any roadmap outcome that is not owned by a code
+#   annotation. Add docs/queries/roadmap.rq, a SELECT query returning each
+#   roadmap item, title, and optional pdd:blocked-by item. Add
+#   `roadmap_mermaid('docs/queries/roadmap.rq')` to DocumentationMacros; it
+#   runs that stored query and returns a deterministic `flowchart LR` block.
+# rendering:
+#   - Give each IRI a deterministic Mermaid-safe node ID and HTML-escape title
+#     text before inserting it into a node label.
+#   - For `item pdd:blocked-by blocker`, emit `blocker --> item`; dependencies
+#     therefore appear left of the mission without reversing RDF semantics.
+#   - Replace the handwritten graph in docs/project/roadmap.md with the macro;
+#     it must consume SPARQL results, never source comments directly.
+# acceptance:
+#   - Unit-test macro rendering for a graph with two blockers, a transitive
+#     blocker, titles requiring escaping, and a mission node.
+#   - Test both macro server launch modes and build the documentation.
+#   - Validate the rendered roadmap in Chromium through Playwright after the
+#     documentation change.
+# blocked-by:
+#   - pdd-ld-integration
 
 _ADR_STATUS = MappingProxyType(
     {
