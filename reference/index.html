@@ -1410,6 +1410,17 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#select-source-files" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Select source files
+      
+    </span>
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -1458,6 +1469,11 @@
 <p>Load once without watching for file changes</p>
 </li>
 <li>
+<p><span class="twemoji lg middle"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M15 19.88c.04.3-.06.62-.29.83a.996.996 0 0 1-1.41 0L9.29 16.7a.99.99 0 0 1-.29-.83v-5.12L4.21 4.62a1 1 0 0 1 .17-1.4c.19-.14.4-.22.62-.22h14c.22 0 .43.08.62.22a1 1 0 0 1 .17 1.4L15 10.75zM7.04 5 11 10.06v5.52l2 2v-7.53L16.96 5z"/></svg></span> <strong><code>--pattern &lt;GLOB&gt;</code></strong></p>
+<hr />
+<p>Include or exclude source paths; repeat for multiple patterns</p>
+</li>
+<li>
 <p><span class="twemoji lg middle"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M11 18h2v-2h-2zm1-16A10 10 0 0 0 2 12a10 10 0 0 0 10 10 10 10 0 0 0 10-10A10 10 0 0 0 12 2m0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8m0-14a4 4 0 0 0-4 4h2a2 2 0 0 1 2-2 2 2 0 0 1 2 2c0 2-3 1.75-3 5h2c0-2.25 3-2.5 3-5a4 4 0 0 0-4-4"/></svg></span> <strong><code>-h</code>, <code>--help</code></strong></p>
 <hr />
 <p>Show command help</p>
@@ -1476,6 +1492,23 @@
 <div class="highlight"><pre><span></span><code><span class="go">sparqld ./examples --host 0.0.0.0 --port 8080 --no-watch</span>
 </code></pre></div>
 </div>
+<h2 id="select-source-files"><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M15 19.88c.04.3-.06.62-.29.83a.996.996 0 0 1-1.41 0L9.29 16.7a.99.99 0 0 1-.29-.83v-5.12L4.21 4.62a1 1 0 0 1 .17-1.4c.19-.14.4-.22.62-.22h14c.22 0 .43.08.62.22a1 1 0 0 1 .17 1.4L15 10.75zM7.04 5 11 10.06v5.52l2 2v-7.53L16.96 5z"/></svg></span> Select source files</h2>
+<p><code>--pattern</code> matches paths relative to the directory being served. A normal
+pattern includes matching supported RDF files. Prefix a pattern with <code>!</code> to
+exclude matches. When no include patterns are supplied, every supported RDF
+file remains eligible, so an exclusion alone removes paths from the default
+set. A plain directory path matches that directory and everything below it.</p>
+<p>For example, serve Turtle files while leaving an archive outside the dataset:</p>
+<div class="admonition command">
+<p class="admonition-title">Command</p>
+<div class="highlight"><pre><span></span><code><span class="go">sparqld ./data --pattern &#39;**/*.ttl&#39; --pattern &#39;!archive&#39;</span>
+</code></pre></div>
+</div>
+<p>Patterns filter source files after <code>sparqld</code> recognizes their extensions. A
+matching file with an unsupported format remains ignored. Excluded files do not
+appear in the file catalog. A local JSON-LD context remains available to an
+included source that declares it, even when the context file is excluded from
+the dataset.</p>
 <div class="admonition warning">
 <p class="admonition-title">Warning</p>
 <p><code>--host 0.0.0.0</code> makes the endpoint reachable from the network. <code>sparqld</code>
