@@ -1,4 +1,5 @@
 mod loader;
+pub mod patterns;
 mod server;
 mod watcher;
 
@@ -34,15 +35,20 @@ pub(crate) struct DatasetStats {
 }
 
 /// Controls how a directory is served.
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Debug)]
 pub struct ServeOptions {
     /// Reload the dataset when the directory changes.
     pub watch: bool,
+    /// Glob patterns selecting source files relative to the served directory.
+    pub patterns: Vec<String>,
 }
 
 impl Default for ServeOptions {
     fn default() -> Self {
-        Self { watch: true }
+        Self {
+            watch: true,
+            patterns: Vec::new(),
+        }
     }
 }
 
@@ -65,13 +71,18 @@ pub fn serve_at_with_options(
 ) -> SparqldResult<()> {
     let requested_directory = directory.as_ref();
     let directory = requested_directory.canonicalize()?;
+    let source_patterns =
+        patterns::SourcePatterns::compile(&options.patterns).map_err(io::Error::other)?;
     let dataset = Arc::new(RwLock::new(new_dataset()?));
     let (_directory_watcher, stats) = if options.watch {
-        let (watcher, stats) =
-            watcher::DirectoryWatcher::start(directory.clone(), Arc::clone(&dataset))?;
+        let (watcher, stats) = watcher::DirectoryWatcher::start_with_patterns(
+            directory.clone(),
+            Arc::clone(&dataset),
+            source_patterns,
+        )?;
         (Some(watcher), stats)
     } else {
-        let load = reload_dataset(&directory, &dataset)?;
+        let load = reload_dataset(&directory, &dataset, &source_patterns)?;
         (None, load.stats())
     };
     let addresses = (host, port).to_socket_addrs()?.collect::<Vec<_>>();
@@ -101,9 +112,13 @@ impl DatasetLoad {
     }
 }
 
-fn reload_dataset(directory: &Path, dataset: &RwLock<Store>) -> SparqldResult<DatasetLoad> {
+fn reload_dataset(
+    directory: &Path,
+    dataset: &RwLock<Store>,
+    source_patterns: &patterns::SourcePatterns,
+) -> SparqldResult<DatasetLoad> {
     let fresh_dataset = new_dataset()?;
-    let load = loader::load_directory_with_stats(directory, &fresh_dataset)?;
+    let load = loader::load_directory_with_patterns(directory, &fresh_dataset, source_patterns)?;
     let triples = fresh_dataset.len()?;
     *dataset
         .write()
