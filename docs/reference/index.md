@@ -71,6 +71,13 @@ Options can be composed in any order:
 
 {{ command('sparqld ./examples --host 0.0.0.0 --port 8080 --no-watch') }}
 
+## :material-clock-start: Wait for the first dataset
+
+The listener binds while sparqld loads its first dataset. Send an ordinary
+query to `/` with a client-side timeout; it waits until that dataset is ready.
+The `Serving … at …` log line remains useful for people, but is not a client
+readiness contract.
+
 ## :material-filter-outline: Select source files
 
 `--pattern` matches paths relative to the directory being served. A normal
