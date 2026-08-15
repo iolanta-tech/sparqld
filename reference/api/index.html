@@ -616,6 +616,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#startup" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Startup
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#responses" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1310,6 +1321,8 @@
       
         
       
+        
+      
     
     
     
@@ -1434,6 +1447,41 @@
 
               
             
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../project/decisions/serve-sparql-endpoint-when/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Serve SPARQL endpoint when its initial dataset is ready
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--decided"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
           </ul>
         </nav>
       
@@ -1480,6 +1528,17 @@
     <span class="md-ellipsis">
       
         Query requests
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#startup" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Startup
       
     </span>
   </a>
@@ -1559,6 +1618,16 @@
 </tbody>
 </table>
 <p>A plain <code>GET /</code> returns a text landing response.</p>
+<h2 id="startup"><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 1C8.14 1 5 4.14 5 8a7 7 0 0 0 7 7c3.86 0 7-3.13 7-7 0-3.86-3.14-7-7-7m0 2.15c2.67 0 4.85 2.17 4.85 4.85s-2.18 4.85-4.85 4.85A4.85 4.85 0 0 1 7.15 8 4.85 4.85 0 0 1 12 3.15M11 5v3.69l3.19 1.84.75-1.3-2.44-1.41V5M4 16v8h2v-3h12v3l4-4-4-4v3H6v-3"/></svg></span> Startup</h2>
+<p><code>sparqld</code> binds its HTTP listener before it finishes the initial directory
+load. Requests at <code>/</code> wait until that load has published its first dataset, so
+the first ordinary query can be the readiness wait. Set the HTTP timeout in the
+client; sparqld does not impose a startup wait deadline.</p>
+<p>File-level load errors remain visible in the file catalog and do not prevent
+the first dataset from becoming ready. A fatal initialization error marks root
+requests unavailable with <code>503 Service Unavailable</code> before sparqld exits
+nonzero; because the process exits immediately, a caller can instead observe a
+dropped connection.</p>
 <h2 id="responses"><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M2 12h2v5h16v-5h2v5c0 1.11-.89 2-2 2H4a2 2 0 0 1-2-2zm10 3 5.55-5.46-1.42-1.41L13 11.25V2h-2v9.25L7.88 8.13 6.46 9.55z"/></svg></span> Responses</h2>
 <table>
 <thead>
@@ -1621,6 +1690,10 @@ not currently negotiate another representation.</p>
 <tr>
 <td><code>415 Unsupported Media Type</code></td>
 <td>Unsupported POST <code>Content-Type</code></td>
+</tr>
+<tr>
+<td><code>503 Service Unavailable</code></td>
+<td>Fatal initial dataset failure before process exit</td>
 </tr>
 <tr>
 <td><code>500 Internal Server Error</code></td>

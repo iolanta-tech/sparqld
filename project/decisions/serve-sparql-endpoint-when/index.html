@@ -6,33 +6,31 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="Context URLs and local context files supported by sparqld.">
+      
+        <meta name="author" content="Anatoly Scherbakov">
       
       
       
+        <link rel="prev" href="../implement-sparqld-in/">
       
-        <link rel="prev" href="../file-catalog/">
-      
-      
-        <link rel="next" href="../libraries/">
       
       
         
       
       
-      <link rel="icon" href="../../assets/images/favicon.png">
+      <link rel="icon" href="../../../assets/images/favicon.png">
       <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
     
     
       
-        <title>Contexts - sparqld</title>
+        <title>Serve SPARQL endpoint when its initial dataset is ready - sparqld</title>
       
     
     
-      <link rel="stylesheet" href="../../assets/stylesheets/main.ec1eaa64.min.css">
+      <link rel="stylesheet" href="../../../assets/stylesheets/main.ec1eaa64.min.css">
       
         
-        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+        <link rel="stylesheet" href="../../../assets/stylesheets/palette.ab4e12ef.min.css">
       
       
 
@@ -51,9 +49,9 @@
       
     
     
-      <link rel="stylesheet" href="../../stylesheets/extra.css">
+      <link rel="stylesheet" href="../../../stylesheets/extra.css">
     
-    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    <script>__md_scope=new URL("../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
     
       
 
@@ -78,7 +76,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#contexts" class="md-skip">
+        <a href="#serve-sparql-endpoint-when-its-initial-dataset-is-ready" class="md-skip">
           Skip to content
         </a>
       
@@ -92,7 +90,7 @@
 
 <header class="md-header" data-md-component="header">
   <nav class="md-header__inner md-grid" aria-label="Header">
-    <a href="../.." title="sparqld" class="md-header__button md-logo" aria-label="sparqld" data-md-component="logo">
+    <a href="../../.." title="sparqld" class="md-header__button md-logo" aria-label="sparqld" data-md-component="logo">
       
   
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 1 9 9l-8 3 8 3 3 8 3-8 8-3-8-3z"/></svg>
@@ -112,7 +110,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Contexts
+              Serve SPARQL endpoint when its initial dataset is ready
             
           </span>
         </div>
@@ -225,7 +223,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="../.." class="md-tabs__link">
+        <a href="../../.." class="md-tabs__link">
           
   
   
@@ -245,13 +243,11 @@
   
   
   
-    
-  
   
     
     
-      <li class="md-tabs__item md-tabs__item--active">
-        <a href="../" class="md-tabs__link">
+      <li class="md-tabs__item">
+        <a href="../../../reference/" class="md-tabs__link">
           
   
   
@@ -271,11 +267,13 @@
   
   
   
+    
+  
   
     
     
-      <li class="md-tabs__item">
-        <a href="../../project/" class="md-tabs__link">
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../../" class="md-tabs__link">
           
   
   
@@ -315,7 +313,7 @@
 
 <nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
   <label class="md-nav__title" for="__drawer">
-    <a href="../.." title="sparqld" class="md-nav__button md-logo" aria-label="sparqld" data-md-component="logo">
+    <a href="../../.." title="sparqld" class="md-nav__button md-logo" aria-label="sparqld" data-md-component="logo">
       
   
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 1 9 9l-8 3 8 3 3 8 3-8 8-3-8-3z"/></svg>
@@ -370,7 +368,7 @@
         
           
           <div class="md-nav__link md-nav__container">
-            <a href="../.." class="md-nav__link ">
+            <a href="../../.." class="md-nav__link ">
               
   
   
@@ -416,7 +414,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../quickstart/" class="md-nav__link">
+      <a href="../../../quickstart/" class="md-nav__link">
         
   
   
@@ -450,8 +448,6 @@
       
   
   
-    
-  
   
   
     
@@ -485,23 +481,20 @@
     
     
       
-        
-        
-      
       
         
       
     
     
-    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--nested">
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" checked>
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
         
           
           <div class="md-nav__link md-nav__container">
-            <a href="../" class="md-nav__link ">
+            <a href="../../../reference/" class="md-nav__link ">
               
   
   
@@ -521,13 +514,13 @@
             </a>
             
               
-              <label class="md-nav__link " for="__nav_2" id="__nav_2_label" tabindex="">
+              <label class="md-nav__link " for="__nav_2" id="__nav_2_label" tabindex="0">
                 <span class="md-nav__icon md-icon"></span>
               </label>
             
           </div>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="true">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_2">
             <span class="md-nav__icon md-icon"></span>
             
@@ -547,7 +540,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../api/" class="md-nav__link">
+      <a href="../../../reference/api/" class="md-nav__link">
         
   
   
@@ -575,7 +568,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../sparql/" class="md-nav__link">
+      <a href="../../../reference/sparql/" class="md-nav__link">
         
   
   
@@ -603,7 +596,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../formats/" class="md-nav__link">
+      <a href="../../../reference/formats/" class="md-nav__link">
         
   
   
@@ -631,7 +624,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../named-graphs/" class="md-nav__link">
+      <a href="../../../reference/named-graphs/" class="md-nav__link">
         
   
   
@@ -659,7 +652,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../file-catalog/" class="md-nav__link">
+      <a href="../../../reference/file-catalog/" class="md-nav__link">
         
   
   
@@ -684,37 +677,10 @@
                 
   
   
-    
   
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-        
-      
-      
-        <label class="md-nav__link md-nav__link--active" for="__toc">
-          
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Contexts
-  
-
-    
-  </span>
-  
-  
-
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../../../reference/contexts/" class="md-nav__link">
         
   
   
@@ -730,59 +696,6 @@
   
 
       </a>
-      
-        
-
-<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
-  
-  
-  
-    
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#supported-contexts" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Supported contexts
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#local-context-files" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Local context files
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#context-access" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Context access
-      
-    </span>
-  </a>
-  
-</li>
-      
-    </ul>
-  
-</nav>
-      
     </li>
   
 
@@ -811,13 +724,10 @@
       
       
         
-          
-          
-        
       
     
     
-    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--nested">
       
         
         
@@ -825,7 +735,7 @@
         
           
           <div class="md-nav__link md-nav__container">
-            <a href="../libraries/" class="md-nav__link ">
+            <a href="../../../reference/libraries/" class="md-nav__link ">
               
   
   
@@ -843,7 +753,7 @@
             </a>
             
               
-              <label class="md-nav__link " for="__nav_2_8" id="__nav_2_8_label" tabindex="">
+              <label class="md-nav__link " for="__nav_2_8" id="__nav_2_8_label" tabindex="0">
                 <span class="md-nav__icon md-icon"></span>
               </label>
             
@@ -869,7 +779,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../libraries/sparqlwrapper/" class="md-nav__link">
+      <a href="../../../reference/libraries/sparqlwrapper/" class="md-nav__link">
         
   
   
@@ -897,7 +807,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../libraries/comunica/" class="md-nav__link">
+      <a href="../../../reference/libraries/comunica/" class="md-nav__link">
         
   
   
@@ -949,13 +859,10 @@
       
       
         
-          
-          
-        
       
     
     
-    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--nested">
       
         
         
@@ -963,7 +870,7 @@
         
           
           <div class="md-nav__link md-nav__container">
-            <a href="../clients/" class="md-nav__link ">
+            <a href="../../../reference/clients/" class="md-nav__link ">
               
   
   
@@ -981,7 +888,7 @@
             </a>
             
               
-              <label class="md-nav__link " for="__nav_2_9" id="__nav_2_9_label" tabindex="">
+              <label class="md-nav__link " for="__nav_2_9" id="__nav_2_9_label" tabindex="0">
                 <span class="md-nav__icon md-icon"></span>
               </label>
             
@@ -1007,7 +914,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../clients/curl/" class="md-nav__link">
+      <a href="../../../reference/clients/curl/" class="md-nav__link">
         
   
   
@@ -1035,7 +942,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../clients/sq/" class="md-nav__link">
+      <a href="../../../reference/clients/sq/" class="md-nav__link">
         
   
   
@@ -1071,7 +978,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../agents/" class="md-nav__link">
+      <a href="../../../reference/agents/" class="md-nav__link">
         
   
   
@@ -1109,20 +1016,17 @@
       
       
         
-          
-          
-        
       
     
     
-    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--nested">
       
         
         
         <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_11" >
         
           
-          <label class="md-nav__link" for="__nav_2_11" id="__nav_2_11_label" tabindex="">
+          <label class="md-nav__link" for="__nav_2_11" id="__nav_2_11_label" tabindex="0">
             
   
   
@@ -1158,7 +1062,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../integrations/mkdocs/" class="md-nav__link">
+      <a href="../../../reference/integrations/mkdocs/" class="md-nav__link">
         
   
   
@@ -1198,6 +1102,8 @@
       
   
   
+    
+  
   
   
     
@@ -1215,20 +1121,23 @@
     
     
       
+        
+        
+      
       
         
       
     
     
-    <li class="md-nav__item md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" checked>
         
           
           <div class="md-nav__link md-nav__container">
-            <a href="../../project/" class="md-nav__link ">
+            <a href="../../" class="md-nav__link ">
               
   
   
@@ -1248,13 +1157,13 @@
             </a>
             
               
-              <label class="md-nav__link " for="__nav_3" id="__nav_3_label" tabindex="0">
+              <label class="md-nav__link " for="__nav_3" id="__nav_3_label" tabindex="">
                 <span class="md-nav__icon md-icon"></span>
               </label>
             
           </div>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="true">
           <label class="md-nav__title" for="__nav_3">
             <span class="md-nav__icon md-icon"></span>
             
@@ -1274,7 +1183,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../project/roadmap/" class="md-nav__link">
+      <a href="../../roadmap/" class="md-nav__link">
         
   
   
@@ -1299,6 +1208,8 @@
                 
   
   
+    
+  
   
   
     
@@ -1320,18 +1231,21 @@
       
       
         
+          
+          
+        
       
     
     
-    <li class="md-nav__item md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_3" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_3" checked>
         
           
           <div class="md-nav__link md-nav__container">
-            <a href="../../project/decisions/" class="md-nav__link ">
+            <a href="../" class="md-nav__link ">
               
   
   
@@ -1349,13 +1263,13 @@
             </a>
             
               
-              <label class="md-nav__link " for="__nav_3_3" id="__nav_3_3_label" tabindex="0">
+              <label class="md-nav__link " for="__nav_3_3" id="__nav_3_3_label" tabindex="">
                 <span class="md-nav__icon md-icon"></span>
               </label>
             
           </div>
         
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_3_label" aria-expanded="false">
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_3_label" aria-expanded="true">
           <label class="md-nav__title" for="__nav_3_3">
             <span class="md-nav__icon md-icon"></span>
             
@@ -1375,7 +1289,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../project/decisions/implement-live-file-backed-sparql-access-with/" class="md-nav__link">
+      <a href="../implement-live-file-backed-sparql-access-with/" class="md-nav__link">
         
   
   
@@ -1410,7 +1324,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../project/decisions/implement-sparqld-in/" class="md-nav__link">
+      <a href="../implement-sparqld-in/" class="md-nav__link">
         
   
   
@@ -1442,10 +1356,44 @@
                 
   
   
+    
   
   
-    <li class="md-nav__item">
-      <a href="../../project/decisions/serve-sparql-endpoint-when/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Serve SPARQL endpoint when its initial dataset is ready
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--decided"></span>
+  
+
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         
   
   
@@ -1468,6 +1416,76 @@
   
 
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#context" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Context
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#decision" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Decision
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#consequences" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Consequences
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Consequences">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#implementation-steps" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Implementation Steps
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
     </li>
   
 
@@ -1517,10 +1535,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#supported-contexts" class="md-nav__link">
+  <a href="#context" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Supported contexts
+        Context
       
     </span>
   </a>
@@ -1528,10 +1546,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#local-context-files" class="md-nav__link">
+  <a href="#decision" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Local context files
+        Decision
       
     </span>
   </a>
@@ -1539,13 +1557,30 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#context-access" class="md-nav__link">
+  <a href="#consequences" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Context access
+        Consequences
       
     </span>
   </a>
+  
+    <nav class="md-nav" aria-label="Consequences">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#implementation-steps" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Implementation Steps
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
       
@@ -1571,90 +1606,165 @@
   
 
 
-<h1 id="contexts"><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2m-8 5H9v2c0 1.1-.9 2-2 2 1.1 0 2 .9 2 2v2h2v2H9c-1.1 0-2-.9-2-2v-1c0-1.1-.9-2-2-2v-2c1.1 0 2-.9 2-2V8c0-1.1.9-2 2-2h2zm8 5c-1.1 0-2 .9-2 2v1c0 1.1-.9 2-2 2h-2v-2h2v-2c0-1.1.9-2 2-2-1.1 0-2-.9-2-2V8h-2V6h2c1.1 0 2 .9 2 2v1c0 1.1.9 2 2 2z"/></svg></span> Contexts</h1>
-<p>Every JSON-LD-derived source declares the terms and aliases it uses in its own
-context, so the same file keeps its meaning in another JSON-LD tool.</p>
-<h2 id="supported-contexts"><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10 10-4.5 10-10S17.5 2 12 2m0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8m4.59-12.42L10 14.17l-2.59-2.58L6 13l4 4 8-8z"/></svg></span> Supported contexts</h2>
-<table>
-<thead>
+<h1 id="serve-sparql-endpoint-when-its-initial-dataset-is-ready">Serve SPARQL endpoint when its initial dataset is ready</h1>
+<div class="admonition success">
+<p class="admonition-title">Decided · <span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M15 13h1.5v2.82l2.44 1.41-.75 1.3L15 16.69zm4-5H5v11h4.67c-.43-.91-.67-1.93-.67-3a7 7 0 0 1 7-7c1.07 0 2.09.24 3 .67zM5 21a2 2 0 0 1-2-2V5c0-1.11.89-2 2-2h1V1h2v2h8V1h2v2h1a2 2 0 0 1 2 2v6.1c1.24 1.26 2 2.99 2 4.9a7 7 0 0 1-7 7c-1.91 0-3.64-.76-4.9-2zm11-9.85A4.85 4.85 0 0 0 11.15 16c0 2.68 2.17 4.85 4.85 4.85A4.85 4.85 0 0 0 20.85 16c0-2.68-2.17-4.85-4.85-4.85"/></svg></span> 15 August 2026</p>
+</div>
+<h2 id="context"><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M5 3c-1.11 0-2 .89-2 2v14c0 1.11.89 2 2 2h14c1.11 0 2-.89 2-2V5c0-1.11-.89-2-2-2zm0 2h14v14H5zm2 2v2h10V7zm0 4v2h10v-2zm0 4v2h7v-2z"/></svg></span> Context</h2>
+<p>CI starts <code>sparqld --no-watch</code> over a directory of EARL Turtle reports and
+then runs several queries against that one dataset. Today,
+<a href="https://github.com/iolanta-tech/sparqld/blob/f3b935f/src/lib.rs#L66-L100"><code>serve_at_with_options</code></a>
+loads the complete dataset before it resolves and binds the HTTP addresses, and
+logs <code>Serving … at …</code> only afterwards. That makes a client infer readiness from
+a human-readable log line before it can reuse the loaded dataset.</p>
+<p>The existing loader builds a fresh store and replaces the shared store only
+after the complete load finishes
+(<a href="https://github.com/iolanta-tech/sparqld/blob/f3b935f/src/lib.rs#L115-L128"><code>reload_dataset</code></a>).
+When watching, the watcher is registered before that initial load so events
+cannot be missed
+(<a href="https://github.com/iolanta-tech/sparqld/blob/f3b935f/src/watcher.rs#L95-L126"><code>DirectoryWatcher::start_with_patterns</code></a>).
+The decision must retain those properties while giving CI and long-running
+clients an endpoint-level startup contract.</p>
+<div class="mermaid">flowchart LR
+    CurrentCli["Current CLI start"] --&gt; CurrentLoad["Load complete dataset"]
+    CurrentLoad --&gt; CurrentBind["Bind HTTP listener"]
+    CurrentBind --&gt; CurrentLog["Log Serving"]
+    CurrentLog --&gt; CurrentQueries["Clients query"]
+
+    DesiredCli["Desired CLI start"] --&gt; DesiredValidate["Validate inputs and addresses"]
+    DesiredValidate --&gt; DesiredBind["Bind HTTP listener"]
+    DesiredBind --&gt; DesiredGate["Root requests wait"]
+    DesiredBind --&gt; DesiredLoad["Load fresh dataset in background"]
+    DesiredLoad --&gt; DesiredPublish["Atomically publish dataset"]
+    DesiredPublish --&gt; DesiredGate
+    DesiredGate --&gt; DesiredQueries["Existing SPARQL dispatch"]</div>
+<h2 id="decision"><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.64 13.4C8.63 12.5 7.34 12.03 6 12v3l-4-4 4-4v3c1.67 0 3.3.57 4.63 1.59a8 8 0 0 0-.99 1.81M18 15v-3c-.5 0-4.5.16-4.95 4.2 1.56.55 2.38 2.27 1.83 3.83a3.006 3.006 0 0 1-3.83 1.83c-1.55-.56-2.38-2.27-1.83-3.83.28-.86.98-1.53 1.83-1.83A6.75 6.75 0 0 1 18 10V7l4 4zm-5 4a1 1 0 0 0-1-1 1 1 0 0 0-1 1 1 1 0 0 0 1 1 1 1 0 0 0 1-1m-2-7.88c.58-.66 1.25-1.23 2-1.69V5h3l-4-4-4 4h3z"/></svg></span> Decision</h2>
+<table data-adr-comparison="data-adr-comparison">
+<p><caption>Startup alternatives compared against the same directory-backed endpoint.</caption>
+  </p>
 <tr>
-<th>Context</th>
-<th>Use</th>
-</tr>
-</thead>
-<tbody>
+    <th>Criterion</th>
+    <th class="chosen">2. Bind; wait at ordinary requests</th>
+    <th class="not-selected">3. Bind; return 503 + readiness route</th>
+    <th class="excl">1. Load before binding</th>
+    <th class="excl">4. Load before binding + ready signal</th>
+    <th class="excl">5. Batch multi-query mode</th>
+  </tr>
 <tr>
-<td><a href="https://json-ld.org/contexts/dollar-convenience.jsonld">Dollar keyword aliases</a></td>
-<td><code>$id</code>, <code>$type</code>, <code>$reverse</code>, and the other JSON-LD keyword aliases</td>
-</tr>
+    <th>Parse shared dataset once</th>
+    <td class="chosen"><img alt="✅" class="twemoji" src="https://cdn.jsdelivr.net/gh/jdecked/twemoji@16.0.1/assets/svg/2705.svg" title=":white_check_mark:" /> <a href="https://github.com/iolanta-tech/sparqld/blob/f3b935f/src/lib.rs#L115-L128">One initial load serves every request</a>.</td>
+    <td class="not-selected"><img alt="✅" class="twemoji" src="https://cdn.jsdelivr.net/gh/jdecked/twemoji@16.0.1/assets/svg/2705.svg" title=":white_check_mark:" /> <a href="https://github.com/iolanta-tech/sparqld/blob/f3b935f/src/lib.rs#L115-L128">One initial load serves every request</a>.</td>
+    <td class="excl"><img alt="✅" class="twemoji" src="https://cdn.jsdelivr.net/gh/jdecked/twemoji@16.0.1/assets/svg/2705.svg" title=":white_check_mark:" /> <a href="https://github.com/iolanta-tech/sparqld/blob/f3b935f/src/lib.rs#L76-L100">One loaded store serves later requests</a>.</td>
+    <td class="excl"><img alt="✅" class="twemoji" src="https://cdn.jsdelivr.net/gh/jdecked/twemoji@16.0.1/assets/svg/2705.svg" title=":white_check_mark:" /> <a href="https://github.com/iolanta-tech/sparqld/blob/f3b935f/src/lib.rs#L76-L100">One loaded store serves later requests</a>.</td>
+    <td class="excl"><img alt="✅" class="twemoji" src="https://cdn.jsdelivr.net/gh/jdecked/twemoji@16.0.1/assets/svg/2705.svg" title=":white_check_mark:" /> Could reuse one load within a new batch interface.</td>
+  </tr>
 <tr>
-<td>A relative <code>.jsonld</code> or <code>.yamlld</code> path</td>
-<td>Project-specific terms kept under the served directory</td>
-</tr>
-</tbody>
+    <th>Correct results while loading</th>
+    <td class="chosen"><img alt="✅" class="twemoji" src="https://cdn.jsdelivr.net/gh/jdecked/twemoji@16.0.1/assets/svg/2705.svg" title=":white_check_mark:" /> <a href="https://github.com/iolanta-tech/sparqld/blob/f3b935f/src/lib.rs#L120-L128">Dispatch follows atomic first publication</a>.</td>
+    <td class="not-selected"><img alt="✅" class="twemoji" src="https://cdn.jsdelivr.net/gh/jdecked/twemoji@16.0.1/assets/svg/2705.svg" title=":white_check_mark:" /> <a href="https://www.rfc-editor.org/rfc/rfc9110#section-15.6.4">503 explicitly declines service while unavailable</a>.</td>
+    <td class="excl"><img alt="✅" class="twemoji" src="https://cdn.jsdelivr.net/gh/jdecked/twemoji@16.0.1/assets/svg/2705.svg" title=":white_check_mark:" /> <a href="https://github.com/iolanta-tech/sparqld/blob/f3b935f/src/lib.rs#L76-L100">No request can arrive before binding</a>.</td>
+    <td class="excl"><img alt="✅" class="twemoji" src="https://cdn.jsdelivr.net/gh/jdecked/twemoji@16.0.1/assets/svg/2705.svg" title=":white_check_mark:" /> <a href="https://github.com/iolanta-tech/sparqld/blob/f3b935f/src/lib.rs#L76-L100">No request can arrive before binding</a>.</td>
+    <td class="excl"><img alt="✅" class="twemoji" src="https://cdn.jsdelivr.net/gh/jdecked/twemoji@16.0.1/assets/svg/2705.svg" title=":white_check_mark:" /> A process-local batch could query after its load.</td>
+  </tr>
+<tr>
+    <th>CI and deployment ergonomics</th>
+    <td class="chosen"><img alt="✅" class="twemoji" src="https://cdn.jsdelivr.net/gh/jdecked/twemoji@16.0.1/assets/svg/2705.svg" title=":white_check_mark:" /> The first normal query is the readiness wait.</td>
+    <td class="not-selected"><img alt="⚠" class="twemoji" src="https://cdn.jsdelivr.net/gh/jdecked/twemoji@16.0.1/assets/svg/26a0.svg" title=":warning:" /> Requires a client retry or polling policy after <code>503</code>.</td>
+    <td class="excl hot"><img alt="❌" class="twemoji" src="https://cdn.jsdelivr.net/gh/jdecked/twemoji@16.0.1/assets/svg/274c.svg" title=":x:" /> <a href="https://github.com/iolanta-tech/sparqld/blob/f3b935f/src/lib.rs#L97-L100">Clients need an out-of-band availability check</a>.</td>
+    <td class="excl hot"><img alt="⚠" class="twemoji" src="https://cdn.jsdelivr.net/gh/jdecked/twemoji@16.0.1/assets/svg/26a0.svg" title=":warning:" /> Requires defining a separate process-signal contract.</td>
+    <td class="excl hot"><img alt="❌" class="twemoji" src="https://cdn.jsdelivr.net/gh/jdecked/twemoji@16.0.1/assets/svg/274c.svg" title=":x:" /> Does not start the existing HTTP service.</td>
+  </tr>
+<tr>
+    <th>Health, readiness, and liveness</th>
+    <td class="chosen"><img alt="⚠" class="twemoji" src="https://cdn.jsdelivr.net/gh/jdecked/twemoji@16.0.1/assets/svg/26a0.svg" title=":warning:" /> Readiness is expressed by the normal endpoint, not a probe route.</td>
+    <td class="not-selected"><img alt="✅" class="twemoji" src="https://cdn.jsdelivr.net/gh/jdecked/twemoji@16.0.1/assets/svg/2705.svg" title=":white_check_mark:" /> <a href="https://kubernetes.io/docs/concepts/configuration/liveness-readiness-startup-probes/">A readiness probe can remove an unready service from traffic</a>.</td>
+    <td class="excl"><img alt="⚠" class="twemoji" src="https://cdn.jsdelivr.net/gh/jdecked/twemoji@16.0.1/assets/svg/26a0.svg" title=":warning:" /> <a href="https://github.com/iolanta-tech/sparqld/blob/f3b935f/src/lib.rs#L76-L100">A listening port implies only post-load availability</a>.</td>
+    <td class="excl"><img alt="⚠" class="twemoji" src="https://cdn.jsdelivr.net/gh/jdecked/twemoji@16.0.1/assets/svg/26a0.svg" title=":warning:" /> A signal needs its own health-semantics contract.</td>
+    <td class="excl"><img alt="❌" class="twemoji" src="https://cdn.jsdelivr.net/gh/jdecked/twemoji@16.0.1/assets/svg/274c.svg" title=":x:" /> Provides no long-running endpoint for probes.</td>
+  </tr>
+<tr>
+    <th>Timeout, cancellation, and failure</th>
+    <td class="chosen"><img alt="✅" class="twemoji" src="https://cdn.jsdelivr.net/gh/jdecked/twemoji@16.0.1/assets/svg/2705.svg" title=":white_check_mark:" /> Each client keeps its HTTP deadline; shared loading remains independent.</td>
+    <td class="not-selected"><img alt="✅" class="twemoji" src="https://cdn.jsdelivr.net/gh/jdecked/twemoji@16.0.1/assets/svg/2705.svg" title=":white_check_mark:" /> <a href="https://www.rfc-editor.org/rfc/rfc9110#section-15.6.4">503 communicates temporary unavailability</a>.</td>
+    <td class="excl"><img alt="⚠" class="twemoji" src="https://cdn.jsdelivr.net/gh/jdecked/twemoji@16.0.1/assets/svg/26a0.svg" title=":warning:" /> <a href="https://github.com/iolanta-tech/sparqld/blob/f3b935f/src/lib.rs#L88-L100">Connection failures reveal no initialization outcome</a>.</td>
+    <td class="excl"><img alt="⚠" class="twemoji" src="https://cdn.jsdelivr.net/gh/jdecked/twemoji@16.0.1/assets/svg/26a0.svg" title=":warning:" /> Signal consumers need a defined failure and timeout protocol.</td>
+    <td class="excl"><img alt="⚠" class="twemoji" src="https://cdn.jsdelivr.net/gh/jdecked/twemoji@16.0.1/assets/svg/26a0.svg" title=":warning:" /> A separate input protocol must define batch cancellation and errors.</td>
+  </tr>
+<tr>
+    <th>Live reload and atomic replacement</th>
+    <td class="chosen"><img alt="✅" class="twemoji" src="https://cdn.jsdelivr.net/gh/jdecked/twemoji@16.0.1/assets/svg/2705.svg" title=":white_check_mark:" /> <a href="https://github.com/iolanta-tech/sparqld/blob/f3b935f/src/watcher.rs#L95-L126">Retains pre-load watch registration and atomic replacement</a>.</td>
+    <td class="not-selected"><img alt="✅" class="twemoji" src="https://cdn.jsdelivr.net/gh/jdecked/twemoji@16.0.1/assets/svg/2705.svg" title=":white_check_mark:" /> <a href="https://github.com/iolanta-tech/sparqld/blob/f3b935f/src/watcher.rs#L95-L126">Can retain the same watcher and replacement model</a>.</td>
+    <td class="excl"><img alt="✅" class="twemoji" src="https://cdn.jsdelivr.net/gh/jdecked/twemoji@16.0.1/assets/svg/2705.svg" title=":white_check_mark:" /> <a href="https://github.com/iolanta-tech/sparqld/blob/f3b935f/src/watcher.rs#L95-L126">Current model already preserves both</a>.</td>
+    <td class="excl"><img alt="✅" class="twemoji" src="https://cdn.jsdelivr.net/gh/jdecked/twemoji@16.0.1/assets/svg/2705.svg" title=":white_check_mark:" /> <a href="https://github.com/iolanta-tech/sparqld/blob/f3b935f/src/watcher.rs#L95-L126">Current model already preserves both</a>.</td>
+    <td class="excl hot"><img alt="❌" class="twemoji" src="https://cdn.jsdelivr.net/gh/jdecked/twemoji@16.0.1/assets/svg/274c.svg" title=":x:" /> <a href="https://github.com/iolanta-tech/sparqld/blob/f3b935f/src/main.rs#L46-L48">A one-shot mode cannot supply live reload</a>.</td>
+  </tr>
+<tr>
+    <th>Implementation complexity and API stability</th>
+    <td class="chosen"><img alt="✅" class="twemoji" src="https://cdn.jsdelivr.net/gh/jdecked/twemoji@16.0.1/assets/svg/2705.svg" title=":white_check_mark:" /> Adds one internal readiness gate while retaining <code>/</code>.</td>
+    <td class="not-selected"><img alt="⚠" class="twemoji" src="https://cdn.jsdelivr.net/gh/jdecked/twemoji@16.0.1/assets/svg/26a0.svg" title=":warning:" /> <a href="https://github.com/iolanta-tech/sparqld/blob/f3b935f/docs/reference/api/index.md#L13-L30">Adds endpoint and retry contract beyond the existing <code>/</code> API</a>.</td>
+    <td class="excl"><img alt="✅" class="twemoji" src="https://cdn.jsdelivr.net/gh/jdecked/twemoji@16.0.1/assets/svg/2705.svg" title=":white_check_mark:" /> <a href="https://github.com/iolanta-tech/sparqld/blob/f3b935f/src/lib.rs#L76-L100">Preserves the current startup order</a>.</td>
+    <td class="excl"><img alt="⚠" class="twemoji" src="https://cdn.jsdelivr.net/gh/jdecked/twemoji@16.0.1/assets/svg/26a0.svg" title=":warning:" /> Adds a separate readiness-output contract.</td>
+    <td class="excl"><img alt="⚠" class="twemoji" src="https://cdn.jsdelivr.net/gh/jdecked/twemoji@16.0.1/assets/svg/26a0.svg" title=":warning:" /> Adds a second query-supply interface.</td>
+  </tr>
+<tr>
+    <th>Outcome</th>
+    <td class="chosen"><img alt="✅" class="twemoji" src="https://cdn.jsdelivr.net/gh/jdecked/twemoji@16.0.1/assets/svg/2705.svg" title=":white_check_mark:" /> Chosen</td>
+    <td class="not-selected"><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 20c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8m0-18A10 10 0 0 0 2 12a10 10 0 0 0 10 10 10 10 0 0 0 10-10A10 10 0 0 0 12 2M7 13h10v-2H7"/></svg></span> Not selected</td>
+    <td class="excl"><img alt="❌" class="twemoji" src="https://cdn.jsdelivr.net/gh/jdecked/twemoji@16.0.1/assets/svg/274c.svg" title=":x:" /> Excluded — preserves log-coupled startup</td>
+    <td class="excl"><img alt="❌" class="twemoji" src="https://cdn.jsdelivr.net/gh/jdecked/twemoji@16.0.1/assets/svg/274c.svg" title=":x:" /> Excluded — adds out-of-band coordination</td>
+    <td class="excl"><img alt="❌" class="twemoji" src="https://cdn.jsdelivr.net/gh/jdecked/twemoji@16.0.1/assets/svg/274c.svg" title=":x:" /> Excluded — does not improve server startup</td>
+  </tr>
 </table>
-<p>The dollar-keyword URL identifies a bundled context. <code>sparqld</code> uses its local
-copy and never requests it over the network. Put that URL in a document's
-<code>@context</code> when using dollar aliases.</p>
-<p>Relative contexts resolve from the source's directory. They may also use
-<code>@import</code> to reference another relative context. Every referenced file must
-remain inside the directory served by <code>sparqld</code>.</p>
-<p>When a local context changes, <code>sparqld</code> reloads every source that reaches it
-through <code>@context</code> or <code>@import</code>.</p>
-<h2 id="local-context-files"><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 18H4V8h16m0-2h-8l-2-2H4c-1.11 0-2 .89-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2"/></svg></span> Local context files</h2>
-<p>Use a relative path in <code>@context</code> for a context stored beside a source or in a
-subdirectory. A file named <code>context.jsonld</code> or <code>context.yamlld</code> is ordinary:
-it is used only when a document explicitly names it. JSON-LD context files use
-an <code>@context</code> member; YAML-LD context files express the same structure in YAML
-1.2. Like other recognized files, context files are also loaded as source
-graphs.</p>
-<p>The Alpha Centauri source and its <code>context.yamlld</code> file live in the same
-directory. The context defines the terms used by the source; the source names
-that context explicitly:</p>
-<div class="tabbed-set tabbed-alternate" data-tabs="1:2"><input checked="checked" id="__tabbed_1_1" name="__tabbed_1" type="radio" /><input id="__tabbed_1_2" name="__tabbed_1" type="radio" /><div class="tabbed-labels"><label for="__tabbed_1_1">context.yamlld</label><label for="__tabbed_1_2">alpha-centauri.yamlld</label></div>
-<div class="tabbed-content">
-<div class="tabbed-block">
-<div class="highlight"><pre><span></span><code><span class="s">&quot;@context&quot;</span><span class="p p-Indicator">:</span>
-<span class="w">  </span><span class="nt">schema</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">https://schema.org/</span>
-<span class="w">  </span><span class="nt">dbo</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">http://dbpedia.org/ontology/</span>
-<span class="w">  </span><span class="nt">dbp</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">http://dbpedia.org/property/</span>
-<span class="w">  </span><span class="nt">dbr</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">http://dbpedia.org/resource/</span>
-<span class="w">  </span><span class="nt">xsd</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">http://www.w3.org/2001/XMLSchema#</span>
-<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">schema:name</span>
-<span class="w">  </span><span class="nt">description</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">schema:description</span>
-<span class="w">  </span><span class="nt">subjectOf</span><span class="p">:</span>
-<span class="w">    </span><span class="s">&quot;@id&quot;</span><span class="p p-Indicator">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">schema:subjectOf</span>
-<span class="w">    </span><span class="s">&quot;@type&quot;</span><span class="p p-Indicator">:</span><span class="w"> </span><span class="s">&quot;@id&quot;</span>
-<span class="w">  </span><span class="nt">constellation</span><span class="p">:</span>
-<span class="w">    </span><span class="s">&quot;@id&quot;</span><span class="p p-Indicator">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">dbo:constellation</span>
-<span class="w">    </span><span class="s">&quot;@type&quot;</span><span class="p p-Indicator">:</span><span class="w"> </span><span class="s">&quot;@id&quot;</span>
-<span class="w">  </span><span class="nt">discovered</span><span class="p">:</span>
-<span class="w">    </span><span class="s">&quot;@id&quot;</span><span class="p p-Indicator">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">dbp:discovered</span>
-<span class="w">    </span><span class="s">&quot;@type&quot;</span><span class="p p-Indicator">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">xsd:date</span>
-<span class="w">  </span><span class="nt">star</span><span class="p">:</span>
-<span class="w">    </span><span class="s">&quot;@id&quot;</span><span class="p p-Indicator">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">dbp:star</span>
-<span class="w">    </span><span class="s">&quot;@type&quot;</span><span class="p p-Indicator">:</span><span class="w"> </span><span class="s">&quot;@id&quot;</span>
-</code></pre></div>
-</div>
-<div class="tabbed-block">
-<div class="highlight"><pre><span></span><code><span class="s">&quot;@context&quot;</span><span class="p p-Indicator">:</span>
-<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">https://json-ld.org/contexts/dollar-convenience.jsonld</span>
-<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">context.yamlld</span>
-<span class="nt">$id</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">dbr:Alpha_Centauri</span>
-<span class="nt">$type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">dbo:Star</span>
-<span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Alpha Centauri</span>
-<span class="nt">description</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">&gt;-</span>
-<span class="w">  </span><span class="no">The closest star system to the Solar System.</span>
-<span class="nt">constellation</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">dbr:Centaurus</span>
-</code></pre></div>
-</div>
-</div>
-</div>
-<h2 id="context-access"><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 11c0 5.55-3.84 10.74-9 12-5.16-1.26-9-6.45-9-12V5l9-4 9 4zm-9 10c3.75-1 7-5.46 7-9.78V6.3l-7-3.12L5 6.3v4.92C5 15.54 8.25 20 12 21m2.8-10V9.5C14.8 8.1 13.4 7 12 7S9.2 8.1 9.2 9.5V11c-.6 0-1.2.6-1.2 1.2v3.5c0 .7.6 1.3 1.2 1.3h5.5c.7 0 1.3-.6 1.3-1.2v-3.5c0-.7-.6-1.3-1.2-1.3m-1.3 0h-3V9.5c0-.8.7-1.3 1.5-1.3s1.5.5 1.5 1.3z"/></svg></span> Context access</h2>
-<p>Other absolute URLs are rejected. <code>sparqld</code> does not fetch contexts from the
-web, and a relative path cannot escape the served directory. This keeps a
-dataset reproducible and prevents a context change elsewhere from changing its
-meaning.</p>
+<p>Green column: chosen. Yellow column: satisfies the core constraints but was
+not selected. Red columns: excluded; stronger-red cells identify the decisive
+shortcoming. <img alt="⚠" class="twemoji" src="https://cdn.jsdelivr.net/gh/jdecked/twemoji@16.0.1/assets/svg/26a0.svg" title=":warning:" /> denotes a trade-off. The HTTP <a href="https://www.w3.org/TR/sparql11-protocol/">SPARQL Protocol</a>
+defines query request forms, while <a href="https://kubernetes.io/docs/concepts/configuration/liveness-readiness-startup-probes/">Kubernetes probes</a>
+distinguish traffic readiness from liveness; sparqld deliberately adds neither
+<code>/readyz</code> nor <code>/livez</code>, so both continue to be ordinary unknown paths (<code>404</code>)
+under the <a href="https://github.com/iolanta-tech/sparqld/blob/f3b935f/src/server.rs#L43-L46">root-only handler</a>.</p>
+<p>Bind the listener immediately after synchronous validation of the directory,
+patterns, and resolved addresses. Start the initial load in the background.
+Until that load reaches a terminal state, every <code>GET</code> or <code>POST</code> request at <code>/</code>,
+including the landing <code>GET /</code>, waits without a server-imposed deadline. It is
+then passed to the <a href="https://github.com/iolanta-tech/sparqld/blob/f3b935f/src/server.rs#L43-L87">existing root-only request dispatch</a>.</p>
+<p>On success, atomically publish the fresh dataset, release all waiting requests,
+and run their normal dispatch. Per-file parse errors remain nonfatal: the
+<a href="https://github.com/iolanta-tech/sparqld/blob/f3b935f/src/loader.rs#L353-L400">catalog already records them</a>,
+so that completed load is ready. A client timeout or disconnect cancels only
+that request, never the shared load or another waiter. On a fatal initialization
+failure, pending and subsequent root requests receive
+<a href="https://www.rfc-editor.org/rfc/rfc9110#section-15.6.4"><code>503 Service Unavailable</code></a>,
+then sparqld shuts down and exits nonzero without a successful <code>Serving</code> log.
+Other paths return <code>404</code> immediately. After readiness, live reload never
+re-gates requests and retains staged atomic replacement.</p>
+<p>Logs remain informative for people and diagnostics, not a client readiness
+contract. The existing <code>Serving … at …</code> line remains after readiness for
+compatibility.</p>
+<h2 id="consequences"><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M11 16H3V8h8V2l10 10-10 10zm2-9v3H5v4h8v3l5-5z"/></svg></span> Consequences</h2>
+<ul>
+<li>Clients can issue their first ordinary query immediately after starting
+  sparqld, with a client-side timeout appropriate to their CI or deployment.</li>
+<li>The CLI flags, library function signatures, SPARQL request forms, responses,
+  and non-root <code>404</code> behavior remain stable; only the startup timing changes.</li>
+<li>Release notes document that log parsing is unnecessary and that an immediate
+  root request waits for the initial dataset rather than inferring readiness
+  from the listener or logs.</li>
+</ul>
+<h4 id="implementation-steps">Implementation Steps</h4>
+<ul class="task-list">
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> Add an internal, shared initial-load state that wakes all root-request
+  waiters after success or fatal failure.</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> Bind only after validation, begin the initial load in the background, and
+  preserve watcher registration before the first load.</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> Dispatch root requests only after successful first publication; return
+  <code>503</code> after fatal initialization and stop the listener before nonzero exit.</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> Document the startup contract in the HTTP API and CLI guidance without
+  introducing a health endpoint.</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> Test listener reachability during load, concurrent <code>GET</code> and <code>POST</code>
+  waiters, atomic complete-dataset results, nonfatal file errors, independent
+  client cancellation, fatal-load <code>503</code> and exit, absent probe paths, and
+  post-ready atomic live reload.</li>
+</ul>
 
 
 
@@ -1715,10 +1825,10 @@ meaning.</p>
     
       
       
-      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["content.code.copy", "content.tooltips", "navigation.indexes", "navigation.sections", "navigation.tabs", "navigation.top"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+      <script id="__config" type="application/json">{"annotate": null, "base": "../../..", "features": ["content.code.copy", "content.tooltips", "navigation.indexes", "navigation.sections", "navigation.tabs", "navigation.top"], "search": "../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
     
     
-      <script src="../../assets/javascripts/bundle.d7400e89.min.js"></script>
+      <script src="../../../assets/javascripts/bundle.d7400e89.min.js"></script>
       
         <script src="https://unpkg.com/mermaid@11.16.1/dist/mermaid.min.js"></script>
       
