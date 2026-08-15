@@ -9,6 +9,7 @@ use std::io;
 use std::net::ToSocketAddrs;
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, RwLock};
+use std::thread;
 
 use oxigraph::store::{StorageError, Store};
 
@@ -73,18 +74,6 @@ pub fn serve_at_with_options(
     let directory = requested_directory.canonicalize()?;
     let source_patterns =
         patterns::SourcePatterns::compile(&options.patterns).map_err(io::Error::other)?;
-    let dataset = Arc::new(RwLock::new(new_dataset()?));
-    let (_directory_watcher, stats) = if options.watch {
-        let (watcher, stats) = watcher::DirectoryWatcher::start_with_patterns(
-            directory.clone(),
-            Arc::clone(&dataset),
-            source_patterns,
-        )?;
-        (Some(watcher), stats)
-    } else {
-        let load = reload_dataset(&directory, &dataset, &source_patterns)?;
-        (None, load.stats())
-    };
     let addresses = (host, port).to_socket_addrs()?.collect::<Vec<_>>();
     if addresses.is_empty() {
         return Err(io::Error::new(
@@ -94,10 +83,64 @@ pub fn serve_at_with_options(
         .into());
     }
 
-    let listening_server = server::start(dataset, addresses)?;
-    log_serving(requested_directory, host, port);
-    log::info!("{}", dataset_summary(stats));
+    let dataset = Arc::new(RwLock::new(new_dataset()?));
+    let startup = server::StartupGate::new();
+    let listening_server = server::start(Arc::clone(&dataset), startup.clone(), addresses)?;
+    start_initialization(
+        directory,
+        requested_directory.to_owned(),
+        host.to_owned(),
+        port,
+        options.watch,
+        dataset,
+        source_patterns,
+        startup,
+    )?;
     listening_server.join()?;
+    Ok(())
+}
+
+#[allow(clippy::too_many_arguments)]
+fn start_initialization(
+    directory: PathBuf,
+    requested_directory: PathBuf,
+    host: String,
+    port: u16,
+    watch: bool,
+    dataset: SharedDataset,
+    source_patterns: patterns::SourcePatterns,
+    startup: server::StartupGate,
+) -> SparqldResult<()> {
+    thread::Builder::new()
+        .name("sparqld-initializer".into())
+        .spawn(move || {
+            let initialized = if watch {
+                watcher::DirectoryWatcher::start_with_patterns(directory, dataset, source_patterns)
+                    .map(|(watcher, stats)| (Some(watcher), stats))
+            } else {
+                reload_dataset(&directory, &dataset, &source_patterns)
+                    .map(|load| (None, load.stats()))
+            };
+
+            match initialized {
+                Ok((watcher, stats)) => {
+                    startup.mark_ready();
+                    log_serving(&requested_directory, &host, port);
+                    log::info!("{}", dataset_summary(stats));
+                    if let Some(_watcher) = watcher {
+                        loop {
+                            thread::park();
+                        }
+                    }
+                }
+                Err(error) => {
+                    log::error!("Could not initialize dataset: {error}");
+                    startup.mark_failed();
+                    thread::yield_now();
+                    std::process::exit(1);
+                }
+            }
+        })?;
     Ok(())
 }
 

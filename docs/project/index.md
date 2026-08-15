@@ -21,7 +21,7 @@ Developers maintaining a file-based local Linked Data knowledge base who want
 safe, immediate SPARQL access for themselves and their agents, without
 operating a database.
 
-`sparqld` 0.1.3 is an early release for local, file-backed SPARQL access.
+`sparqld` 0.1.4 is an early release for local, file-backed SPARQL access.
 
 <div class="grid cards" markdown>
 
@@ -37,7 +37,7 @@ operating a database.
 
     ---
 
-    Version 0.1.3 · Rust 1.88 or later with Cargo
+    Version 0.1.4 · Rust 1.88 or later with Cargo
 
 -   :material-source-repository:{ .lg .middle } **Source and issues**
 

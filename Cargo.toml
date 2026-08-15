@@ -56,7 +56,7 @@
 #     local context for source files at the root and in a nested directory.
 #   - Test every declared failure mode and successful `pdd-ld FILE | jq .`.
 name = "sparqld"
-version = "0.1.3"
+version = "0.1.4"
 edition = "2024"
 rust-version = "1.88"
 description = "A live, read-only SPARQL server for RDF files"

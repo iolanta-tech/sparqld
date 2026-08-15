@@ -1,7 +1,7 @@
 use std::io::{self, Read};
 use std::mem;
 use std::net::SocketAddr;
-use std::sync::{Arc, RwLock};
+use std::sync::{Arc, Condvar, Mutex, RwLock};
 
 use oxhttp::model::header::{ALLOW, CONTENT_TYPE};
 use oxhttp::model::{Body, Method, Request, Response, StatusCode};
@@ -18,11 +18,55 @@ const RDF_MEDIA_TYPE: &str = "text/turtle";
 type HttpError = (StatusCode, String);
 type HttpResult = Result<Response<Body>, HttpError>;
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum StartupState {
+    Loading,
+    Ready,
+    Failed,
+}
+
+#[derive(Clone)]
+pub(crate) struct StartupGate {
+    state: Arc<(Mutex<StartupState>, Condvar)>,
+}
+
+impl StartupGate {
+    pub(crate) fn new() -> Self {
+        Self {
+            state: Arc::new((Mutex::new(StartupState::Loading), Condvar::new())),
+        }
+    }
+
+    pub(crate) fn mark_ready(&self) {
+        self.set(StartupState::Ready);
+    }
+
+    pub(crate) fn mark_failed(&self) {
+        self.set(StartupState::Failed);
+    }
+
+    fn set(&self, state: StartupState) {
+        let (current, changed) = &*self.state;
+        *current.lock().expect("startup state lock poisoned") = state;
+        changed.notify_all();
+    }
+
+    fn wait(&self) -> Result<StartupState, String> {
+        let (state, changed) = &*self.state;
+        let mut state = state.lock().map_err(|error| error.to_string())?;
+        while *state == StartupState::Loading {
+            state = changed.wait(state).map_err(|error| error.to_string())?;
+        }
+        Ok(*state)
+    }
+}
+
 pub(crate) fn start(
     dataset: Arc<RwLock<Store>>,
+    startup: StartupGate,
     addresses: Vec<SocketAddr>,
 ) -> io::Result<ListeningServer> {
-    let mut server = Server::new(move |request| handle_shared_request(request, &dataset))
+    let mut server = Server::new(move |request| handle_shared_request(request, &dataset, &startup))
         .with_server_name(concat!("sparqld/", env!("CARGO_PKG_VERSION")))
         .map_err(io::Error::other)?;
 
@@ -33,7 +77,27 @@ pub(crate) fn start(
     server.spawn()
 }
 
-fn handle_shared_request(request: &mut Request<Body>, dataset: &RwLock<Store>) -> Response<Body> {
+fn handle_shared_request(
+    request: &mut Request<Body>,
+    dataset: &RwLock<Store>,
+    startup: &StartupGate,
+) -> Response<Body> {
+    if request.uri().path() != "/" {
+        return text_response(StatusCode::NOT_FOUND, "Not found");
+    }
+
+    match startup.wait() {
+        Ok(StartupState::Ready) => {}
+        Ok(StartupState::Failed) => {
+            return text_response(
+                StatusCode::SERVICE_UNAVAILABLE,
+                "Initial dataset failed to load",
+            );
+        }
+        Ok(StartupState::Loading) => unreachable!("startup gate returned while loading"),
+        Err(error) => return text_response(StatusCode::INTERNAL_SERVER_ERROR, error),
+    }
+
     match dataset.read() {
         Ok(dataset) => handle_request(request, &dataset),
         Err(error) => text_response(StatusCode::INTERNAL_SERVER_ERROR, error.to_string()),
@@ -201,6 +265,9 @@ fn internal_server_error(error: impl std::fmt::Display) -> HttpError {
 mod tests {
     use super::*;
     use oxigraph::model::{NamedNodeRef, QuadRef};
+    use std::sync::mpsc;
+    use std::thread;
+    use std::time::Duration;
 
     #[test]
     fn serves_a_landing_response() {
@@ -419,6 +486,95 @@ mod tests {
 
         assert_eq!(response.status(), StatusCode::METHOD_NOT_ALLOWED);
         assert_eq!(response.headers().get(ALLOW).unwrap(), "GET, POST");
+    }
+
+    #[test]
+    fn waits_for_root_requests_until_startup_is_ready() {
+        let dataset = Arc::new(RwLock::new(Store::new().unwrap()));
+        let startup = StartupGate::new();
+        let (started_sender, started) = mpsc::channel();
+
+        let get_dataset = Arc::clone(&dataset);
+        let get_startup = startup.clone();
+        let get_started = started_sender.clone();
+        let get = thread::spawn(move || {
+            get_started.send(()).unwrap();
+            let mut request = Request::builder()
+                .method(Method::GET)
+                .uri("/?query=ASK%20%7B%20%3Fs%20%3Fp%20%3Fo%20%7D")
+                .body(Body::default())
+                .unwrap();
+            let response = handle_shared_request(&mut request, &get_dataset, &get_startup);
+            (
+                response.status().as_u16(),
+                response.into_body().to_string().unwrap(),
+            )
+        });
+
+        let post_dataset = Arc::clone(&dataset);
+        let post_startup = startup.clone();
+        let post = thread::spawn(move || {
+            started_sender.send(()).unwrap();
+            let mut request = Request::builder()
+                .method(Method::POST)
+                .uri("/")
+                .header(CONTENT_TYPE, "application/sparql-query")
+                .body(Body::from("ASK { ?s ?p ?o }"))
+                .unwrap();
+            let response = handle_shared_request(&mut request, &post_dataset, &post_startup);
+            (
+                response.status().as_u16(),
+                response.into_body().to_string().unwrap(),
+            )
+        });
+
+        started.recv().unwrap();
+        started.recv().unwrap();
+        thread::sleep(Duration::from_millis(20));
+        assert!(!get.is_finished());
+        assert!(!post.is_finished());
+
+        startup.mark_ready();
+
+        for (status, body) in [get.join().unwrap(), post.join().unwrap()] {
+            assert_eq!(status, StatusCode::OK.as_u16());
+            assert!(body.contains("\"boolean\":false"));
+        }
+    }
+
+    #[test]
+    fn rejects_root_requests_after_startup_fails() {
+        let dataset = Arc::new(RwLock::new(Store::new().unwrap()));
+        let startup = StartupGate::new();
+        startup.mark_failed();
+        let mut request = Request::builder()
+            .method(Method::GET)
+            .uri("/")
+            .body(Body::default())
+            .unwrap();
+
+        let response = handle_shared_request(&mut request, &dataset, &startup);
+
+        assert_eq!(response.status(), StatusCode::SERVICE_UNAVAILABLE);
+        assert_eq!(
+            response.into_body().to_string().unwrap(),
+            "Initial dataset failed to load"
+        );
+    }
+
+    #[test]
+    fn rejects_unknown_paths_while_starting() {
+        let dataset = Arc::new(RwLock::new(Store::new().unwrap()));
+        let startup = StartupGate::new();
+        let mut request = Request::builder()
+            .method(Method::GET)
+            .uri("/readyz")
+            .body(Body::default())
+            .unwrap();
+
+        let response = handle_shared_request(&mut request, &dataset, &startup);
+
+        assert_eq!(response.status(), StatusCode::NOT_FOUND);
     }
 
     fn request<B: Into<Body>>(
