@@ -26,19 +26,19 @@ DISPLAY_ENDPOINT = 'http://127.0.0.1:7737/'
 # description: >
 #   Configure the documentation build with `extra.sparqld.endpoint` pointing to
 #   an already running sparqld server over the repository root. That server
-#   loads sparqld.toml and PDD-LD; the pluglet only queries it and does not own
-#   its process lifecycle.
+#   loads native documents and Riddles contributions; the pluglet only queries
+#   it and does not own its process lifecycle.
 #
 #   Add docs/project/mission.yamlld declaring `sparqld:mission`, the enduring
 #   project mission, and any roadmap outcome that is not owned by a code
 #   annotation. Add docs/queries/roadmap.rq, a SELECT query returning each
-#   roadmap item, title, and optional pdd:blocked-by item. Add
+#   roadmap item, title, and optional urn:riddle:blockedBy item. Add
 #   `roadmap_mermaid('docs/queries/roadmap.rq')` to DocumentationMacros; it
 #   runs that stored query and returns a deterministic `flowchart LR` block.
 # rendering:
 #   - Give each IRI a deterministic Mermaid-safe node ID and HTML-escape title
 #     text before inserting it into a node label.
-#   - For `item pdd:blocked-by blocker`, emit `blocker --> item`; dependencies
+#   - For `item urn:riddle:blockedBy blocker`, emit `blocker --> item`; dependencies
 #     therefore appear left of the mission without reversing RDF semantics.
 #   - Replace the handwritten graph in docs/project/roadmap.md with the macro;
 #     it must consume SPARQL results, never source comments directly.
@@ -49,7 +49,7 @@ DISPLAY_ENDPOINT = 'http://127.0.0.1:7737/'
 #   - Validate the rendered roadmap in Chromium through Playwright after the
 #     documentation change.
 # blocked-by:
-#   - pdd-ld-integration
+#   - riddles-integration
 #   - existing-sparqld-endpoint
 
 _ADR_STATUS = MappingProxyType(
