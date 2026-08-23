@@ -16,54 +16,57 @@ use serde_json::Value;
 
 use crate::patterns::SourcePatterns;
 
-// @todo(extractor-contributions): Load configured extractor output as JSON-LD.
+// @todo(extractor-contributions): Load self-describing extractor output as JSON-LD.
 // description: >
-//   For each [[extractors]] declaration whose positive patterns match and whose
-//   `!` exclusion patterns do not match a relative source path, execute
-//   `command`, then `arguments`, then that
-//   relative path. Run the process with the served root as its working
-//   directory and never invoke a shell. Parse successful stdout through the
-//   existing JSON-LD loader, including local-context restrictions and named
-//   graph rewriting.
+//   Match served relative paths against each registered extractor descriptor's
+//   advertised globs; do not repeat extractor globs in configuration. For each
+//   match, launch one `extract` process and write a JSON request containing the
+//   canonical absolute path and root-relative sourceUrl to stdin. Never invoke
+//   a shell. Parse successful stdout through the existing JSON-LD loader,
+//   including local-context restrictions and named graph rewriting.
 // discovery:
-//   - Enumerate every regular file once. A file is a source when its native RDF
+//   - Enumerate every regular file once. A file is a source when native RDF
 //     format is recognized, at least one extractor matches it, or both do.
-//   - Count every other regular file as ignored; retain native loader behavior
-//     for recognized RDF files that no extractor matches.
+//   - Count every other regular file as ignored and retain native behavior for
+//     recognized RDF files that no extractor matches.
 // ownership:
 //   - Track each result by (relative source path, producer), where producer is
 //     native input or the stable extractor ID.
 //   - Keep native data in sparqld:<path>.
-//   - Load extractor default-graph data in
+//   - Assign extractor default-graph data to
 //     sparqld:<path>@<percent-encoded-id>; namespace embedded graphs below that
-//     contribution graph with the current scoping mechanism.
+//     host-owned contribution graph with the current scoping mechanism.
 // failures:
-//   - Treat a missing executable, I/O error, nonzero exit, or invalid stdout
-//     JSON-LD as an extractor failure; remove its prior contribution and record
-//     its diagnostic in the existing rlog catalog entry for that contribution.
-//   - Do not add PDD-specific logic to sparqld.
+//   - Treat a missing executable, I/O error, invalid JSON request or result,
+//     nonzero exit, or invalid stdout JSON-LD as an extractor failure. Remove
+//     its prior contribution and record its diagnostic in the rlog catalog.
+//   - Detect duplicate urn:riddle:<id> identities across source contributions;
+//     catalogue the collision instead of silently merging two riddles.
 // acceptance:
-//   - Test positive and `!` exclusion pattern selection, argv/CWD, ignored
-//     files, JSON-LD triples visible by SPARQL, malformed stdout, process
-//     failure, two extractors for one source, and extractor named-graph rewriting.
+//   - Test descriptor glob selection, cwd/argv/stdin, ignored files, JSON-LD
+//     triples visible by SPARQL, host graph ownership, malformed stdout,
+//     process failure, two extractors for one source, graph rewriting, and
+//     duplicate IDs across files.
 // blocked-by:
-//   - sparqld-configuration
+//   - extractor-registration
 
 // @todo(extractor-reload): Replace every graph owned by a changed extractor.
 // description: >
 //   Extend the current staged reload transaction to replace the complete
-//   contribution identified by (relative source path, extractor ID). Run the
+//   contribution identified by (relative source path, extractor identity). Run the
 //   extractor again, stage all new quads, remove its contribution graph and
 //   every graph scoped beneath it, then insert the staged quads atomically.
 //   Preserve unrelated native and extractor contributions for the same file.
 // failures:
-//   - When re-extraction fails, remove the old contribution and leave the
-//     catalog error that the extractor-contributions puzzle specifies.
+//   - On deletion, remove its contribution, nested graphs, catalog entries, and
+//     riddle-ID ownership.
+//   - On failed re-extraction, remove stale prior data and retain the new
+//     catalogued failure.
 // acceptance:
 //   - Regression-test an extractor result changing from named graphs A and B
 //     to B and C: A is absent and new B/C are present after reload.
-//   - Test source deletion, failure after a successful extraction, and that a
-//     second extractor and native source graph remain unchanged.
+//   - Test deletion, failure after success, recovery, duplicate-ID collision
+//     introduction/removal, and unaffected native and parallel extractors.
 // blocked-by:
 //   - extractor-contributions
 

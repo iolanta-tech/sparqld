@@ -40,29 +40,26 @@ _endpoint: str | None = None
 #     process and that stop_server() leaves the endpoint usable.
 #   - Test the existing managed-server path unchanged.
 
-# @todo(pdd-ld-integration): Serve PDD-LD output through sparqld.
+# @todo(riddles-integration): Serve Riddles output through sparqld.
 # description: >
-#   Add this repository's pdd-ld extractor declaration to sparqld.toml:
+#   Build or use the real `riddles` executable and start sparqld with
+#   `--extractor riddles`. Use Python and Rust fixture files containing valid
+#   riddle annotations and a cross-file blocked-by edge. Query the live endpoint
+#   to prove every riddle's global IRI, type, headline, description, source URL,
+#   line metadata, dependency edge, and host-owned contribution graph.
 #
-#   [[extractors]]
-#   id = "pdd-ld"
-#   command = "target/debug/pdd-ld"
-#   patterns = ["**/*.py", "**/*.rs", "**/*.toml", "!target/**"]
-#
-#   Preserve pdd-ld's executable boundary: sparqld invokes it once per matching
-#   relative path and only consumes its JSON-LD. Add source annotations that
-#   exercise a cross-file `blocked-by` relationship. Query the live endpoint to
-#   prove both resources, their source locations, and the RDF edge exist.
+#   Prove that malformed Riddles input becomes a catalog failure without
+#   blocking valid native or documentation sources. The fixture uses only
+#   descriptor-driven registration and the real Riddles executable.
 # tests:
-#   - Add an end-to-end fixture with Python, Rust, and TOML puzzles.
-#   - Build the real pdd-ld binary, configure sparqld with it, and query the
-#     resulting dataset rather than mocking subprocess output.
-#   - Cover pdd-ld's stderr JSON-LD/nonzero failure as a catalogued sparqld
-#     extractor failure.
+#   - Query the real endpoint rather than mocking subprocess output.
+#   - Cover malformed annotation and nonzero extraction failures as catalogued
+#     extractor failures.
 # blocked-by:
 #   - extractor-contributions
 #   - extractor-reload
-#   - pdd-ld
+#   - riddles-cli
+#   - extractor-registration
 def configure(*, project_dir: Path, directory: Path, binary: str | Path) -> None:
     """Store paths used to launch sparqld for this MkDocs project."""
     global _project_dir, _directory, _binary
