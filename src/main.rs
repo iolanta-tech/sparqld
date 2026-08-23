@@ -2,32 +2,23 @@ use std::path::PathBuf;
 
 use clap::{Parser, ValueHint};
 
-// @todo(sparqld-configuration): Add project configuration in sparqld.toml.
+// @todo(extractor-registration): Register self-describing extractor executables.
 // description: >
-//   Add a sparqld.toml file at the served root. Its v1 extractor schema is:
+//   Add a repeatable `--extractor EXECUTABLE` option. It accepts a PATH-resolved
+//   executable name or an explicit executable path. Keep v1 registration to
+//   descriptor-driven executable discovery, without manual globs or arguments.
 //
-//   [[extractors]]
-//   id = "unique-id"
-//   command = "executable"
-//   arguments = ["optional", "arguments"]
-//   patterns = ["**/*.py", "!generated/**"]
-//
-//   `id`, `command`, and a nonempty `patterns` are required; `arguments`
-//   defaults to an empty array. A pattern beginning with `!` excludes matches;
-//   a source matches when it matches at least one positive pattern and no
-//   exclusion pattern. Reject duplicate IDs, empty exclusion patterns, invalid
-//   globs, unknown fields, and empty command values with actionable
-//   configuration errors. Implement the parsed Config and ExtractorConfig
-//   types in a new src/config.rs module, using the `toml` and `globset` crates.
-//   Make the positional directory optional: when it is omitted,
-//   require sparqld.toml in the current directory and serve that directory;
-//   when it is supplied, preserve current directory-serving behavior and load
-//   a sparqld.toml only from that directory when it exists.
+//   At startup, invoke `EXECUTABLE describe`, parse its JSON-LD descriptor, and
+//   validate its supported protocol version, nonempty stable identity, and at
+//   least one positive glob. Reject unavailable executables, failed describe
+//   invocations, invalid descriptors, unknown protocol versions, and duplicate
+//   extractor identities with actionable startup errors. Preserve the existing
+//   positional served directory and native `--pattern` behavior.
 // acceptance:
-//   - Unit-test valid parsing, defaults, every validation failure, and glob
-//     matching against relative paths.
-//   - Test CLI behavior with and without a configuration file and directory.
-//   - Keep serving a directory without sparqld.toml backward compatible.
+//   - Unit-test repeated flags, PATH and explicit-path resolution, descriptor
+//     validation, and every declared startup rejection.
+// blocked-by:
+//   - riddles-cli
 #[derive(Debug, Parser)]
 #[command(version, about = "Expose a directory via SPARQL.")]
 struct Cli {
