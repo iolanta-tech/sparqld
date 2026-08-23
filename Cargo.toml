@@ -1,60 +1,136 @@
 [package]
-# @todo(pdd-ld): Add an independent PDD-LD command-line extractor.
+# @todo(riddles-cli): Add an independent Riddles command-line extractor.
 # description: >
-#   Convert this package into a Cargo workspace and add a pdd-ld member crate.
-#   Its public interface is `pdd-ld [--context CONTEXT] FILE`: read one Python,
-#   Rust, or TOML source file and write one JSON-LD document to stdout. It must
-#   not depend on sparqld code or Rust types.
+#   Convert this package into a Cargo workspace and add a publishable `riddles`
+#   member crate, installed independently with `cargo install riddles`. Keep
+#   `sparqld` independently installable with `cargo install sparqld`.
+#
+#   `riddles --help` exposes the agent-facing `mermaid` and `next` commands,
+#   while `describe` and `extract` remain stable, documented protocol commands
+#   hidden from ordinary help. `describe` writes one versioned JSON-LD extractor
+#   descriptor to stdout, with a stable identity and positive Python and Rust
+#   globs. `extract` reads one JSON request from stdin containing a canonical
+#   absolute `path` and root-relative `sourceUrl`, opens that path, and writes
+#   one ordinary JSON-LD document to stdout without choosing named graphs.
 # syntax: |
-#   # @todo(puzzle-id): Scanner-visible summary.
-#   # description: >-
-#   #   Required multiline description.
-#   # blocked-by:
-#   #   - prerequisite-puzzle-id
+#   A source marker carries a global ID and headline, followed by a contiguous
+#   YAML-in-comment block containing a required multiline description and an
+#   optional blocked-by sequence. Python uses hash comments and Rust uses slash
+#   comments; parsing stops at the first non-comment line.
 # output:
-#   contributionGraph: sparqld:<relative-file>@pdd-ld
-#   puzzleIri: sparqld:<relative-file>@pdd-ld#<puzzle-id>
-#   type: urn:pdd:Puzzle
+#   puzzleIri: urn:riddle:<id>
+#   type: urn:riddle:Puzzle
 #   properties:
 #     - schema:headline
 #     - schema:description
-#     - urn:pdd:blocked-by
-#     - urn:pdd:source
-#     - urn:pdd:startLine
-#     - urn:pdd:endLine
-# context:
-#   - Without --context, emit pdd-ld's built-in inline JSON-LD context.
-#   - With --context CONTEXT, replace the built-in context; do not merge them.
-#   - Treat a context URI as an opaque reference and emit it unchanged. Resolve
-#     a context path against the command's working directory, then emit its
-#     path relative to FILE's parent so every source references the same local
-#     context. For example, from the project root,
-#     `pdd-ld --context somecontext.jsonld src/module.rs` emits
-#     `../somecontext.jsonld` as that document's @context.
-#   - Do not fetch or validate the selected context, so callers remain free to
-#     use the CLI independently of sparqld.
+#     - urn:riddle:source
+#     - urn:riddle:startLine
+#     - urn:riddle:endLine
+#     - urn:riddle:blockedBy
 # behavior:
-#   - Accept contiguous hash-comment blocks in Python and TOML and
-#     slash-comment blocks in Rust; stop at the first non-comment line.
-#   - Strip each language comment prefix, parse the remaining YAML, and require
-#     the marker label/message and description.
-#   - Emit every puzzle in the one contribution graph for FILE and pdd-ld. Map
-#     the marker message to schema:headline and source to sparqld:<relative-file>.
-#   - Resolve a local blocked-by ID to that graph's #<id> resource. Resolve a
-#     cross-file blocker written as `path/to/file@pdd-ld#id` by prefixing it
-#     with sparqld:. Do not create a named graph per puzzle.
-#   - Use an inline JSON-LD context; never fetch a remote context.
+#   - Map every blocker ID directly to urn:riddle:<id>; local and cross-file
+#     blockers therefore have identical RDF identities.
+#   - Reject duplicate IDs in one source. sparqld detects duplicates across
+#     source contributions.
 # failures:
-#   - For malformed YAML, missing required data, invalid relationship values,
-#     or duplicate IDs in one file, write a JSON-LD diagnostic to stderr with
-#     source, line, column when available, code, and message, then exit nonzero.
+#   - For malformed YAML, missing required data, invalid blocker values, or a
+#     duplicate source ID, write a source-positioned diagnostic to stderr and
+#     exit nonzero.
 # acceptance:
-#   - Golden-test deterministic output for Python, Rust, and TOML, multiple
-#     puzzles in one graph, multiline descriptions, local and cross-file
-#     blocked-by relationships, source positions, and ordinary comments.
-#   - Test the built-in context, an unchanged URI context, and a root-relative
-#     local context for source files at the root and in a nested directory.
-#   - Test every declared failure mode and successful `pdd-ld FILE | jq .`.
+#   - Test descriptor output and ordinary-help visibility.
+#   - Golden-test deterministic Python and Rust output with multiple riddles,
+#     multiline descriptions, local and cross-file blockers, source positions,
+#     ordinary comments, and every declared failure.
+
+# @todo(riddles-views): Add direct Riddles graph and work-list commands.
+# description: >
+#   Add `riddles mermaid` and `riddles next` to the future Riddles crate. Both
+#   require SPARQLD_ENDPOINT, the base URL of an already running sparqld server;
+#   neither command starts, stops, reloads, or otherwise manages that server.
+#
+#   `mermaid` queries every current urn:riddle:Puzzle and urn:riddle:blockedBy
+#   edge, then writes raw Mermaid source for the complete dependency graph.
+#   `next` writes a stable Markdown list of every unblocked riddle, including
+#   its ID, headline, and source location. A riddle is unblocked only when none
+#   of its blockers remains a current urn:riddle:Puzzle resource.
+# acceptance:
+#   - Test endpoint errors, malformed results, empty datasets, cycles,
+#     blocked/unblocked riddles, and deterministic Mermaid and Markdown output.
+# blocked-by:
+#   - riddles-integration
+
+# @todo(puzzle-skill): Add a local skill for managing Riddles annotations.
+# description: >
+#   Add a repository-local `puzzle` agent skill that teaches the Python and Rust
+#   annotation syntax defined by riddles-cli. It uses `riddles next` to select
+#   work, `riddles mermaid` to inspect dependencies, and validates a proposed
+#   global ID against the served dataset before recommending an annotation.
+#   Read and selection operations require SPARQLD_ENDPOINT; the skill never
+#   starts a server.
+# acceptance:
+#   - Exercise creation guidance, duplicate-ID detection, next-work inspection,
+#     and graph inspection against a running endpoint fixture.
+# blocked-by:
+#   - riddles-integration
+#   - riddles-views
+
+# @todo(iolanta-riddles-facets): Dispatch Riddles commands as future Iolanta facets.
+# description: >
+#   Teach Iolanta to dispatch the existing `riddles mermaid` and `riddles next`
+#   executables as facets, supplying SPARQLD_ENDPOINT. Preserve their direct CLI
+#   contracts and do not add `--as` to Riddles. Define future facet metadata and
+#   discovery here rather than extending the extractor `describe` descriptor.
+# scope: >
+#   This deferred puzzle must not add an Iolanta dependency, Python entry point,
+#   or facet implementation during the Riddles and sparqld work.
+# blocked-by:
+#   - riddles-views
+
+# @todo(sparqld-language-server): Add stdio language-server support.
+# description: >
+#   Add a `sparqld lsp` subcommand using the Language Server Protocol over
+#   standard input and output. Editors such as Zed launch it as a child process.
+#   Read the workspace root from LSP initialization and share sparqld's native
+#   source, JSON-LD, YAML-LD, Markdown-LD, and `sparqld:`-IRI rules without
+#   requiring, starting, or managing the HTTP SPARQL endpoint.
+#
+#   Initially provide workspace diagnostics, document links, go-to-definition,
+#   references, and hover for JSON-LD terms and identifiers across supported
+#   formats. Resolve `sparqld:<root-relative-path>` to workspace source files.
+#   Keep unsaved editor buffers authoritative for their active LSP session.
+#
+#   Assess SWLS as a reusable MIT-licensed Rust JSON-LD LSP foundation. Reuse
+#   components only where they fit sparqld's source model; implement
+#   sparqld-specific YAML-LD, Markdown-LD, and `sparqld:` resolution here.
+# deferred:
+#   - Completion, rename, formatting, code actions, TCP transport, browser
+#     execution, and an agent-specific protocol.
+# acceptance:
+#   - Test the stdio JSON-RPC lifecycle, workspace initialization, diagnostics,
+#     cross-format navigation, `sparqld:` resolution, unsaved-buffer behavior,
+#     and malformed source handling.
+
+# @todo(yaml-ld-demo): Build an interactive YAML-LD demonstration site.
+# description: >
+#   Build an interactive explanation of YAML-LD using an embedded editor
+#   connected to the completed `sparqld lsp`. Demonstrate diagnostics and
+#   navigation between YAML-LD documents through `sparqld:` links.
+#
+#   Choose the site domain, hosting, editor implementation, and browser
+#   execution architecture when this puzzle is unblocked.
+# blocked-by:
+#   - sparqld-language-server
+
+# @todo(markdown-ld-demo): Build an interactive Markdown-LD demonstration site.
+# description: >
+#   Build an interactive explanation of Markdown-LD using an embedded editor
+#   connected to the completed `sparqld lsp`. Demonstrate diagnostics and
+#   `sparqld:` navigation across Markdown-LD and YAML-LD examples.
+#
+#   Choose the site domain, hosting, editor implementation, and browser
+#   execution architecture when this puzzle is unblocked.
+# blocked-by:
+#   - sparqld-language-server
 name = "sparqld"
 version = "0.1.4"
 edition = "2024"
