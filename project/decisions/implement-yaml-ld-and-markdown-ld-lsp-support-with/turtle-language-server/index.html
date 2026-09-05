@@ -6,33 +6,33 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="Architecture decisions for sparqld, generated from each record's frontmatter.">
+      
+        <meta name="author" content="Anatoly Scherbakov">
       
       
       
+        <link rel="prev" href="../swls/">
       
-        <link rel="prev" href="../roadmap/">
       
-      
-        <link rel="next" href="implement-live-file-backed-sparql-access-with/">
+        <link rel="next" href="../vscode-jsonld/">
       
       
         
       
       
-      <link rel="icon" href="../../assets/images/favicon.png">
+      <link rel="icon" href="../../../../assets/images/favicon.png">
       <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
     
     
       
-        <title>Decisions - sparqld</title>
+        <title>Build on Turtle Language Server - sparqld</title>
       
     
     
-      <link rel="stylesheet" href="../../assets/stylesheets/main.ec1eaa64.min.css">
+      <link rel="stylesheet" href="../../../../assets/stylesheets/main.ec1eaa64.min.css">
       
         
-        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+        <link rel="stylesheet" href="../../../../assets/stylesheets/palette.ab4e12ef.min.css">
       
       
 
@@ -51,9 +51,9 @@
       
     
     
-      <link rel="stylesheet" href="../../stylesheets/extra.css">
+      <link rel="stylesheet" href="../../../../stylesheets/extra.css">
     
-    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    <script>__md_scope=new URL("../../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
     
       
 
@@ -78,7 +78,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#decisions" class="md-skip">
+        <a href="#build-on-turtle-language-server" class="md-skip">
           Skip to content
         </a>
       
@@ -92,7 +92,7 @@
 
 <header class="md-header" data-md-component="header">
   <nav class="md-header__inner md-grid" aria-label="Header">
-    <a href="../.." title="sparqld" class="md-header__button md-logo" aria-label="sparqld" data-md-component="logo">
+    <a href="../../../.." title="sparqld" class="md-header__button md-logo" aria-label="sparqld" data-md-component="logo">
       
   
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 1 9 9l-8 3 8 3 3 8 3-8 8-3-8-3z"/></svg>
@@ -112,7 +112,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Decisions
+              Build on Turtle Language Server
             
           </span>
         </div>
@@ -225,7 +225,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="../.." class="md-tabs__link">
+        <a href="../../../.." class="md-tabs__link">
           
   
   
@@ -249,7 +249,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="../../reference/" class="md-tabs__link">
+        <a href="../../../../reference/" class="md-tabs__link">
           
   
   
@@ -275,7 +275,7 @@
     
     
       <li class="md-tabs__item md-tabs__item--active">
-        <a href="../" class="md-tabs__link">
+        <a href="../../../" class="md-tabs__link">
           
   
   
@@ -315,7 +315,7 @@
 
 <nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
   <label class="md-nav__title" for="__drawer">
-    <a href="../.." title="sparqld" class="md-nav__button md-logo" aria-label="sparqld" data-md-component="logo">
+    <a href="../../../.." title="sparqld" class="md-nav__button md-logo" aria-label="sparqld" data-md-component="logo">
       
   
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 1 9 9l-8 3 8 3 3 8 3-8 8-3-8-3z"/></svg>
@@ -370,7 +370,7 @@
         
           
           <div class="md-nav__link md-nav__container">
-            <a href="../.." class="md-nav__link ">
+            <a href="../../../.." class="md-nav__link ">
               
   
   
@@ -416,7 +416,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../quickstart/" class="md-nav__link">
+      <a href="../../../../quickstart/" class="md-nav__link">
         
   
   
@@ -496,7 +496,7 @@
         
           
           <div class="md-nav__link md-nav__container">
-            <a href="../../reference/" class="md-nav__link ">
+            <a href="../../../../reference/" class="md-nav__link ">
               
   
   
@@ -542,7 +542,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../reference/api/" class="md-nav__link">
+      <a href="../../../../reference/api/" class="md-nav__link">
         
   
   
@@ -570,7 +570,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../reference/sparql/" class="md-nav__link">
+      <a href="../../../../reference/sparql/" class="md-nav__link">
         
   
   
@@ -598,7 +598,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../reference/formats/" class="md-nav__link">
+      <a href="../../../../reference/formats/" class="md-nav__link">
         
   
   
@@ -626,7 +626,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../reference/named-graphs/" class="md-nav__link">
+      <a href="../../../../reference/named-graphs/" class="md-nav__link">
         
   
   
@@ -654,7 +654,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../reference/file-catalog/" class="md-nav__link">
+      <a href="../../../../reference/file-catalog/" class="md-nav__link">
         
   
   
@@ -682,7 +682,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../reference/contexts/" class="md-nav__link">
+      <a href="../../../../reference/contexts/" class="md-nav__link">
         
   
   
@@ -737,7 +737,7 @@
         
           
           <div class="md-nav__link md-nav__container">
-            <a href="../../reference/libraries/" class="md-nav__link ">
+            <a href="../../../../reference/libraries/" class="md-nav__link ">
               
   
   
@@ -781,7 +781,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../reference/libraries/sparqlwrapper/" class="md-nav__link">
+      <a href="../../../../reference/libraries/sparqlwrapper/" class="md-nav__link">
         
   
   
@@ -809,7 +809,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../reference/libraries/comunica/" class="md-nav__link">
+      <a href="../../../../reference/libraries/comunica/" class="md-nav__link">
         
   
   
@@ -872,7 +872,7 @@
         
           
           <div class="md-nav__link md-nav__container">
-            <a href="../../reference/clients/" class="md-nav__link ">
+            <a href="../../../../reference/clients/" class="md-nav__link ">
               
   
   
@@ -916,7 +916,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../reference/clients/curl/" class="md-nav__link">
+      <a href="../../../../reference/clients/curl/" class="md-nav__link">
         
   
   
@@ -944,7 +944,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../reference/clients/sq/" class="md-nav__link">
+      <a href="../../../../reference/clients/sq/" class="md-nav__link">
         
   
   
@@ -980,7 +980,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../reference/agents/" class="md-nav__link">
+      <a href="../../../../reference/agents/" class="md-nav__link">
         
   
   
@@ -1064,7 +1064,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../reference/integrations/mkdocs/" class="md-nav__link">
+      <a href="../../../../reference/integrations/mkdocs/" class="md-nav__link">
         
   
   
@@ -1139,7 +1139,7 @@
         
           
           <div class="md-nav__link md-nav__container">
-            <a href="../" class="md-nav__link ">
+            <a href="../../../" class="md-nav__link ">
               
   
   
@@ -1185,7 +1185,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../roadmap/" class="md-nav__link">
+      <a href="../../../roadmap/" class="md-nav__link">
         
   
   
@@ -1249,7 +1249,7 @@
         
           
           <div class="md-nav__link md-nav__container">
-            <a href="./" class="md-nav__link md-nav__link--active">
+            <a href="../../" class="md-nav__link ">
               
   
   
@@ -1267,7 +1267,7 @@
             </a>
             
               
-              <label class="md-nav__link md-nav__link--active" for="__nav_3_3" id="__nav_3_3_label" tabindex="">
+              <label class="md-nav__link " for="__nav_3_3" id="__nav_3_3_label" tabindex="">
                 <span class="md-nav__icon md-icon"></span>
               </label>
             
@@ -1293,7 +1293,7 @@
   
   
     <li class="md-nav__item">
-      <a href="implement-live-file-backed-sparql-access-with/" class="md-nav__link">
+      <a href="../../implement-live-file-backed-sparql-access-with/" class="md-nav__link">
         
   
   
@@ -1328,7 +1328,7 @@
   
   
     <li class="md-nav__item">
-      <a href="implement-sparqld-in/" class="md-nav__link">
+      <a href="../../implement-sparqld-in/" class="md-nav__link">
         
   
   
@@ -1363,7 +1363,7 @@
   
   
     <li class="md-nav__item">
-      <a href="serve-sparql-endpoint-when/" class="md-nav__link">
+      <a href="../../serve-sparql-endpoint-when/" class="md-nav__link">
         
   
   
@@ -1395,6 +1395,8 @@
                 
   
   
+    
+  
   
   
     
@@ -1443,15 +1445,15 @@
       
     
     
-    <li class="md-nav__item md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_3_5" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_3_5" checked>
         
           
           <div class="md-nav__link md-nav__container">
-            <a href="implement-yaml-ld-and-markdown-ld-lsp-support-with/" class="md-nav__link ">
+            <a href="../" class="md-nav__link ">
               
   
   
@@ -1482,7 +1484,7 @@
             
           </div>
         
-        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_3_3_5_label" aria-expanded="false">
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_3_3_5_label" aria-expanded="true">
           <label class="md-nav__title" for="__nav_3_3_5">
             <span class="md-nav__icon md-icon"></span>
             
@@ -1502,7 +1504,7 @@
   
   
     <li class="md-nav__item">
-      <a href="implement-yaml-ld-and-markdown-ld-lsp-support-with/json-gold/" class="md-nav__link">
+      <a href="../json-gold/" class="md-nav__link">
         
   
   
@@ -1537,7 +1539,7 @@
   
   
     <li class="md-nav__item">
-      <a href="implement-yaml-ld-and-markdown-ld-lsp-support-with/json-ld-rs/" class="md-nav__link">
+      <a href="../json-ld-rs/" class="md-nav__link">
         
   
   
@@ -1572,7 +1574,7 @@
   
   
     <li class="md-nav__item">
-      <a href="implement-yaml-ld-and-markdown-ld-lsp-support-with/jsonld-java/" class="md-nav__link">
+      <a href="../jsonld-java/" class="md-nav__link">
         
   
   
@@ -1607,7 +1609,7 @@
   
   
     <li class="md-nav__item">
-      <a href="implement-yaml-ld-and-markdown-ld-lsp-support-with/jsonld-js/" class="md-nav__link">
+      <a href="../jsonld-js/" class="md-nav__link">
         
   
   
@@ -1642,7 +1644,7 @@
   
   
     <li class="md-nav__item">
-      <a href="implement-yaml-ld-and-markdown-ld-lsp-support-with/mskvarc-jsonld/" class="md-nav__link">
+      <a href="../mskvarc-jsonld/" class="md-nav__link">
         
   
   
@@ -1677,7 +1679,7 @@
   
   
     <li class="md-nav__item">
-      <a href="implement-yaml-ld-and-markdown-ld-lsp-support-with/oxjsonld/" class="md-nav__link">
+      <a href="../oxjsonld/" class="md-nav__link">
         
   
   
@@ -1712,7 +1714,7 @@
   
   
     <li class="md-nav__item">
-      <a href="implement-yaml-ld-and-markdown-ld-lsp-support-with/pyld/" class="md-nav__link">
+      <a href="../pyld/" class="md-nav__link">
         
   
   
@@ -1747,7 +1749,7 @@
   
   
     <li class="md-nav__item">
-      <a href="implement-yaml-ld-and-markdown-ld-lsp-support-with/qlue-ls/" class="md-nav__link">
+      <a href="../qlue-ls/" class="md-nav__link">
         
   
   
@@ -1782,7 +1784,7 @@
   
   
     <li class="md-nav__item">
-      <a href="implement-yaml-ld-and-markdown-ld-lsp-support-with/rdflangserver/" class="md-nav__link">
+      <a href="../rdflangserver/" class="md-nav__link">
         
   
   
@@ -1817,7 +1819,7 @@
   
   
     <li class="md-nav__item">
-      <a href="implement-yaml-ld-and-markdown-ld-lsp-support-with/shaclc-language-server/" class="md-nav__link">
+      <a href="../shaclc-language-server/" class="md-nav__link">
         
   
   
@@ -1852,7 +1854,7 @@
   
   
     <li class="md-nav__item">
-      <a href="implement-yaml-ld-and-markdown-ld-lsp-support-with/sophia-jsonld/" class="md-nav__link">
+      <a href="../sophia-jsonld/" class="md-nav__link">
         
   
   
@@ -1887,7 +1889,7 @@
   
   
     <li class="md-nav__item">
-      <a href="implement-yaml-ld-and-markdown-ld-lsp-support-with/stardog-language-servers/" class="md-nav__link">
+      <a href="../stardog-language-servers/" class="md-nav__link">
         
   
   
@@ -1922,7 +1924,7 @@
   
   
     <li class="md-nav__item">
-      <a href="implement-yaml-ld-and-markdown-ld-lsp-support-with/swls/" class="md-nav__link">
+      <a href="../swls/" class="md-nav__link">
         
   
   
@@ -1954,10 +1956,44 @@
                 
   
   
+    
   
   
-    <li class="md-nav__item">
-      <a href="implement-yaml-ld-and-markdown-ld-lsp-support-with/turtle-language-server/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Build on Turtle Language Server
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--excluded"></span>
+  
+
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         
   
   
@@ -1980,6 +2016,48 @@
   
 
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#implementation-checklist" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Implementation checklist
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#universe-consequences" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Universe consequences
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
     </li>
   
 
@@ -1992,7 +2070,7 @@
   
   
     <li class="md-nav__item">
-      <a href="implement-yaml-ld-and-markdown-ld-lsp-support-with/vscode-jsonld/" class="md-nav__link">
+      <a href="../vscode-jsonld/" class="md-nav__link">
         
   
   
@@ -2065,6 +2143,36 @@
     
   
   
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#implementation-checklist" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Implementation checklist
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#universe-consequences" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Universe consequences
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
 </nav>
                   </div>
                 </div>
@@ -2085,37 +2193,32 @@
   
 
 
-<h1 id="decisions"><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M11 12H3.5L6 9.5 3.5 7H11V3l1-1 1 1v4h5l2.5 2.5L18 12h-5v8a2 2 0 0 1 2 2H9a2 2 0 0 1 2-2z"/></svg></span> Decisions</h1>
-<p>Each card is generated from an architecture decision record's frontmatter,
-newest first. Follow a title for the full record.</p>
-<div class="grid cards adr-cards">
-<ul>
-<li>
-<p><strong><a href="./">Implement YAML-LD and Markdown-LD LSP support on SWLS</a></strong></p>
-<hr />
-<p><span class="adr-status adr-status--decided">Decided</span></p>
-<p><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 12h5v5h-5zm7-9h-1V1h-2v2H8V1H6v2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2m0 2v2H5V5zM5 19V9h14v10z"/></svg></span> <span class="adr-date">23 August 2026</span></p>
-</li>
-<li>
-<p><strong><a href="serve-sparql-endpoint-when/">Serve SPARQL endpoint when its initial dataset is ready</a></strong></p>
-<hr />
-<p><span class="adr-status adr-status--decided">Decided</span></p>
-<p><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 12h5v5h-5zm7-9h-1V1h-2v2H8V1H6v2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2m0 2v2H5V5zM5 19V9h14v10z"/></svg></span> <span class="adr-date">15 August 2026</span></p>
-</li>
-<li>
-<p><strong><a href="implement-live-file-backed-sparql-access-with/">Implement live file-backed SPARQL access with sparqld</a></strong></p>
-<hr />
-<p><span class="adr-status adr-status--decided">Decided</span></p>
-<p><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 12h5v5h-5zm7-9h-1V1h-2v2H8V1H6v2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2m0 2v2H5V5zM5 19V9h14v10z"/></svg></span> <span class="adr-date">7 August 2026</span></p>
-</li>
-<li>
-<p><strong><a href="implement-sparqld-in/">Implement sparqld in Rust</a></strong></p>
-<hr />
-<p><span class="adr-status adr-status--decided">Decided</span></p>
-<p><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 12h5v5h-5zm7-9h-1V1h-2v2H8V1H6v2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2m0 2v2H5V5zM5 19V9h14v10z"/></svg></span> <span class="adr-date">31 July 2026</span></p>
-</li>
-</ul>
+<h1 id="build-on-turtle-language-server">Build on Turtle Language Server</h1>
+<div class="admonition failure">
+<p class="admonition-title">Excluded alternative universe</p>
+<p>This is the excluded alternative universe from the <a href="../">parent ADR</a>.</p>
 </div>
+<p>This planning path builds the server on Turtle Language Server. “Universe” is planning shorthand for the consequences of committing to this foundation.</p>
+<p><a href="https://github.com/BrickSchema/langserver"><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg></span> <code>BrickSchema/langserver</code></a> is a Python language server for Turtle, published as <a href="https://pypi.org/project/turtle-language-server/"><code>turtle-language-server</code></a>.</p>
+<h2 id="implementation-checklist"><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 5h6v6H3zm2 2v2h2V7zm6 0h10v2H11zm0 8h10v2H11zm-6 5-3.5-3.5 1.41-1.41L5 17.17l4.59-4.58L11 14z"/></svg></span> Implementation checklist</h2>
+<ul class="task-list">
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> Evaluate the reusable <code>pygls</code> lifecycle and document synchronization <a href="https://github.com/BrickSchema/langserver/blob/main/src/turtle_language_server/server.py"><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg></span> <code>server.py</code></a>, separating protocol plumbing from Turtle-specific behaviour.</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> Generalize Turtle and RDFLib-backed language behaviour <a href="https://github.com/BrickSchema/langserver/tree/main/src/turtle_language_server"><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg></span> <code>BrickSchema/langserver</code></a> into JSON-LD-aware analysis without regressing Turtle documents.</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> Implement a <a href="https://yaml.readthedocs.io/en/latest/">YAML AST</a> adapter that retains authored key and scalar spans while producing JSON-LD values.</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> Extract <a href="https://spec.commonmark.org/current/#front-matter">Markdown front matter</a> and map every embedded YAML range back through its containing Markdown offset.</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> Select a <a href="https://www.w3.org/TR/json-ld11-api/">JSON-LD 1.1 processor and context model</a> and implement a safe <a href="https://www.rfc-editor.org/rfc/rfc3986#section-5">relative-IRI resolver</a> shared by all three document formats.</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> Interpret <a href="https://www.w3.org/TR/json-ld11/#type-coercion"><code>@type: @id</code> coercion</a> to classify IRI values, expose clickable <a href="https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#textDocument_documentLink">document links</a>, and return every target through <a href="https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#textDocument_definition">Go to Definition</a>.</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> Make the derived graph, ranges, links, and definition index follow the authoritative in-memory <a href="https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#textDocument_didChange">open and change notifications</a> before workspace files on disk.</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> Add pytest-based fixtures <a href="https://github.com/BrickSchema/langserver/tree/main/test"><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg></span> <code>BrickSchema/langserver</code></a> and end-to-end LSP tests for diagnostic ranges, Markdown offsets, relative IRIs, multiple definitions, links, and unsaved edits.</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> Publish a Python package and validate editor deployment through the <a href="https://pypi.org/project/turtle-language-server/"><code>turtle-language-server</code> installation channel</a>.</li>
+</ul>
+<h2 id="universe-consequences"><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m14 4 2.29 2.29-2.88 2.88 1.42 1.42 2.88-2.88L20 10V4M10 4H4v6l2.29-2.29 4.71 4.7V20h2v-8.41l-5.29-5.3"/></svg></span> Universe consequences</h2>
+<ul class="task-list">
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> Maintain a Python and <code>pygls</code> runtime, including its LSP lifecycle and editor-distribution compatibility.</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> Own a new JSON-LD semantic layer and its context-loading, IRI-resolution, and source-map policies beside the original Turtle/RDFLib implementation.</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> Maintain YAML-LD and Markdown-LD parsers, mappings, and incremental-edit tests that the Turtle server does not provide.</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> Separate generic server packaging and documentation from the Brick-specific identity of the existing published package.</li>
+</ul>
 
 
 
@@ -2176,10 +2279,10 @@ newest first. Follow a title for the full record.</p>
     
       
       
-      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["content.code.copy", "content.tooltips", "navigation.indexes", "navigation.sections", "navigation.tabs", "navigation.top"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+      <script id="__config" type="application/json">{"annotate": null, "base": "../../../..", "features": ["content.code.copy", "content.tooltips", "navigation.indexes", "navigation.sections", "navigation.tabs", "navigation.top"], "search": "../../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
     
     
-      <script src="../../assets/javascripts/bundle.d7400e89.min.js"></script>
+      <script src="../../../../assets/javascripts/bundle.d7400e89.min.js"></script>
       
         <script src="https://unpkg.com/mermaid@11.16.1/dist/mermaid.min.js"></script>
       
