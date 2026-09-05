@@ -9,5 +9,5 @@ nav:
   - Contexts: contexts.md
   - Libraries: libraries
   - clients
-  - Agents: agents.md
+  - Agents: agents
   - Integrations: integrations
