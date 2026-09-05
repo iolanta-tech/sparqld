@@ -15,12 +15,6 @@ description: Release, source, licensing, and development information for sparqld
 
 # :material-source-repository: Project
 
-## Intended audience
-
-Developers maintaining a file-based local Linked Data knowledge base who want
-safe, immediate SPARQL access for themselves and their agents, without
-operating a database.
-
 `sparqld` 0.1.4 is an early release for local, file-backed SPARQL access.
 
 <div class="grid cards" markdown>
@@ -32,6 +26,14 @@ operating a database.
     Review the decisions that shape the project.
 
     [:octicons-arrow-right-24: Decisions](decisions/index.md)
+
+-   :material-source-pull:{ .lg .middle } **Contributing**
+
+    ---
+
+    Develop and test changes from a local checkout.
+
+    [:octicons-arrow-right-24: Contributing](contributing.md)
 
 -   :material-tag-outline:{ .lg .middle } **Release and requirements**
 
