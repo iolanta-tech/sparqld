@@ -69,5 +69,5 @@ In `data/alpha-centauri.md`, change `Alpha Centauri` to a new name and save the
 file. Run the same `sq` command again: the result changes without restarting
 `sparqld`.
 
-Next, see [Agents](reference/agents.md) or browse the
+Next, see [Agents](reference/agents/index.md) or browse the
 [compatible SPARQL clients](reference/clients/index.md).
