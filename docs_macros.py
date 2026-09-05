@@ -193,6 +193,27 @@ def _adr_metadata(value_date, status):
     return f'!!! {kind} "{title}"\n'
 
 
+_UNIVERSE_STATUS = MappingProxyType(
+    {
+        'chosen': ('success', 'Chosen'),
+        'excluded': ('failure', 'Excluded'),
+        'undecided': ('warning', 'Undecided'),
+    }
+)
+
+
+def _universe_metadata(adr_path, status):
+    """Render the relationship and status of a supporting alternative page."""
+    status_key = str(status).lower()
+    kind, label = _UNIVERSE_STATUS.get(status_key, ('note', str(status).title()))
+    article = label.lower()
+    return (
+        f'!!! {kind} "{label} alternative universe"\n\n'
+        f'    This is the {article} alternative universe from the '
+        f'[parent ADR]({adr_path}).\n'
+    )
+
+
 class DocumentationMacros:
     """Documentation macros bound to one MkDocs environment."""
 
@@ -219,6 +240,9 @@ class DocumentationMacros:
 
     def adr_metadata(self, date, status):
         return _adr_metadata(date, status)
+
+    def universe_metadata(self, adr_path, status):
+        return _universe_metadata(adr_path, status)
 
     def source(self, path, indent=0, title='Source'):
         """Render any project file as an example admonition."""
@@ -539,6 +563,7 @@ def define_env(env):
     """Register documentation macros."""
     macros = DocumentationMacros(env)
     env.macro(macros.adr_metadata)
+    env.macro(macros.universe_metadata)
     env.macro(macros.source)
     env.macro(macros.example_data)
     env.macro(macros.example_code)
