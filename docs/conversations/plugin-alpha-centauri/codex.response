@@ -1,0 +1,28 @@
+Alpha Centauri’s recorded planets are **Proxima Centauri b** and **Proxima Centauri d**. The knowledge base records no moons for either, so none are identified as habitable. It describes Proxima Centauri b itself as orbiting in the habitable zone.
+
+```sparql
+PREFIX dbo: <http://dbpedia.org/ontology/>
+PREFIX dbp: <http://dbpedia.org/property/>
+PREFIX schema: <https://schema.org/>
+
+SELECT DISTINCT ?planetName ?description WHERE {
+  <http://dbpedia.org/resource/Alpha_Centauri> schema:hasPart ?binary .
+  ?star dbp:star ?binary .
+  ?planet a dbo:Planet ; dbp:star ?star ; schema:name ?planetName .
+  OPTIONAL { ?planet schema:description ?description }
+}
+ORDER BY ?planetName
+```
+
+```sparql
+SELECT DISTINCT ?s ?p ?o WHERE {
+  ?s ?p ?o .
+  FILTER(
+    CONTAINS(LCASE(STR(?s)), "moon") ||
+    CONTAINS(LCASE(STR(?p)), "moon") ||
+    CONTAINS(LCASE(STR(?o)), "moon") ||
+    CONTAINS(LCASE(STR(?o)), "habitable")
+  )
+}
+ORDER BY ?s ?p ?o
+```
