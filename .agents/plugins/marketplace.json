@@ -1,0 +1,20 @@
+{
+  "name": "sparqld-development",
+  "interface": {
+    "displayName": "Sparqld development"
+  },
+  "plugins": [
+    {
+      "name": "sparqld",
+      "source": {
+        "source": "local",
+        "path": "./plugins/sparqld"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Education & Research"
+    }
+  ]
+}
