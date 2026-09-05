@@ -1,0 +1,1 @@
+Use the installed sparqld plugin and configured sparqld MCP server. Using only sparqld.query for knowledge-base facts, answer: Which planets does Alpha Centauri have, and which of their moons are habitable? Do not inspect source documents, skills, or memory. Do not modify files. In your final response, give a concise answer and the SPARQL queries used.
