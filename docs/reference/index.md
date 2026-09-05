@@ -65,6 +65,21 @@ sparqld [OPTIONS] <DIRECTORY>
 
 </div>
 
+## :simple-modelcontextprotocol: MCP server
+
+```console
+sparqld mcp [--pattern <GLOB>]... <DIRECTORY>
+```
+
+`mcp` exposes the directory to an MCP client over standard input and output and
+always watches it for source changes.
+
+- `<DIRECTORY>` is required.
+- Repeat `--pattern <GLOB>` to include or exclude source paths, using the same
+  pattern rules as the HTTP server.
+- `--host`, `--port`, and `--no-watch` apply only to the HTTP server; `mcp`
+  does not accept them.
+
 ## :material-tune-variant: Combine options
 
 Options can be composed in any order:
@@ -78,7 +93,7 @@ query to `/` with a client-side timeout; it waits until that dataset is ready.
 The `Serving … at …` log line remains useful for people, but is not a client
 readiness contract.
 
-## :material-filter-outline: Select source files
+## :material-filter-outline: Pattern matching
 
 `--pattern` matches paths relative to the directory being served. A normal
 pattern includes matching supported RDF files. Prefix a pattern with `!` to
