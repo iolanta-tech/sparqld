@@ -1201,7 +1201,7 @@ mod tests {
             let descriptions = dataset
                 .quads_for_pattern(
                     Some(source_graph.as_ref().into()),
-                    Some(sd::NAMED_GRAPH.into()),
+                    Some(sd::NAMED_GRAPH),
                     None,
                     Some(FILE_CATALOG_GRAPH.into()),
                 )
