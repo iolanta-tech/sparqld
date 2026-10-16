@@ -130,7 +130,7 @@ Green column: chosen. Yellow column: satisfies the core constraints but was
 not selected. Red columns: excluded; stronger-red cells identify the decisive
 shortcoming. :warning: denotes a trade-off. The HTTP [SPARQL Protocol](https://www.w3.org/TR/sparql11-protocol/)
 defines query request forms, while [Kubernetes probes](https://kubernetes.io/docs/concepts/configuration/liveness-readiness-startup-probes/)
-distinguish traffic readiness from liveness; sparqld deliberately adds neither
+distinguish traffic readiness from liveness; `sparqld` deliberately adds neither
 `/readyz` nor `/livez`, so both continue to be ordinary unknown paths (`404`)
 under the [root-only handler](https://github.com/iolanta-tech/sparqld/blob/f3b935f/src/server.rs#L43-L46).
 
@@ -147,7 +147,7 @@ so that completed load is ready. A client timeout or disconnect cancels only
 that request, never the shared load or another waiter. On a fatal initialization
 failure, pending and subsequent root requests receive
 [`503 Service Unavailable`](https://www.rfc-editor.org/rfc/rfc9110#section-15.6.4),
-then sparqld shuts down and exits nonzero without a successful `Serving` log.
+then `sparqld` shuts down and exits nonzero without a successful `Serving` log.
 Other paths return `404` immediately. After readiness, live reload never
 re-gates requests and retains staged atomic replacement.
 
@@ -158,7 +158,7 @@ compatibility.
 ## :material-arrow-right-bold-outline: Consequences
 
 - Clients can issue their first ordinary query immediately after starting
-  sparqld, with a client-side timeout appropriate to their CI or deployment.
+  `sparqld`, with a client-side timeout appropriate to their CI or deployment.
 - The CLI flags, library function signatures, SPARQL request forms, responses,
   and non-root `404` behavior remain stable; only the startup timing changes.
 - Release notes document that log parsing is unnecessary and that an immediate
