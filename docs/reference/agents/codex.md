@@ -21,11 +21,14 @@ codex plugin marketplace add iolanta-tech/sparqld --ref main
 codex plugin add sparqld@sparqld-development
 ```
 
-When Codex asks, approve MCP configuration and provide the absolute path to
-your knowledge base. Open a new Codex thread afterwards. In that thread,
-`sparqld.query` runs read-only SPARQL queries; edit source files to change data.
+Start a new Codex thread and invoke `@sparqld`. Give it the absolute path to
+your knowledge base. When it asks, approve the local MCP configuration. Codex
+gives each knowledge base a separate server name, such as `sparqld-iolanta`.
+
+Open another new thread after registration. Use the `query` tool from that
+server to run read-only SPARQL; edit source files to change data.
 
 With the example dataset configured through the installed plugin, this Codex
-session used `sparqld.query` to find the recorded planets and moons:
+session used its query tool to find the recorded planets and moons:
 
 {{ agent_conversation('plugin-alpha-centauri') }}
