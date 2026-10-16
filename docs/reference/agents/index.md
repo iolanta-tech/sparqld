@@ -17,9 +17,13 @@ description: Let agents query a local sparqld knowledge base.
 
 <div class="grid cards" markdown>
 
--   [:material-connection: **MCP server**](../index.md#mcp-server)
+-   [:simple-modelcontextprotocol: **MCP server**](mcp.md)
 
     Run `sparqld mcp <DIRECTORY>` to connect an MCP-capable agent.
+
+-   [:material-robot-outline: **Other agents**](https://github.com/iolanta-tech/sparqld/tree/main/skills/sparqld)
+
+    From a full checkout, give an MCP-capable agent `skills/sparqld`.
 
 -   [:fontawesome-brands-openai: **Codex**](codex.md)
 
