@@ -1,0 +1,9 @@
+{
+  "triples": [
+    {
+      "subject": {"type": "uri", "value": "urn:subject"},
+      "predicate": {"type": "uri", "value": "urn:predicate"},
+      "object": {"type": "literal", "value": "first"}
+    }
+  ]
+}
