@@ -32,11 +32,11 @@ A plain `GET /` returns a text landing response.
 `sparqld` binds its HTTP listener before it finishes the initial directory
 load. Requests at `/` wait until that load has published its first dataset, so
 the first ordinary query can be the readiness wait. Set the HTTP timeout in the
-client; sparqld does not impose a startup wait deadline.
+client; `sparqld` does not impose a startup wait deadline.
 
 File-level load errors remain visible in the file catalog and do not prevent
 the first dataset from becoming ready. A fatal initialization error marks root
-requests unavailable with `503 Service Unavailable` before sparqld exits
+requests unavailable with `503 Service Unavailable` before `sparqld` exits
 nonzero; because the process exits immediately, a caller can instead observe a
 dropped connection.
 
