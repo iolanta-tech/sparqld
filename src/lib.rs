@@ -1,4 +1,5 @@
 mod loader;
+mod mcp;
 pub mod patterns;
 mod server;
 mod watcher;
@@ -98,6 +99,19 @@ pub fn serve_at_with_options(
     )?;
     listening_server.join()?;
     Ok(())
+}
+
+/// Serves the RDF dataset through a local stdio MCP server.
+pub fn serve_mcp(directory: impl AsRef<Path>, patterns: Vec<String>) -> SparqldResult<()> {
+    let directory = directory.as_ref().canonicalize()?;
+    let source_patterns = patterns::SourcePatterns::compile(&patterns).map_err(io::Error::other)?;
+    let dataset = Arc::new(RwLock::new(new_dataset()?));
+    mcp::serve(
+        dataset,
+        directory,
+        source_patterns,
+        server::StartupGate::new(),
+    )
 }
 
 #[allow(clippy::too_many_arguments)]
