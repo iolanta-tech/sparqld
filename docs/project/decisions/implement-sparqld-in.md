@@ -10,7 +10,7 @@ tags: [decision]
 hide: [toc]
 ---
 
-# Implement sparqld in Rust
+# Implement `sparqld` in Rust
 
 {{ adr_metadata(date, status) }}
 
