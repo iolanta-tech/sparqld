@@ -88,7 +88,7 @@ Options can be composed in any order:
 
 ## :material-clock-start: Wait for the first dataset
 
-The listener binds while sparqld loads its first dataset. Send an ordinary
+The listener binds while `sparqld` loads its first dataset. Send an ordinary
 query to `/` with a client-side timeout; it waits until that dataset is ready.
 The `Serving … at …` log line remains useful for people, but is not a client
 readiness contract.
