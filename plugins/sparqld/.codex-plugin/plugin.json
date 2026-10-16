@@ -1,6 +1,6 @@
 {
   "name": "sparqld",
-  "version": "0.1.1",
+  "version": "0.1.1+codex.20260906165712",
   "description": "Query local Linked Data through sparqld MCP.",
   "author": {
     "name": "Iolanta Tech",
@@ -9,7 +9,11 @@
   "homepage": "https://sparqld.iolanta.tech",
   "repository": "https://github.com/iolanta-tech/sparqld",
   "license": "Apache-2.0 OR MIT",
-  "keywords": ["linked-data", "mcp", "sparql"],
+  "keywords": [
+    "linked-data",
+    "mcp",
+    "sparql"
+  ],
   "skills": "./skills/",
   "interface": {
     "displayName": "Sparqld",
@@ -17,7 +21,9 @@
     "longDescription": "Connect Codex to a local sparqld knowledge base through its read-only MCP server.",
     "developerName": "Iolanta Tech",
     "category": "Education & Research",
-    "capabilities": ["Read"],
+    "capabilities": [
+      "Read"
+    ],
     "defaultPrompt": [
       "Find facts in my local knowledge base.",
       "Set up sparqld MCP for a knowledge base."
