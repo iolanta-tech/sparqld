@@ -1,6 +1,6 @@
 use std::path::PathBuf;
 
-use clap::{Parser, ValueHint};
+use clap::{Args, Parser, Subcommand, ValueHint};
 
 // @todo(extractor-registration): Register self-describing extractor executables.
 // description: >
@@ -20,11 +20,16 @@ use clap::{Parser, ValueHint};
 // blocked-by:
 //   - riddles-cli
 #[derive(Debug, Parser)]
-#[command(version, about = "Expose a directory via SPARQL.")]
+#[command(
+    version,
+    about = "Expose a directory via SPARQL.",
+    subcommand_negates_reqs = true,
+    args_conflicts_with_subcommands = true
+)]
 struct Cli {
     /// Directory to serve
-    #[arg(value_hint = ValueHint::DirPath)]
-    directory: PathBuf,
+    #[arg(value_hint = ValueHint::DirPath, required = true)]
+    directory: Option<PathBuf>,
 
     /// Host address on which to serve
     #[arg(long, default_value = "127.0.0.1")]
@@ -45,17 +50,34 @@ struct Cli {
         value_parser = sparqld::patterns::validate_pattern
     )]
     patterns: Vec<String>,
+
+    #[command(subcommand)]
+    command: Option<Command>,
+}
+
+#[derive(Debug, Subcommand)]
+enum Command {
+    /// Expose a directory to MCP clients over standard input and output
+    Mcp(McpCli),
+}
+
+#[derive(Args, Debug)]
+#[command(about = "Expose a directory to MCP clients over standard input and output")]
+struct McpCli {
+    /// Directory to watch and expose
+    #[arg(value_hint = ValueHint::DirPath)]
+    directory: PathBuf,
+
+    /// Include or exclude source paths with a glob; prefix exclusions with !
+    #[arg(
+        long = "pattern",
+        value_name = "GLOB",
+        value_parser = sparqld::patterns::validate_pattern
+    )]
+    patterns: Vec<String>,
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-    let Cli {
-        directory,
-        host,
-        port,
-        no_watch,
-        patterns,
-    } = Cli::parse();
-
     env_logger::builder()
         .filter_level(log::LevelFilter::Info)
         .format_target(false)
@@ -63,15 +85,29 @@ fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         .format_level(false)
         .init();
 
-    sparqld::serve_at_with_options(
+    let Cli {
         directory,
-        &host,
+        host,
         port,
-        sparqld::ServeOptions {
-            watch: !no_watch,
+        no_watch,
+        patterns,
+        command,
+    } = Cli::parse();
+    match command {
+        Some(Command::Mcp(McpCli {
+            directory,
             patterns,
-        },
-    )
+        })) => sparqld::serve_mcp(directory, patterns),
+        None => sparqld::serve_at_with_options(
+            directory.expect("Clap requires a directory when no subcommand is given"),
+            &host,
+            port,
+            sparqld::ServeOptions {
+                watch: !no_watch,
+                patterns,
+            },
+        ),
+    }
 }
 
 #[cfg(test)]
@@ -83,7 +119,7 @@ mod tests {
     fn parses_defaults() {
         let cli = Cli::try_parse_from(["sparqld", "fixtures/data"]).unwrap();
 
-        assert_eq!(cli.directory, PathBuf::from("fixtures/data"));
+        assert_eq!(cli.directory, Some(PathBuf::from("fixtures/data")));
         assert_eq!(cli.host, "127.0.0.1");
         assert_eq!(cli.port, 7737);
         assert!(!cli.no_watch);
@@ -107,7 +143,7 @@ mod tests {
         ])
         .unwrap();
 
-        assert_eq!(cli.directory, PathBuf::from("fixtures/data"));
+        assert_eq!(cli.directory, Some(PathBuf::from("fixtures/data")));
         assert_eq!(cli.host, "localhost");
         assert_eq!(cli.port, 8080);
         assert!(cli.no_watch);
@@ -124,6 +160,7 @@ mod tests {
         assert!(help.contains("--port <PORT>"));
         assert!(help.contains("--no-watch"));
         assert!(help.contains("--pattern <GLOB>"));
+        assert!(help.contains("mcp"));
     }
 
     #[test]
@@ -153,5 +190,38 @@ mod tests {
             Cli::try_parse_from(["sparqld", "--pattern", "[", "fixtures/data"]).unwrap_err();
 
         assert_eq!(error.kind(), ErrorKind::ValueValidation);
+    }
+
+    #[test]
+    fn parses_mcp_options() {
+        let Cli {
+            directory, command, ..
+        } = Cli::try_parse_from(["sparqld", "mcp", "--pattern", "**/*.ttl", "fixtures/data"])
+            .unwrap();
+
+        assert!(directory.is_none());
+        assert!(matches!(
+            command,
+            Some(Command::Mcp(McpCli {
+                directory,
+                patterns
+            })) if directory.as_path() == std::path::Path::new("fixtures/data") && patterns == ["**/*.ttl"]
+        ));
+    }
+
+    #[test]
+    fn rejects_no_watch_for_mcp() {
+        let error =
+            Cli::try_parse_from(["sparqld", "mcp", "--no-watch", "fixtures/data"]).unwrap_err();
+
+        assert_eq!(error.kind(), clap::error::ErrorKind::UnknownArgument);
+    }
+
+    #[test]
+    fn rejects_http_options_for_mcp() {
+        let error = Cli::try_parse_from(["sparqld", "--host", "localhost", "mcp", "fixtures/data"])
+            .unwrap_err();
+
+        assert_eq!(error.kind(), clap::error::ErrorKind::ArgumentConflict);
     }
 }
