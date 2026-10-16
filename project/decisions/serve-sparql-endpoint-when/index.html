@@ -979,9 +979,36 @@
   
   
   
-    <li class="md-nav__item">
-      <a href="../../../reference/agents/" class="md-nav__link">
+    
+    
+      
         
+          
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_10" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../../reference/agents/" class="md-nav__link ">
+              
   
   
   <span class="md-ellipsis">
@@ -995,7 +1022,87 @@
   
   
 
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_2_10" id="__nav_2_10_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_10_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_10">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Agents
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../reference/agents/mcp/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    MCP server
+  
+
+    
+  </span>
+  
+  
+
       </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../reference/agents/codex/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Codex
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
     </li>
   
 
@@ -1119,6 +1226,8 @@
       
         
       
+        
+      
     
     
     
@@ -1176,6 +1285,34 @@
           </label>
           <ul class="md-nav__list" data-md-scrollfix>
             
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../contributing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Contributing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
               
             
               
@@ -1245,7 +1382,7 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_3" checked>
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_4" checked>
         
           
           <div class="md-nav__link md-nav__container">
@@ -1267,14 +1404,14 @@
             </a>
             
               
-              <label class="md-nav__link " for="__nav_3_3" id="__nav_3_3_label" tabindex="">
+              <label class="md-nav__link " for="__nav_3_4" id="__nav_3_4_label" tabindex="">
                 <span class="md-nav__icon md-icon"></span>
               </label>
             
           </div>
         
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_3_label" aria-expanded="true">
-          <label class="md-nav__title" for="__nav_3_3">
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_4_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_3_4">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -1551,7 +1688,7 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_3_5" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_4_5" >
         
           
           <div class="md-nav__link md-nav__container">
@@ -1580,14 +1717,14 @@
             </a>
             
               
-              <label class="md-nav__link " for="__nav_3_3_5" id="__nav_3_3_5_label" tabindex="0">
+              <label class="md-nav__link " for="__nav_3_4_5" id="__nav_3_4_5_label" tabindex="0">
                 <span class="md-nav__icon md-icon"></span>
               </label>
             
           </div>
         
-        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_3_3_5_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_3_3_5">
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_3_4_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_4_5">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -2360,7 +2497,7 @@ clients an endpoint-level startup contract.</p>
 not selected. Red columns: excluded; stronger-red cells identify the decisive
 shortcoming. <img alt="⚠" class="twemoji" src="https://cdn.jsdelivr.net/gh/jdecked/twemoji@16.0.1/assets/svg/26a0.svg" title=":warning:" /> denotes a trade-off. The HTTP <a href="https://www.w3.org/TR/sparql11-protocol/">SPARQL Protocol</a>
 defines query request forms, while <a href="https://kubernetes.io/docs/concepts/configuration/liveness-readiness-startup-probes/">Kubernetes probes</a>
-distinguish traffic readiness from liveness; sparqld deliberately adds neither
+distinguish traffic readiness from liveness; <code>sparqld</code> deliberately adds neither
 <code>/readyz</code> nor <code>/livez</code>, so both continue to be ordinary unknown paths (<code>404</code>)
 under the <a href="https://github.com/iolanta-tech/sparqld/blob/f3b935f/src/server.rs#L43-L46">root-only handler</a>.</p>
 <p>Bind the listener immediately after synchronous validation of the directory,
@@ -2375,7 +2512,7 @@ so that completed load is ready. A client timeout or disconnect cancels only
 that request, never the shared load or another waiter. On a fatal initialization
 failure, pending and subsequent root requests receive
 <a href="https://www.rfc-editor.org/rfc/rfc9110#section-15.6.4"><code>503 Service Unavailable</code></a>,
-then sparqld shuts down and exits nonzero without a successful <code>Serving</code> log.
+then <code>sparqld</code> shuts down and exits nonzero without a successful <code>Serving</code> log.
 Other paths return <code>404</code> immediately. After readiness, live reload never
 re-gates requests and retains staged atomic replacement.</p>
 <p>Logs remain informative for people and diagnostics, not a client readiness
@@ -2384,7 +2521,7 @@ compatibility.</p>
 <h2 id="consequences"><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M11 16H3V8h8V2l10 10-10 10zm2-9v3H5v4h8v3l5-5z"/></svg></span> Consequences</h2>
 <ul>
 <li>Clients can issue their first ordinary query immediately after starting
-  sparqld, with a client-side timeout appropriate to their CI or deployment.</li>
+  <code>sparqld</code>, with a client-side timeout appropriate to their CI or deployment.</li>
 <li>The CLI flags, library function signatures, SPARQL request forms, responses,
   and non-root <code>404</code> behavior remain stable; only the startup timing changes.</li>
 <li>Release notes document that log parsing is unnecessary and that an immediate
