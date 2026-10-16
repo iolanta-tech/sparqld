@@ -11,12 +11,30 @@ use oxigraph::sparql::results::{QueryResultsFormat, QueryResultsSerializer};
 use oxigraph::sparql::{QueryResults, SparqlEvaluator};
 use oxigraph::store::Store;
 
-const MAX_QUERY_SIZE: usize = 1024 * 1024;
-const QUERY_RESULTS_MEDIA_TYPE: &str = "application/sparql-results+json";
+pub(crate) const MAX_QUERY_SIZE: usize = 1024 * 1024;
+pub(crate) const QUERY_RESULTS_MEDIA_TYPE: &str = "application/sparql-results+json";
 const RDF_MEDIA_TYPE: &str = "text/turtle";
 
 type HttpError = (StatusCode, String);
 type HttpResult = Result<Response<Body>, HttpError>;
+
+pub(crate) struct QueryResponse {
+    pub(crate) content_type: &'static str,
+    pub(crate) body: Vec<u8>,
+}
+
+pub(crate) enum QueryError {
+    BadRequest(String),
+    Internal(String),
+}
+
+impl std::fmt::Display for QueryError {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::BadRequest(message) | Self::Internal(message) => formatter.write_str(message),
+        }
+    }
+}
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 enum StartupState {
@@ -43,6 +61,14 @@ impl StartupGate {
 
     pub(crate) fn mark_failed(&self) {
         self.set(StartupState::Failed);
+    }
+
+    pub(crate) fn wait_until_ready(&self) -> Result<(), String> {
+        match self.wait()? {
+            StartupState::Ready => Ok(()),
+            StartupState::Failed => Err("Initial dataset failed to load".into()),
+            StartupState::Loading => unreachable!("startup gate returned while loading"),
+        }
     }
 
     fn set(&self, state: StartupState) {
@@ -186,48 +212,77 @@ fn read_body(request: &mut Request<Body>) -> Result<String, HttpError> {
 }
 
 fn evaluate_query(dataset: &Store, query: &str) -> HttpResult {
+    execute_query(dataset, query)
+        .map_err(|error| match error {
+            QueryError::BadRequest(message) => (StatusCode::BAD_REQUEST, message),
+            QueryError::Internal(message) => (StatusCode::INTERNAL_SERVER_ERROR, message),
+        })
+        .and_then(|response| binary_response(response.content_type, response.body))
+}
+
+pub(crate) fn execute_query(dataset: &Store, query: &str) -> Result<QueryResponse, QueryError> {
+    serialize_query_results(evaluate_sparql(dataset, query)?)
+}
+
+pub(crate) fn evaluate_sparql<'a>(
+    dataset: &'a Store,
+    query: &str,
+) -> Result<QueryResults<'a>, QueryError> {
     let mut prepared = SparqlEvaluator::new()
         .parse_query(query)
-        .map_err(|error| (StatusCode::BAD_REQUEST, error.to_string()))?;
+        .map_err(|error| QueryError::BadRequest(error.to_string()))?;
     prepared.dataset_mut().set_default_graph_as_union();
-    let results = prepared
+    prepared
         .on_store(dataset)
         .execute()
-        .map_err(internal_server_error)?;
+        .map_err(|error| QueryError::Internal(error.to_string()))
+}
 
+pub(crate) fn serialize_query_results(
+    results: QueryResults<'_>,
+) -> Result<QueryResponse, QueryError> {
     match results {
         QueryResults::Solutions(solutions) => {
             let mut serializer = QueryResultsSerializer::from_format(QueryResultsFormat::Json)
                 .serialize_solutions_to_writer(Vec::new(), solutions.variables().to_vec())
-                .map_err(internal_server_error)?;
+                .map_err(|error| QueryError::Internal(error.to_string()))?;
             for solution in solutions {
                 serializer
-                    .serialize(&solution.map_err(internal_server_error)?)
-                    .map_err(internal_server_error)?;
+                    .serialize(&solution.map_err(|error| QueryError::Internal(error.to_string()))?)
+                    .map_err(|error| QueryError::Internal(error.to_string()))?;
             }
-            binary_response(
-                QUERY_RESULTS_MEDIA_TYPE,
-                serializer.finish().map_err(internal_server_error)?,
-            )
+            Ok(QueryResponse {
+                content_type: QUERY_RESULTS_MEDIA_TYPE,
+                body: serializer
+                    .finish()
+                    .map_err(|error| QueryError::Internal(error.to_string()))?,
+            })
         }
         QueryResults::Boolean(result) => {
             let body = QueryResultsSerializer::from_format(QueryResultsFormat::Json)
                 .serialize_boolean_to_writer(Vec::new(), result)
-                .map_err(internal_server_error)?;
-            binary_response(QUERY_RESULTS_MEDIA_TYPE, body)
+                .map_err(|error| QueryError::Internal(error.to_string()))?;
+            Ok(QueryResponse {
+                content_type: QUERY_RESULTS_MEDIA_TYPE,
+                body,
+            })
         }
         QueryResults::Graph(triples) => {
             let mut serializer =
                 RdfSerializer::from_format(RdfFormat::Turtle).for_writer(Vec::new());
             for triple in triples {
                 serializer
-                    .serialize_triple(&triple.map_err(internal_server_error)?)
-                    .map_err(internal_server_error)?;
+                    .serialize_triple(
+                        &triple.map_err(|error| QueryError::Internal(error.to_string()))?,
+                    )
+                    .map_err(|error| QueryError::Internal(error.to_string()))?;
             }
-            binary_response(
-                RDF_MEDIA_TYPE,
-                serializer.finish().map_err(internal_server_error)?,
-            )
+            Ok(QueryResponse {
+                content_type: RDF_MEDIA_TYPE,
+                body: serializer
+                    .finish()
+                    .map_err(|error| QueryError::Internal(error.to_string()))?,
+            })
         }
     }
 }
