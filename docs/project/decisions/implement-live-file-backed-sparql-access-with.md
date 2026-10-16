@@ -10,7 +10,7 @@ tags: [decision]
 hide: [toc]
 ---
 
-# Implement live file-backed SPARQL access with sparqld
+# Implement live file-backed SPARQL access with `sparqld`
 
 {{ adr_metadata(date, status) }}
 
@@ -126,4 +126,4 @@ Green row: chosen, meets every requirement. Red row: excluded, fails one or more
 
 ## :material-arrow-right-bold-outline: Consequences
 
-- Work proceeds on sparqld as the selected live file-backed SPARQL access product.
+- Work proceeds on `sparqld` as the selected live file-backed SPARQL access product.
