@@ -1,4 +1,5 @@
 title: Agents
 nav:
   - index.md
+  - MCP server: mcp.md
   - Codex: codex.md
