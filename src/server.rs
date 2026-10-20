@@ -1,7 +1,7 @@
 use std::io::{self, Read};
 use std::mem;
 use std::net::SocketAddr;
-use std::sync::{Arc, Condvar, Mutex, RwLock};
+use std::sync::{Arc, Condvar, Mutex};
 
 use oxhttp::model::header::{ALLOW, CONTENT_TYPE};
 use oxhttp::model::{Body, Method, Request, Response, StatusCode};
@@ -88,7 +88,7 @@ impl StartupGate {
 }
 
 pub(crate) fn start(
-    dataset: Arc<RwLock<Store>>,
+    dataset: Store,
     startup: StartupGate,
     addresses: Vec<SocketAddr>,
 ) -> io::Result<ListeningServer> {
@@ -105,7 +105,7 @@ pub(crate) fn start(
 
 fn handle_shared_request(
     request: &mut Request<Body>,
-    dataset: &RwLock<Store>,
+    dataset: &Store,
     startup: &StartupGate,
 ) -> Response<Body> {
     if request.uri().path() != "/" {
@@ -124,10 +124,7 @@ fn handle_shared_request(
         Err(error) => return text_response(StatusCode::INTERNAL_SERVER_ERROR, error),
     }
 
-    match dataset.read() {
-        Ok(dataset) => handle_request(request, &dataset),
-        Err(error) => text_response(StatusCode::INTERNAL_SERVER_ERROR, error.to_string()),
-    }
+    handle_request(request, dataset)
 }
 
 fn handle_request(request: &mut Request<Body>, dataset: &Store) -> Response<Body> {
@@ -545,11 +542,11 @@ mod tests {
 
     #[test]
     fn waits_for_root_requests_until_startup_is_ready() {
-        let dataset = Arc::new(RwLock::new(Store::new().unwrap()));
+        let dataset = Store::new().unwrap();
         let startup = StartupGate::new();
         let (started_sender, started) = mpsc::channel();
 
-        let get_dataset = Arc::clone(&dataset);
+        let get_dataset = dataset.clone();
         let get_startup = startup.clone();
         let get_started = started_sender.clone();
         let get = thread::spawn(move || {
@@ -566,7 +563,7 @@ mod tests {
             )
         });
 
-        let post_dataset = Arc::clone(&dataset);
+        let post_dataset = dataset.clone();
         let post_startup = startup.clone();
         let post = thread::spawn(move || {
             started_sender.send(()).unwrap();
@@ -599,7 +596,7 @@ mod tests {
 
     #[test]
     fn rejects_root_requests_after_startup_fails() {
-        let dataset = Arc::new(RwLock::new(Store::new().unwrap()));
+        let dataset = Store::new().unwrap();
         let startup = StartupGate::new();
         startup.mark_failed();
         let mut request = Request::builder()
@@ -619,7 +616,7 @@ mod tests {
 
     #[test]
     fn rejects_unknown_paths_while_starting() {
-        let dataset = Arc::new(RwLock::new(Store::new().unwrap()));
+        let dataset = Store::new().unwrap();
         let startup = StartupGate::new();
         let mut request = Request::builder()
             .method(Method::GET)
