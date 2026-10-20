@@ -7,8 +7,10 @@ use std::time::{Duration, Instant};
 use notify::event::{CreateKind, RemoveKind};
 use notify::{Event, EventKind, RecommendedWatcher, RecursiveMode, Watcher};
 
+use oxigraph::store::Store;
+
 use crate::patterns::SourcePatterns;
-use crate::{DatasetStats, SharedDataset, SparqldResult, loader, reload_dataset};
+use crate::{DatasetStats, SparqldResult, load_dataset, loader};
 
 const RELOAD_DEBOUNCE: Duration = Duration::from_millis(500);
 
@@ -85,16 +87,13 @@ pub(crate) struct DirectoryWatcher {
 
 impl DirectoryWatcher {
     #[cfg(test)]
-    pub(crate) fn start(
-        directory: PathBuf,
-        dataset: SharedDataset,
-    ) -> SparqldResult<(Self, DatasetStats)> {
+    pub(crate) fn start(directory: PathBuf, dataset: Store) -> SparqldResult<(Self, DatasetStats)> {
         Self::start_with_patterns(directory, dataset, SourcePatterns::all())
     }
 
     pub(crate) fn start_with_patterns(
         directory: PathBuf,
-        dataset: SharedDataset,
+        dataset: Store,
         source_patterns: SourcePatterns,
     ) -> SparqldResult<(Self, DatasetStats)> {
         let (control, events) = mpsc::channel();
@@ -106,7 +105,7 @@ impl DirectoryWatcher {
 
         // The watch is active before the initial load, so changes made while it
         // is loading remain queued for the worker and cannot be missed.
-        let load = reload_dataset(&directory, &dataset, &source_patterns)?;
+        let load = load_dataset(&directory, &dataset, &source_patterns)?;
         let stats = load.stats();
         let loaded_sources = load.loaded_sources;
         let load_errors = load.load_errors;
@@ -149,7 +148,7 @@ impl Drop for DirectoryWatcher {
 fn watch(
     events: Receiver<Message>,
     directory: PathBuf,
-    dataset: SharedDataset,
+    dataset: Store,
     source_patterns: SourcePatterns,
     mut loaded_sources: BTreeSet<PathBuf>,
     mut load_errors: BTreeMap<PathBuf, String>,
@@ -280,7 +279,7 @@ fn existing_entry_kind(path: &Path) -> Option<EntryKind> {
 fn reload(
     directory: &Path,
     changed_paths: &BTreeMap<PathBuf, PathChange>,
-    dataset: &SharedDataset,
+    dataset: &Store,
     loaded_sources: &mut BTreeSet<PathBuf>,
     load_errors: &mut BTreeMap<PathBuf, String>,
     context_dependents: &mut loader::ContextDependents,
@@ -288,20 +287,13 @@ fn reload(
 ) {
     let path_set = changed_paths.keys().cloned().collect::<BTreeSet<_>>();
     let paths = format_changed_paths(directory, &path_set);
-    let dataset = match dataset.read() {
-        Ok(dataset) => dataset,
-        Err(error) => {
-            log::error!("Could not reload {paths}: failed to lock the dataset: {error}");
-            return;
-        }
-    };
     match loader::reload_changed_with_patterns(
         directory,
         &path_set,
         loaded_sources,
         load_errors,
         context_dependents,
-        &dataset,
+        dataset,
         source_patterns,
     ) {
         Ok(report) => {
@@ -444,19 +436,17 @@ fn triple_count(count: usize) -> String {
 mod tests {
     use super::*;
     use std::fs;
-    use std::sync::{Arc, RwLock};
     use std::time::Duration;
 
     use oxigraph::model::{NamedNodeRef, QuadRef};
-    use oxigraph::store::Store;
     use tempfile::tempdir;
 
     #[test]
     fn reloads_created_modified_and_deleted_files() {
         let directory = tempdir().unwrap();
-        let dataset = Arc::new(RwLock::new(Store::new().unwrap()));
+        let dataset = Store::new().unwrap();
         let (watcher, stats) =
-            DirectoryWatcher::start(directory.path().to_owned(), Arc::clone(&dataset)).unwrap();
+            DirectoryWatcher::start(directory.path().to_owned(), dataset.clone()).unwrap();
         assert_eq!(stats.loaded_files, 0);
 
         let source = directory.path().join("source.ttl");
@@ -717,10 +707,8 @@ mod tests {
         assert_eq!(explicit_entry_kind(&event), Some(EntryKind::Directory));
     }
 
-    fn contains_object(dataset: &SharedDataset, object: &str) -> bool {
+    fn contains_object(dataset: &Store, object: &str) -> bool {
         dataset
-            .read()
-            .unwrap()
             .contains(QuadRef::new(
                 NamedNodeRef::new("urn:subject").unwrap(),
                 NamedNodeRef::new("urn:predicate").unwrap(),
