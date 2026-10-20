@@ -1,11 +1,9 @@
-use std::{
-    path::PathBuf,
-    sync::{Arc, RwLock},
-};
+use std::path::PathBuf;
 
 use oxigraph::{
     model::{Term, vocab::xsd},
     sparql::QueryResults,
+    store::Store,
 };
 use rmcp::{
     ServerHandler, ServiceExt,
@@ -19,21 +17,21 @@ use serde::Deserialize;
 use serde_json::{Value, json};
 
 use crate::{
-    SharedDataset, SparqldResult,
+    SparqldResult,
     patterns::SourcePatterns,
     server::{MAX_QUERY_SIZE, evaluate_sparql, serialize_query_results},
     watcher::DirectoryWatcher,
 };
 
 pub(crate) fn serve(
-    dataset: SharedDataset,
+    dataset: Store,
     directory: PathBuf,
     source_patterns: SourcePatterns,
     startup: crate::server::StartupGate,
 ) -> SparqldResult<()> {
     tokio::runtime::Runtime::new()?.block_on(async move {
         let server = McpServer {
-            dataset: Arc::clone(&dataset),
+            dataset: dataset.clone(),
             startup: startup.clone(),
         };
         let service = server.serve(stdio()).await?;
@@ -67,7 +65,7 @@ pub(crate) fn serve(
 
 #[derive(Clone)]
 struct McpServer {
-    dataset: SharedDataset,
+    dataset: Store,
     startup: crate::server::StartupGate,
 }
 
@@ -146,9 +144,8 @@ impl McpServer {
 #[prompt_handler]
 impl ServerHandler for McpServer {}
 
-fn query_dataset(dataset: &RwLock<oxigraph::store::Store>, query: &str) -> Result<Value, String> {
-    let dataset = dataset.read().map_err(|error| error.to_string())?;
-    match evaluate_sparql(&dataset, query).map_err(|error| error.to_string())? {
+fn query_dataset(dataset: &Store, query: &str) -> Result<Value, String> {
+    match evaluate_sparql(dataset, query).map_err(|error| error.to_string())? {
         QueryResults::Graph(triples) => {
             let triples = triples
                 .map(|triple| {
