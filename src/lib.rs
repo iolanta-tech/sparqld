@@ -9,7 +9,6 @@ use std::error::Error;
 use std::io;
 use std::net::ToSocketAddrs;
 use std::path::{Path, PathBuf};
-use std::sync::{Arc, RwLock};
 use std::thread;
 
 use oxigraph::store::{StorageError, Store};
@@ -18,7 +17,6 @@ const DEFAULT_HOST: &str = "127.0.0.1";
 const DEFAULT_PORT: u16 = 7737;
 
 type SparqldResult<T> = Result<T, Box<dyn Error + Send + Sync>>;
-type SharedDataset = Arc<RwLock<Store>>;
 
 struct DatasetLoad {
     loaded_sources: BTreeSet<PathBuf>,
@@ -84,9 +82,9 @@ pub fn serve_at_with_options(
         .into());
     }
 
-    let dataset = Arc::new(RwLock::new(new_dataset()?));
+    let dataset = new_dataset()?;
     let startup = server::StartupGate::new();
-    let listening_server = server::start(Arc::clone(&dataset), startup.clone(), addresses)?;
+    let listening_server = server::start(dataset.clone(), startup.clone(), addresses)?;
     start_initialization(
         directory,
         requested_directory.to_owned(),
@@ -105,7 +103,7 @@ pub fn serve_at_with_options(
 pub fn serve_mcp(directory: impl AsRef<Path>, patterns: Vec<String>) -> SparqldResult<()> {
     let directory = directory.as_ref().canonicalize()?;
     let source_patterns = patterns::SourcePatterns::compile(&patterns).map_err(io::Error::other)?;
-    let dataset = Arc::new(RwLock::new(new_dataset()?));
+    let dataset = new_dataset()?;
     mcp::serve(
         dataset,
         directory,
@@ -121,7 +119,7 @@ fn start_initialization(
     host: String,
     port: u16,
     watch: bool,
-    dataset: SharedDataset,
+    dataset: Store,
     source_patterns: patterns::SourcePatterns,
     startup: server::StartupGate,
 ) -> SparqldResult<()> {
@@ -132,7 +130,7 @@ fn start_initialization(
                 watcher::DirectoryWatcher::start_with_patterns(directory, dataset, source_patterns)
                     .map(|(watcher, stats)| (Some(watcher), stats))
             } else {
-                reload_dataset(&directory, &dataset, &source_patterns)
+                load_dataset(&directory, &dataset, &source_patterns)
                     .map(|load| (None, load.stats()))
             };
 
@@ -169,17 +167,13 @@ impl DatasetLoad {
     }
 }
 
-fn reload_dataset(
+fn load_dataset(
     directory: &Path,
-    dataset: &RwLock<Store>,
+    dataset: &Store,
     source_patterns: &patterns::SourcePatterns,
 ) -> SparqldResult<DatasetLoad> {
-    let fresh_dataset = new_dataset()?;
-    let load = loader::load_directory_with_patterns(directory, &fresh_dataset, source_patterns)?;
-    let triples = fresh_dataset.len()?;
-    *dataset
-        .write()
-        .map_err(|error| io::Error::other(error.to_string()))? = fresh_dataset;
+    let load = loader::load_directory_with_patterns(directory, dataset, source_patterns)?;
+    let triples = dataset.len()?;
     Ok(DatasetLoad {
         loaded_sources: load.loaded_sources,
         load_errors: load.load_errors,
