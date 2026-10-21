@@ -70,8 +70,15 @@ object can be any of these term kinds.
 ## :material-alert-circle-outline: Errors and limits
 
 Tool errors set `isError` to `true` and explain the failure in `content` text.
-This includes invalid queries, SPARQL Update, evaluation failures, and fatal
-initial dataset failures. Queries larger than 1 MiB in UTF-8 are rejected.
+
+| Condition | Result |
+| --- | --- |
+| Invalid query or SPARQL Update | Error text from evaluation |
+| Query larger than 1 MiB in UTF-8 | `Query is too large` |
+| Fatal initial dataset failure | The load error |
+| Query exceeded [`--query-timeout`](../index.md#limit-query-time) | Same reason text as HTTP |
+| Client cancelled the query | Server-side work stops at the next checkpoint; no tool result |
+
 Change data by editing the source files.
 
 ## :material-text-box-search-outline: Investigation prompt
