@@ -32,7 +32,9 @@ A plain `GET /` returns a text landing response.
 `sparqld` binds its HTTP listener before it finishes the initial directory
 load. Requests at `/` wait until that load has published its first dataset, so
 the first ordinary query can be the readiness wait. Set the HTTP timeout in the
-client; `sparqld` does not impose a startup wait deadline.
+client; `sparqld` does not impose a startup wait deadline. The
+[query timeout](../index.md#limit-query-time) starts after this wait, so a
+client-side timeout is still what bounds readiness.
 
 File-level load errors remain visible in the file catalog and do not prevent
 the first dataset from becoming ready. A fatal initialization error marks root
@@ -61,7 +63,7 @@ not currently negotiate another representation.
 | `405 Method Not Allowed` | SPARQL Update or another unsupported HTTP method |
 | `413 Payload Too Large` | Query body exceeds 1 MiB |
 | `415 Unsupported Media Type` | Unsupported POST `Content-Type` |
-| `503 Service Unavailable` | Fatal initial dataset failure before process exit |
+| `503 Service Unavailable` | Fatal initial dataset failure before process exit, or a query that exceeded [`--query-timeout`](../index.md#limit-query-time). The response body tells them apart. |
 | `500 Internal Server Error` | Query evaluation or serialization failure |
 
 Error bodies are `text/plain`. A `405` response includes `Allow: GET, POST`.
