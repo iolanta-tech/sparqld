@@ -6,7 +6,8 @@ use std::{
 
 use rmcp::{
     ServiceExt,
-    model::{CallToolRequestParams, GetPromptRequestParams, Role},
+    model::{CallToolRequest, CallToolRequestParams, ClientRequest, GetPromptRequestParams, Role},
+    service::PeerRequestOptions,
     transport::{ConfigureCommandExt, TokioChildProcess},
 };
 use serde_json::json;
@@ -237,4 +238,94 @@ fn write_turtle_source(path: &std::path::Path, value: &str) {
         format!("@prefix example: <urn:> .\nexample:subject example:predicate \"{value}\" .\n"),
     )
     .unwrap();
+}
+
+const SLOW_QUERY_SELECT: &str =
+    "SELECT * WHERE { ?a ?p ?c . ?d ?p ?f . ?g ?p ?i . ?j ?p ?l . ?m ?p ?o }";
+const SLOW_QUERY_ASK: &str = "ASK { { SELECT (COUNT(*) AS ?c) WHERE { ?a ?p ?c . ?d ?p ?f . ?g ?p ?i . ?j ?p ?l . ?m ?p ?o } } }";
+const SLOW_QUERY_CONSTRUCT: &str =
+    "CONSTRUCT { ?a ?p ?c } WHERE { ?a ?p ?c . ?d ?p ?f . ?g ?p ?i . ?j ?p ?l . ?m ?p ?o }";
+
+#[tokio::test]
+async fn times_out_slow_queries_and_recovers() {
+    let directory = tempfile::tempdir().unwrap();
+    let source = directory.path().join("data.ttl");
+    write_cross_product_source(&source, 60);
+    let transport = TokioChildProcess::new(
+        tokio::process::Command::new(env!("CARGO_BIN_EXE_sparqld")).configure(|command| {
+            command.args([
+                "mcp",
+                "--query-timeout",
+                "1",
+                directory.path().to_str().unwrap(),
+            ]);
+        }),
+    )
+    .unwrap();
+    let mut client = complete_within(().serve(transport)).await.unwrap();
+
+    for query_text in [SLOW_QUERY_SELECT, SLOW_QUERY_ASK, SLOW_QUERY_CONSTRUCT] {
+        let response = query(&client, query_text).await;
+        assert_eq!(response.is_error, Some(true), "{query_text}");
+        assert_eq!(
+            response.content[0].as_text().unwrap().text,
+            "Query exceeded the 1 s timeout"
+        );
+    }
+
+    let recovered = query(&client, "ASK {}").await;
+    assert_ne!(recovered.is_error, Some(true));
+    assert_eq!(
+        recovered.structured_content.as_ref().unwrap(),
+        &json!({"head": {}, "boolean": true})
+    );
+
+    let mut reloaded = fs::read_to_string(&source).unwrap();
+    reloaded.push_str("example:reloaded example:p \"yes\" .\n");
+    fs::write(&source, reloaded).unwrap();
+    let deadline = Instant::now() + REQUEST_TIMEOUT;
+    loop {
+        let response = query(&client, "ASK { <urn:reloaded> <urn:p> \"yes\" }").await;
+        if response.structured_content.as_ref().unwrap()["boolean"] == true {
+            break;
+        }
+        assert!(Instant::now() < deadline, "the MCP dataset did not reload");
+        tokio::time::sleep(Duration::from_millis(100)).await;
+    }
+
+    let handle = client
+        .peer()
+        .send_cancellable_request(
+            ClientRequest::CallToolRequest(CallToolRequest::new(
+                CallToolRequestParams::new("query").with_arguments(
+                    json!({"query": SLOW_QUERY_SELECT})
+                        .as_object()
+                        .unwrap()
+                        .clone(),
+                ),
+            )),
+            PeerRequestOptions::no_options(),
+        )
+        .await
+        .unwrap();
+    tokio::time::sleep(Duration::from_millis(100)).await;
+    handle.cancel(Some("test".into())).await.unwrap();
+
+    let after_cancel = complete_within(async { query(&client, "ASK {}").await }).await;
+    assert_ne!(after_cancel.is_error, Some(true));
+
+    assert!(
+        complete_within(client.close_with_timeout(REQUEST_TIMEOUT))
+            .await
+            .unwrap()
+            .is_some()
+    );
+}
+
+fn write_cross_product_source(path: &std::path::Path, triples: usize) {
+    let mut body = String::from("@prefix example: <urn:> .\n");
+    for index in 0..triples {
+        body.push_str(&format!("example:n{index} example:p example:n{index} .\n"));
+    }
+    fs::write(path, body).unwrap();
 }
