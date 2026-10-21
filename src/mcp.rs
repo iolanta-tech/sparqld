@@ -19,7 +19,11 @@ use serde_json::{Value, json};
 use crate::{
     SparqldResult,
     patterns::SourcePatterns,
-    server::{MAX_QUERY_SIZE, evaluate_sparql, serialize_query_results},
+    query::{QueryExecution, QueryPolicy},
+    server::{
+        MAX_QUERY_SIZE, QueryError, check_execution, classify_engine_error, evaluate_sparql,
+        serialize_query_results,
+    },
     watcher::DirectoryWatcher,
 };
 
@@ -28,11 +32,13 @@ pub(crate) fn serve(
     directory: PathBuf,
     source_patterns: SourcePatterns,
     startup: crate::server::StartupGate,
+    policy: QueryPolicy,
 ) -> SparqldResult<()> {
     tokio::runtime::Runtime::new()?.block_on(async move {
         let server = McpServer {
             dataset: dataset.clone(),
             startup: startup.clone(),
+            policy,
         };
         let service = server.serve(stdio()).await?;
 
@@ -67,6 +73,15 @@ pub(crate) fn serve(
 struct McpServer {
     dataset: Store,
     startup: crate::server::StartupGate,
+    policy: QueryPolicy,
+}
+
+struct CancelEngineOnDrop(oxigraph::sparql::CancellationToken);
+
+impl Drop for CancelEngineOnDrop {
+    fn drop(&mut self) {
+        self.0.cancel();
+    }
 }
 
 #[derive(Debug, Deserialize, JsonSchema)]
@@ -91,7 +106,11 @@ impl McpServer {
             open_world_hint = false
         )
     )]
-    async fn query(&self, Parameters(parameters): Parameters<QueryParameters>) -> CallToolResult {
+    async fn query(
+        &self,
+        Parameters(parameters): Parameters<QueryParameters>,
+        request_ct: tokio_util::sync::CancellationToken,
+    ) -> CallToolResult {
         if parameters.query.len() > MAX_QUERY_SIZE {
             return error_result("Query is too large");
         }
@@ -104,14 +123,20 @@ impl McpServer {
             Err(error) => return error_result(error),
         }
 
+        let execution = self.policy.begin();
+        let engine_token = execution.token();
+        let _cancel_on_drop = CancelEngineOnDrop(engine_token.clone());
         let dataset = self.dataset.clone();
         let query = parameters.query;
-        let response = tokio::task::spawn_blocking(move || query_dataset(&dataset, &query)).await;
+        let mut worker =
+            tokio::task::spawn_blocking(move || query_dataset(&dataset, &query, &execution));
 
-        match response {
-            Ok(Ok(output)) => CallToolResult::structured(output),
-            Ok(Err(error)) => error_result(error),
-            Err(error) => error_result(error),
+        tokio::select! {
+            _ = request_ct.cancelled() => {
+                engine_token.cancel();
+                tool_result(worker.await)
+            }
+            response = &mut worker => tool_result(response),
         }
     }
 }
@@ -144,25 +169,42 @@ impl McpServer {
 #[prompt_handler]
 impl ServerHandler for McpServer {}
 
-fn query_dataset(dataset: &Store, query: &str) -> Result<Value, String> {
-    match evaluate_sparql(dataset, query).map_err(|error| error.to_string())? {
+fn query_dataset(
+    dataset: &Store,
+    query: &str,
+    execution: &QueryExecution,
+) -> Result<CallToolResult, QueryError> {
+    let output = match evaluate_sparql(dataset, query, execution)? {
         QueryResults::Graph(triples) => {
-            let triples = triples
-                .map(|triple| {
-                    let triple = triple.map_err(|error| error.to_string())?;
-                    Ok(json!({
-                        "subject": term_json(triple.subject.into()),
-                        "predicate": term_json(triple.predicate.into()),
-                        "object": term_json(triple.object),
-                    }))
-                })
-                .collect::<Result<Vec<Value>, String>>()?;
-            Ok(json!({"triples": triples}))
+            let mut packed = Vec::new();
+            for triple in triples {
+                check_execution(execution)?;
+                let triple = triple.map_err(|error| classify_engine_error(execution, error))?;
+                packed.push(json!({
+                    "subject": term_json(triple.subject.into()),
+                    "predicate": term_json(triple.predicate.into()),
+                    "object": term_json(triple.object),
+                }));
+            }
+            json!({"triples": packed})
         }
         results => {
-            let response = serialize_query_results(results).map_err(|error| error.to_string())?;
-            serde_json::from_slice(&response.body).map_err(|error| error.to_string())
+            let response = serialize_query_results(results, execution)?;
+            serde_json::from_slice(&response.body)
+                .map_err(|error| QueryError::Internal(error.to_string()))?
         }
+    };
+    check_execution(execution)?;
+    Ok(CallToolResult::structured(output))
+}
+
+fn tool_result(
+    response: Result<Result<CallToolResult, QueryError>, tokio::task::JoinError>,
+) -> CallToolResult {
+    match response {
+        Ok(Ok(result)) => result,
+        Ok(Err(error)) => error_result(error),
+        Err(error) => error_result(error),
     }
 }
 
