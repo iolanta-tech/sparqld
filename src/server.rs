@@ -2,14 +2,17 @@ use std::io::{self, Read};
 use std::mem;
 use std::net::SocketAddr;
 use std::sync::{Arc, Condvar, Mutex};
+use std::time::Duration;
 
 use oxhttp::model::header::{ALLOW, CONTENT_TYPE};
 use oxhttp::model::{Body, Method, Request, Response, StatusCode};
 use oxhttp::{ListeningServer, Server};
 use oxigraph::io::{RdfFormat, RdfSerializer};
 use oxigraph::sparql::results::{QueryResultsFormat, QueryResultsSerializer};
-use oxigraph::sparql::{QueryResults, SparqlEvaluator};
+use oxigraph::sparql::{QueryEvaluationError, QueryResults, SparqlEvaluator};
 use oxigraph::store::Store;
+
+use crate::query::{QueryExecution, QueryPolicy};
 
 pub(crate) const MAX_QUERY_SIZE: usize = 1024 * 1024;
 pub(crate) const QUERY_RESULTS_MEDIA_TYPE: &str = "application/sparql-results+json";
@@ -18,6 +21,7 @@ const RDF_MEDIA_TYPE: &str = "text/turtle";
 type HttpError = (StatusCode, String);
 type HttpResult = Result<Response<Body>, HttpError>;
 
+#[derive(Debug)]
 pub(crate) struct QueryResponse {
     pub(crate) content_type: &'static str,
     pub(crate) body: Vec<u8>,
@@ -26,14 +30,31 @@ pub(crate) struct QueryResponse {
 pub(crate) enum QueryError {
     BadRequest(String),
     Internal(String),
+    Timeout(Duration),
+    Cancelled,
 }
 
 impl std::fmt::Display for QueryError {
     fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::BadRequest(message) | Self::Internal(message) => formatter.write_str(message),
+            Self::Timeout(timeout) => formatter.write_str(&timeout_message(*timeout)),
+            Self::Cancelled => formatter.write_str("Query cancelled"),
         }
     }
+}
+
+impl From<crate::query::Interruption> for QueryError {
+    fn from(interruption: crate::query::Interruption) -> Self {
+        match interruption {
+            crate::query::Interruption::TimedOut(timeout) => Self::Timeout(timeout),
+            crate::query::Interruption::Cancelled => Self::Cancelled,
+        }
+    }
+}
+
+pub(crate) fn timeout_message(timeout: Duration) -> String {
+    format!("Query exceeded the {} s timeout", timeout.as_secs())
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -90,11 +111,13 @@ impl StartupGate {
 pub(crate) fn start(
     dataset: Store,
     startup: StartupGate,
+    policy: QueryPolicy,
     addresses: Vec<SocketAddr>,
 ) -> io::Result<ListeningServer> {
-    let mut server = Server::new(move |request| handle_shared_request(request, &dataset, &startup))
-        .with_server_name(concat!("sparqld/", env!("CARGO_PKG_VERSION")))
-        .map_err(io::Error::other)?;
+    let mut server =
+        Server::new(move |request| handle_shared_request(request, &dataset, &startup, &policy))
+            .with_server_name(concat!("sparqld/", env!("CARGO_PKG_VERSION")))
+            .map_err(io::Error::other)?;
 
     for address in addresses {
         server = server.bind(address);
@@ -107,6 +130,7 @@ fn handle_shared_request(
     request: &mut Request<Body>,
     dataset: &Store,
     startup: &StartupGate,
+    policy: &QueryPolicy,
 ) -> Response<Body> {
     if request.uri().path() != "/" {
         return text_response(StatusCode::NOT_FOUND, "Not found");
@@ -124,22 +148,30 @@ fn handle_shared_request(
         Err(error) => return text_response(StatusCode::INTERNAL_SERVER_ERROR, error),
     }
 
-    handle_request(request, dataset)
+    handle_request(request, dataset, policy)
 }
 
-fn handle_request(request: &mut Request<Body>, dataset: &Store) -> Response<Body> {
-    try_handle_request(request, dataset)
+fn handle_request(
+    request: &mut Request<Body>,
+    dataset: &Store,
+    policy: &QueryPolicy,
+) -> Response<Body> {
+    try_handle_request(request, dataset, policy)
         .unwrap_or_else(|(status, message)| text_response(status, message))
 }
 
-fn try_handle_request(request: &mut Request<Body>, dataset: &Store) -> HttpResult {
+fn try_handle_request(
+    request: &mut Request<Body>,
+    dataset: &Store,
+    policy: &QueryPolicy,
+) -> HttpResult {
     if request.uri().path() != "/" {
         return Err((StatusCode::NOT_FOUND, "Not found".into()));
     }
 
     match *request.method() {
         Method::GET => match query_parameter(request.uri().query().unwrap_or_default())? {
-            Some(query) => evaluate_query(dataset, &query),
+            Some(query) => evaluate_query(dataset, &query, policy),
             None if request.uri().query().is_none() => Ok(text_response(
                 StatusCode::OK,
                 "sparqld read-only SPARQL endpoint",
@@ -154,13 +186,15 @@ fn try_handle_request(request: &mut Request<Body>, dataset: &Store) -> HttpResul
                 .map(|value| value.split(';').next().unwrap_or_default().trim());
 
             match content_type {
-                Some("application/sparql-query") => evaluate_query(dataset, &read_body(request)?),
+                Some("application/sparql-query") => {
+                    evaluate_query(dataset, &read_body(request)?, policy)
+                }
                 Some("application/x-www-form-urlencoded") => {
                     let body = read_body(request)?;
                     let query = query_parameter(&body)?.ok_or_else(|| {
                         (StatusCode::BAD_REQUEST, "Missing query parameter".into())
                     })?;
-                    evaluate_query(dataset, &query)
+                    evaluate_query(dataset, &query, policy)
                 }
                 Some("application/sparql-update") => Err(read_only_error()),
                 Some(content_type) => Err((
@@ -208,35 +242,69 @@ fn read_body(request: &mut Request<Body>) -> Result<String, HttpError> {
     String::from_utf8(bytes).map_err(|error| (StatusCode::BAD_REQUEST, error.to_string()))
 }
 
-fn evaluate_query(dataset: &Store, query: &str) -> HttpResult {
-    execute_query(dataset, query)
+fn evaluate_query(dataset: &Store, query: &str, policy: &QueryPolicy) -> HttpResult {
+    let execution = policy.begin();
+    execute_query(dataset, query, &execution)
         .map_err(|error| match error {
             QueryError::BadRequest(message) => (StatusCode::BAD_REQUEST, message),
             QueryError::Internal(message) => (StatusCode::INTERNAL_SERVER_ERROR, message),
+            QueryError::Timeout(timeout) => {
+                (StatusCode::SERVICE_UNAVAILABLE, timeout_message(timeout))
+            }
+            QueryError::Cancelled => (StatusCode::SERVICE_UNAVAILABLE, "Query cancelled".into()),
         })
         .and_then(|response| binary_response(response.content_type, response.body))
 }
 
-pub(crate) fn execute_query(dataset: &Store, query: &str) -> Result<QueryResponse, QueryError> {
-    serialize_query_results(evaluate_sparql(dataset, query)?)
+pub(crate) fn execute_query(
+    dataset: &Store,
+    query: &str,
+    execution: &QueryExecution,
+) -> Result<QueryResponse, QueryError> {
+    serialize_query_results(evaluate_sparql(dataset, query, execution)?, execution)
 }
 
 pub(crate) fn evaluate_sparql<'a>(
     dataset: &'a Store,
     query: &str,
+    execution: &QueryExecution,
 ) -> Result<QueryResults<'a>, QueryError> {
     let mut prepared = SparqlEvaluator::new()
+        .with_cancellation_token(execution.token())
         .parse_query(query)
         .map_err(|error| QueryError::BadRequest(error.to_string()))?;
     prepared.dataset_mut().set_default_graph_as_union();
     prepared
         .on_store(dataset)
         .execute()
-        .map_err(|error| QueryError::Internal(error.to_string()))
+        .map_err(|error| classify_engine_error(execution, error))
+}
+
+/// Maps an engine error to a timeout or cancellation when the query was
+/// interrupted, and otherwise reports an internal failure.
+pub(crate) fn classify_engine_error(
+    execution: &QueryExecution,
+    error: QueryEvaluationError,
+) -> QueryError {
+    if matches!(error, QueryEvaluationError::Cancelled) {
+        return execution
+            .check()
+            .map_or(QueryError::Cancelled, QueryError::from);
+    }
+    QueryError::Internal(error.to_string())
+}
+
+/// Reports whether the deadline has passed or the query was cancelled.
+pub(crate) fn check_execution(execution: &QueryExecution) -> Result<(), QueryError> {
+    match execution.check() {
+        Some(interruption) => Err(interruption.into()),
+        None => Ok(()),
+    }
 }
 
 pub(crate) fn serialize_query_results(
     results: QueryResults<'_>,
+    execution: &QueryExecution,
 ) -> Result<QueryResponse, QueryError> {
     match results {
         QueryResults::Solutions(solutions) => {
@@ -244,21 +312,25 @@ pub(crate) fn serialize_query_results(
                 .serialize_solutions_to_writer(Vec::new(), solutions.variables().to_vec())
                 .map_err(|error| QueryError::Internal(error.to_string()))?;
             for solution in solutions {
+                check_execution(execution)?;
                 serializer
-                    .serialize(&solution.map_err(|error| QueryError::Internal(error.to_string()))?)
+                    .serialize(&solution.map_err(|error| classify_engine_error(execution, error))?)
                     .map_err(|error| QueryError::Internal(error.to_string()))?;
             }
+            let body = serializer
+                .finish()
+                .map_err(|error| QueryError::Internal(error.to_string()))?;
+            check_execution(execution)?;
             Ok(QueryResponse {
                 content_type: QUERY_RESULTS_MEDIA_TYPE,
-                body: serializer
-                    .finish()
-                    .map_err(|error| QueryError::Internal(error.to_string()))?,
+                body,
             })
         }
         QueryResults::Boolean(result) => {
             let body = QueryResultsSerializer::from_format(QueryResultsFormat::Json)
                 .serialize_boolean_to_writer(Vec::new(), result)
                 .map_err(|error| QueryError::Internal(error.to_string()))?;
+            check_execution(execution)?;
             Ok(QueryResponse {
                 content_type: QUERY_RESULTS_MEDIA_TYPE,
                 body,
@@ -268,17 +340,20 @@ pub(crate) fn serialize_query_results(
             let mut serializer =
                 RdfSerializer::from_format(RdfFormat::Turtle).for_writer(Vec::new());
             for triple in triples {
+                check_execution(execution)?;
                 serializer
                     .serialize_triple(
-                        &triple.map_err(|error| QueryError::Internal(error.to_string()))?,
+                        &triple.map_err(|error| classify_engine_error(execution, error))?,
                     )
                     .map_err(|error| QueryError::Internal(error.to_string()))?;
             }
+            let body = serializer
+                .finish()
+                .map_err(|error| QueryError::Internal(error.to_string()))?;
+            check_execution(execution)?;
             Ok(QueryResponse {
                 content_type: RDF_MEDIA_TYPE,
-                body: serializer
-                    .finish()
-                    .map_err(|error| QueryError::Internal(error.to_string()))?,
+                body,
             })
         }
     }
@@ -316,7 +391,7 @@ fn internal_server_error(error: impl std::fmt::Display) -> HttpError {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use oxigraph::model::{NamedNodeRef, QuadRef};
+    use oxigraph::model::{GraphNameRef, NamedNode, NamedNodeRef, QuadRef};
     use std::sync::mpsc;
     use std::thread;
     use std::time::Duration;
@@ -556,7 +631,12 @@ mod tests {
                 .uri("/?query=ASK%20%7B%20%3Fs%20%3Fp%20%3Fo%20%7D")
                 .body(Body::default())
                 .unwrap();
-            let response = handle_shared_request(&mut request, &get_dataset, &get_startup);
+            let response = handle_shared_request(
+                &mut request,
+                &get_dataset,
+                &get_startup,
+                &QueryPolicy::new(None),
+            );
             (
                 response.status().as_u16(),
                 response.into_body().to_string().unwrap(),
@@ -573,7 +653,12 @@ mod tests {
                 .header(CONTENT_TYPE, "application/sparql-query")
                 .body(Body::from("ASK { ?s ?p ?o }"))
                 .unwrap();
-            let response = handle_shared_request(&mut request, &post_dataset, &post_startup);
+            let response = handle_shared_request(
+                &mut request,
+                &post_dataset,
+                &post_startup,
+                &QueryPolicy::new(None),
+            );
             (
                 response.status().as_u16(),
                 response.into_body().to_string().unwrap(),
@@ -605,7 +690,8 @@ mod tests {
             .body(Body::default())
             .unwrap();
 
-        let response = handle_shared_request(&mut request, &dataset, &startup);
+        let response =
+            handle_shared_request(&mut request, &dataset, &startup, &QueryPolicy::new(None));
 
         assert_eq!(response.status(), StatusCode::SERVICE_UNAVAILABLE);
         assert_eq!(
@@ -624,7 +710,8 @@ mod tests {
             .body(Body::default())
             .unwrap();
 
-        let response = handle_shared_request(&mut request, &dataset, &startup);
+        let response =
+            handle_shared_request(&mut request, &dataset, &startup, &QueryPolicy::new(None));
 
         assert_eq!(response.status(), StatusCode::NOT_FOUND);
     }
@@ -645,10 +732,134 @@ mod tests {
         content_type: Option<&str>,
         body: B,
     ) -> Response<Body> {
+        request_with_policy(
+            dataset,
+            &QueryPolicy::new(None),
+            method,
+            uri,
+            content_type,
+            body,
+        )
+    }
+
+    fn request_with_policy<B: Into<Body>>(
+        dataset: &Store,
+        policy: &QueryPolicy,
+        method: Method,
+        uri: &str,
+        content_type: Option<&str>,
+        body: B,
+    ) -> Response<Body> {
         let mut request = Request::builder().method(method).uri(uri);
         if let Some(content_type) = content_type {
             request = request.header(CONTENT_TYPE, content_type);
         }
-        handle_request(&mut request.body(body.into()).unwrap(), dataset)
+        handle_request(&mut request.body(body.into()).unwrap(), dataset, policy)
+    }
+
+    /// Builds a store whose every triple matches an unbound triple pattern, so
+    /// an n-way self-join scans a combinatorial number of candidates.
+    fn cross_product_store(triples: usize) -> Store {
+        let dataset = Store::new().unwrap();
+        for index in 0..triples {
+            let subject = NamedNode::new(format!("urn:node:{index}")).unwrap();
+            dataset
+                .insert(QuadRef::new(
+                    &subject,
+                    NamedNodeRef::new("urn:predicate").unwrap(),
+                    &subject,
+                    GraphNameRef::DefaultGraph,
+                ))
+                .unwrap();
+        }
+        dataset
+    }
+
+    #[test]
+    fn times_out_a_long_running_select_query() {
+        let dataset = cross_product_store(60);
+        let policy = QueryPolicy::new(Some(Duration::from_secs(1)));
+
+        let response = request_with_policy(
+            &dataset,
+            &policy,
+            Method::POST,
+            "/",
+            Some("application/sparql-query"),
+            "SELECT * WHERE { ?a ?b ?c . ?d ?e ?f . ?g ?h ?i . ?j ?k ?l . ?m ?n ?o }",
+        );
+
+        assert_eq!(response.status(), StatusCode::SERVICE_UNAVAILABLE);
+        assert_eq!(
+            response.into_body().to_string().unwrap(),
+            "Query exceeded the 1 s timeout"
+        );
+    }
+
+    #[test]
+    fn times_out_a_long_running_ask_query() {
+        let execution = QueryExecution::expired(Duration::from_secs(20));
+        let error = serialize_query_results(QueryResults::Boolean(true), &execution).unwrap_err();
+
+        assert!(matches!(error, QueryError::Timeout(timeout) if timeout.as_secs() == 20));
+    }
+
+    #[test]
+    fn times_out_a_long_running_graph_query() {
+        let dataset = cross_product_store(8);
+        let execution = QueryExecution::expired(Duration::from_secs(20));
+
+        let error = execute_query(
+            &dataset,
+            "CONSTRUCT { ?a ?b ?c } WHERE { ?a ?b ?c . ?d ?e ?f }",
+            &execution,
+        )
+        .unwrap_err();
+
+        assert!(matches!(error, QueryError::Timeout(timeout) if timeout.as_secs() == 20));
+    }
+
+    #[test]
+    fn times_out_a_select_query_with_an_expired_deadline() {
+        let dataset = cross_product_store(8);
+        let execution = QueryExecution::expired(Duration::from_secs(20));
+
+        let error = execute_query(&dataset, "SELECT * WHERE { ?s ?p ?o }", &execution).unwrap_err();
+
+        assert!(matches!(error, QueryError::Timeout(timeout) if timeout.as_secs() == 20));
+    }
+
+    #[test]
+    fn serves_a_successful_query_after_a_timeout() {
+        let dataset = cross_product_store(60);
+        let policy = QueryPolicy::new(Some(Duration::from_secs(1)));
+
+        let timed_out = request_with_policy(
+            &dataset,
+            &policy,
+            Method::POST,
+            "/",
+            Some("application/sparql-query"),
+            "SELECT * WHERE { ?a ?b ?c . ?d ?e ?f . ?g ?h ?i . ?j ?k ?l . ?m ?n ?o }",
+        );
+        assert_eq!(timed_out.status(), StatusCode::SERVICE_UNAVAILABLE);
+
+        let succeeded = request_with_policy(
+            &dataset,
+            &policy,
+            Method::GET,
+            "/?query=ASK%20%7B%7D",
+            None,
+            "",
+        );
+
+        assert_eq!(succeeded.status(), StatusCode::OK);
+        assert!(
+            succeeded
+                .into_body()
+                .to_string()
+                .unwrap()
+                .contains("\"boolean\":true")
+        );
     }
 }
