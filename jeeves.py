@@ -28,7 +28,7 @@ LANGUAGE_MEASURES = MappingProxyType(
 @docs.command(name='serve')
 def _serve():
     """Serve the documentation with MkDocs."""
-    sh.Command(sys.executable)('-m', 'mkdocs', 'serve', _fg=True)
+    _python_module('mkdocs')('serve', _fg=True)
 
 
 def _main_history():
@@ -123,15 +123,33 @@ def _language_history():
     typer.echo(f'Wrote {LANGUAGE_HISTORY_PATH.relative_to(PROJECT_ROOT)}')
 
 
+def fmt():
+    """Format Rust and Python sources."""
+    if _in_parallel(_fmt_rust, _fmt_python):
+        raise typer.Exit(code=1)
+
+
 def lint():
-    """Autoformat & lint."""
-    with ThreadPoolExecutor(max_workers=2) as executor:
-        tasks = (
-            executor.submit(_lint_rust),
-            executor.submit(_lint_python),
-        )
-        for task in tasks:
-            task.result()
+    """Check Rust and Python sources."""
+    _in_parallel(_lint_rust, _lint_python)
+
+
+def evolve():
+    """Format a clean tree, then lint it."""
+    status = sh.git(
+        'status',
+        '--porcelain',
+        _cwd=PROJECT_ROOT,
+        _tty_out=False,
+    )
+    if str(status).strip():
+        typer.echo('Working tree has uncommitted changes.')
+        typer.echo(status, nl=False)
+        raise typer.Exit(code=1)
+    if _in_parallel(_fmt_rust, _fmt_python):
+        typer.echo('Formatting changed files.')
+        raise typer.Exit(code=1)
+    lint()
 
 
 def publish_pluglet():
@@ -141,16 +159,76 @@ def publish_pluglet():
     poetry('publish', _cwd=PROJECT_ROOT, _fg=True)
 
 
+def _in_parallel(rust_task, python_task):
+    """Run the Rust and Python tasks. Return whether formatting changed files."""
+    with ThreadPoolExecutor(max_workers=2) as executor:
+        tasks = (
+            executor.submit(rust_task),
+            executor.submit(python_task),
+        )
+        changed = False
+        for task in tasks:
+            changed = task.result() or changed
+        return changed
+
+
+def _fmt_rust():
+    """Format Rust sources. Return whether `cargo fmt` changed files."""
+    try:
+        _cargo_fmt(check=True)
+    except sh.ErrorReturnCode_1:
+        _cargo_fmt(check=False)
+        return True
+    return False
+
+
+def _fmt_python():
+    """Format Python sources. Return whether Ruff changed files."""
+    try:
+        _ruff_format(check=False)
+    except sh.ErrorReturnCode_1:
+        return True
+    return False
+
+
 def _lint_rust():
-    """Autoformat and lint the Rust project."""
-    sh.cargo('fmt', _cwd=PROJECT_ROOT, _fg=True)
+    """Check Rust formatting and run Clippy."""
+    _cargo_fmt(check=True)
     sh.cargo('clippy', _cwd=PROJECT_ROOT, _fg=True)
 
 
 def _lint_python():
-    """Autoformat and lint the Python project."""
-    ruff = sh.Command(sys.executable).bake('-m', 'ruff')
-    flake8 = sh.Command(sys.executable).bake('-m', 'flake8')
-    ruff('format', PROJECT_ROOT, _cwd=PROJECT_ROOT, _fg=True)
+    """Check Python formatting, Ruff, and Flake8."""
+    _ruff_format(check=True)
+    ruff = _python_module('ruff')
+    flake8 = _python_module('flake8')
     ruff('check', PROJECT_ROOT, _cwd=PROJECT_ROOT, _fg=True)
     flake8(PROJECT_ROOT, _cwd=PROJECT_ROOT, _fg=True)
+
+
+def _cargo_fmt(*, check):
+    """Run `cargo fmt`, or `cargo fmt -- --check` when `check` is true."""
+    arguments = ['fmt']
+    if check:
+        arguments.extend(('--', '--check'))
+    sh.cargo(*arguments, _cwd=PROJECT_ROOT, _fg=True)
+
+
+def _python_module(name):
+    """Return a command for `python -m <name>`."""
+    return sh.Command(sys.executable).bake('-m', name)
+
+
+def _ruff_format(*, check):
+    """Run Ruff format. Writing exits 1 when Ruff changes a file."""
+    ruff = _python_module('ruff')
+    if check:
+        ruff('format', '--check', PROJECT_ROOT, _cwd=PROJECT_ROOT, _fg=True)
+        return
+    ruff(
+        'format',
+        '--exit-non-zero-on-format',
+        PROJECT_ROOT,
+        _cwd=PROJECT_ROOT,
+        _fg=True,
+    )
