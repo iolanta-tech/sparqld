@@ -15,6 +15,9 @@ _directory: Path | None = None
 _binary: str | Path | None = None
 _server: subprocess.Popen | None = None
 _endpoint: str | None = None
+_STARTUP_TIMEOUT_SECONDS = 30
+_PROBE_TIMEOUT_SECONDS = 0.25
+_HTTP_OK = 200
 
 
 # @todo(existing-sparqld-endpoint): Query an already running sparqld server.
@@ -129,7 +132,7 @@ def ensure_endpoint() -> str:
     )
     _endpoint = endpoint
 
-    deadline = time.monotonic() + 30
+    deadline = time.monotonic() + _STARTUP_TIMEOUT_SECONDS
     while time.monotonic() < deadline:
         if _server.poll() is not None:
             stdout, stderr = _server.communicate()
@@ -140,8 +143,8 @@ def ensure_endpoint() -> str:
                 f'{stderr.strip() or stdout.strip()}'
             )
         try:
-            with urlopen(endpoint, timeout=0.25) as response:
-                if response.status == 200:
+            with urlopen(endpoint, timeout=_PROBE_TIMEOUT_SECONDS) as response:
+                if response.status == _HTTP_OK:
                     return endpoint
         except OSError:
             time.sleep(0.1)
