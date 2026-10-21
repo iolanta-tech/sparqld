@@ -48,6 +48,7 @@ Repository = "https://github.com/iolanta-tech/sparqld"
 [tool.poetry.dependencies]
 python = ">=3.13,<4.0"
 mkdocs-macros-plugin = ">=1.5.0"
+pydantic = ">=2,<3"
 
 [tool.poetry.group.dev.dependencies]
 jeeves-shell = { version = "2.3.4", extras = ["all"] }
