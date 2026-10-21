@@ -1,30 +1,33 @@
 ---
-name: lint
-description: Run and resolve project lint findings in a focused, safe iteration. Use when asked to run `j lint`, investigate Ruff, Flake8/WPS, Cargo formatting, or Clippy failures, or fix a lint issue in this repository.
+name: evolve
+description: Run `j evolve` and resolve the next lint finding group. Use when asked to evolve the repository, run `j evolve`, or fix the next Ruff, Flake8/WPS, Cargo formatting, or Clippy failure.
 ---
 
-# Lint
+# Evolve
 
-Resolve one coherent lint problem at a time. Keep the working tree intact and
-make the next failure easier to understand.
+Run `j evolve` from the repository root. If `j` is unavailable, run
+`.venv/bin/j evolve`. Then act on the reason it stopped. Resolve one coherent
+lint problem at a time. Keep unrelated work intact and make the next failure
+easier to understand.
 
-## Run and group the lint results
+## Act on the command result
 
-1. From the repository root, record `git status --short` and the current diff.
-   Do not overwrite, revert, stage, or otherwise subsume existing work.
-2. Run `j lint`. If the command is unavailable, run `.venv/bin/j lint`.
-   This command runs `cargo fmt`, `cargo clippy`, `ruff format`, `ruff check`,
-   and Flake8; formatting can modify files before a later check fails.
-3. Compare the post-run status and diff with the snapshot. Retain formatter
-   edits and report them separately from pre-existing changes.
-4. Group failures by tool and diagnostic code, with the description, count, and
-   affected files. For WPS, use the `WPS###` code as the initial group key;
-   split it when its occurrences require materially different fixes.
+`j evolve` stops at the first of these:
 
-When lint passes, report that result and any formatter-only changes; do not
-invent another task.
+1. The working tree has uncommitted changes. Report that status and stop. Do
+   not format, lint, or edit.
+2. `j fmt` changed files. Report those edits and stop. Do not start a lint fix
+   on top of uncommitted formatting.
+3. `j lint` printed findings. Group them and fix one group, as below.
+
+When `j evolve` exits 0, report that the tree is clean, formatted, and lint-free.
+Do not invent another task.
 
 ## Choose and resolve a group
+
+Group the printed findings by tool and diagnostic code, with the description,
+count, and affected files. For WPS, use the `WPS###` code as the initial group
+key; split it when its occurrences require materially different fixes.
 
 Select the group with the safest shared, low-risk fix. Use occurrence count
 only to break ties. State the selected group, its locations, and the intended
@@ -45,6 +48,7 @@ continue directly after the proposal.
 ## Verify and learn
 
 1. Rerun `j lint` after the edits and summarize resolved and remaining groups.
+   `j evolve` will stop on the uncommitted fix, so use `j lint` for this check.
 2. Run relevant existing tests when the refactor changes behavior; run
    `cargo test --locked` when Rust code changed.
 3. Review the final diff for accidental formatter or unrelated changes.
