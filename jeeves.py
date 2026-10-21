@@ -2,6 +2,7 @@
 
 import datetime
 import json
+import re
 import sys
 import tempfile
 from concurrent.futures import ThreadPoolExecutor
@@ -129,8 +130,11 @@ def fmt():
         raise typer.Exit(code=1)
 
 
-def lint():
+def lint(diff: bool = False):
     """Check Rust and Python sources."""
+    if diff:
+        _lint_diff()
+        return
     _in_parallel(_lint_rust, _lint_python)
 
 
@@ -232,3 +236,190 @@ def _ruff_format(*, check):
         _cwd=PROJECT_ROOT,
         _fg=True,
     )
+
+
+_HUNK_HEADER = re.compile(r'^@@ -\d+(?:,\d+)? \+(\d+)(?:,(\d+))? @@')
+_LOCATED_FINDING = re.compile(r'^(?P<path>.+?):(?P<line>\d+):\d+:')
+_FORMAT_DIFF = re.compile(r'^Diff in (?P<path>.+?):(?P<line>\d+):')
+_WOULD_REFORMAT = re.compile(r'^Would reformat: (?P<path>.+)$')
+
+
+def _lint_diff():
+    """Report lint findings that sit on lines changed relative to HEAD."""
+    modified = _modified_lines()
+    findings = _text_findings(_check_output(), modified)
+    findings.extend(_clippy_findings(modified))
+    if findings:
+        typer.echo('\n'.join(findings))
+        raise typer.Exit(code=1)
+
+
+def _modified_lines():
+    """Return changed line numbers for each path in the working tree."""
+    lines = _diff_lines(
+        str(
+            sh.git(
+                'diff',
+                'HEAD',
+                '-U0',
+                '--no-color',
+                _cwd=PROJECT_ROOT,
+                _tty_out=False,
+            )
+        )
+    )
+    untracked = str(
+        sh.git(
+            'ls-files',
+            '--others',
+            '--exclude-standard',
+            _cwd=PROJECT_ROOT,
+            _tty_out=False,
+        )
+    )
+    for relative in untracked.splitlines():
+        counted = _file_line_count(relative)
+        lines.setdefault(relative, set()).update(range(1, counted + 1))
+    return lines
+
+
+def _diff_lines(diff):
+    """Collect new-file line numbers from a zero-context git diff."""
+    lines = {}
+    current = None
+    for row in diff.splitlines():
+        if row.startswith('+++ b/'):
+            current = row.removeprefix('+++ b/')
+            if current == '/dev/null':
+                current = None
+            continue
+        if current is None:
+            continue
+        header = _HUNK_HEADER.match(row)
+        if header is None:
+            continue
+        start = int(header.group(1))
+        count = int(header.group(2) or '1')
+        if count == 0:
+            continue
+        lines.setdefault(current, set()).update(range(start, start + count))
+    return lines
+
+
+def _file_line_count(relative):
+    """Return the number of lines in a working-tree file."""
+    return len((PROJECT_ROOT / relative).read_text().splitlines())
+
+
+def _relative_path(path):
+    """Return a repository-relative posix path."""
+    candidate = Path(path)
+    if not candidate.is_absolute():
+        return candidate.as_posix()
+    try:
+        return candidate.resolve().relative_to(PROJECT_ROOT.resolve()).as_posix()
+    except ValueError:
+        return candidate.as_posix()
+
+
+def _line_is_modified(path, line, modified):
+    """Return whether `line` of `path` is in the git diff."""
+    return int(line) in modified.get(_relative_path(path), ())
+
+
+def _command_output(command, *arguments):
+    """Run a command and return its combined output, including failures."""
+    try:
+        completed = command(*arguments, _cwd=PROJECT_ROOT, _tty_out=False)
+    except sh.ErrorReturnCode as error:
+        return f'{error.stdout or ""}{error.stderr or ""}'
+    return str(completed)
+
+
+def _check_output():
+    """Return formatter and Python linter output for the whole tree."""
+    ruff = _python_module('ruff')
+    flake8 = _python_module('flake8')
+    chunks = (
+        _command_output(ruff, 'format', '--check', str(PROJECT_ROOT)),
+        _command_output(
+            ruff,
+            'check',
+            '--output-format',
+            'concise',
+            str(PROJECT_ROOT),
+        ),
+        _command_output(flake8, str(PROJECT_ROOT)),
+        _command_output(sh.cargo, 'fmt', '--', '--check'),
+    )
+    return '\n'.join(chunk for chunk in chunks if str(chunk).strip())
+
+
+def _text_findings(output, modified):
+    """Keep text findings whose path and line are in `modified`."""
+    selected = []
+    include_following = False
+    for row in output.splitlines():
+        located = _LOCATED_FINDING.match(row)
+        formatted = _FORMAT_DIFF.match(row)
+        reformatted = _WOULD_REFORMAT.match(row)
+        if located:
+            include_following = False
+            if _line_is_modified(located['path'], located['line'], modified):
+                selected.append(row)
+            continue
+        if formatted:
+            include_following = _line_is_modified(
+                formatted['path'],
+                formatted['line'],
+                modified,
+            )
+            if include_following:
+                selected.append(row)
+            continue
+        if reformatted:
+            include_following = False
+            if modified.get(_relative_path(reformatted['path'])):
+                selected.append(row)
+            continue
+        if include_following:
+            selected.append(row)
+    return selected
+
+
+def _clippy_findings(modified):
+    """Return Clippy diagnostics whose primary span is on a changed line."""
+    output = _command_output(
+        sh.cargo,
+        'clippy',
+        '--quiet',
+        '--message-format=json',
+    )
+    selected = []
+    for row in str(output).splitlines():
+        if not row.startswith('{'):
+            continue
+        rendered = _clippy_row(json.loads(row), modified)
+        if rendered:
+            selected.append(rendered)
+    return selected
+
+
+def _clippy_row(message, modified):
+    """Format one Clippy JSON message when it touches the diff."""
+    if message.get('reason') != 'compiler-message':
+        return None
+    diagnostic = message.get('message') or {}
+    if diagnostic.get('level') not in {'warning', 'error'}:
+        return None
+    spans = diagnostic.get('spans') or []
+    primary = next((span for span in spans if span.get('is_primary')), None)
+    if primary is None:
+        return None
+    path = primary.get('file_name') or ''
+    line = primary.get('line_start')
+    if not _line_is_modified(path, line, modified):
+        return None
+    column = primary.get('column_start')
+    text = diagnostic.get('message')
+    return f'{_relative_path(path)}:{line}:{column}: {text}'
