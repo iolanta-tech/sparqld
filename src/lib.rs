@@ -1,8 +1,11 @@
 mod loader;
 mod mcp;
 pub mod patterns;
+mod query;
 mod server;
 mod watcher;
+
+pub use query::parse_query_timeout;
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::error::Error;
@@ -10,6 +13,7 @@ use std::io;
 use std::net::ToSocketAddrs;
 use std::path::{Path, PathBuf};
 use std::thread;
+use std::time::Duration;
 
 use oxigraph::store::{StorageError, Store};
 
@@ -41,6 +45,8 @@ pub struct ServeOptions {
     pub watch: bool,
     /// Glob patterns selecting source files relative to the served directory.
     pub patterns: Vec<String>,
+    /// Stop a query that runs longer than this budget. `None` is unlimited.
+    pub query_timeout: Option<Duration>,
 }
 
 impl Default for ServeOptions {
@@ -48,6 +54,7 @@ impl Default for ServeOptions {
         Self {
             watch: true,
             patterns: Vec::new(),
+            query_timeout: None,
         }
     }
 }
@@ -84,7 +91,8 @@ pub fn serve_at_with_options(
 
     let dataset = new_dataset()?;
     let startup = server::StartupGate::new();
-    let listening_server = server::start(dataset.clone(), startup.clone(), addresses)?;
+    let policy = query::QueryPolicy::new(options.query_timeout);
+    let listening_server = server::start(dataset.clone(), startup.clone(), policy, addresses)?;
     start_initialization(
         directory,
         requested_directory.to_owned(),
@@ -100,7 +108,11 @@ pub fn serve_at_with_options(
 }
 
 /// Serves the RDF dataset through a local stdio MCP server.
-pub fn serve_mcp(directory: impl AsRef<Path>, patterns: Vec<String>) -> SparqldResult<()> {
+pub fn serve_mcp(
+    directory: impl AsRef<Path>,
+    patterns: Vec<String>,
+    query_timeout: Option<Duration>,
+) -> SparqldResult<()> {
     let directory = directory.as_ref().canonicalize()?;
     let source_patterns = patterns::SourcePatterns::compile(&patterns).map_err(io::Error::other)?;
     let dataset = new_dataset()?;
@@ -109,6 +121,7 @@ pub fn serve_mcp(directory: impl AsRef<Path>, patterns: Vec<String>) -> SparqldR
         directory,
         source_patterns,
         server::StartupGate::new(),
+        query::QueryPolicy::new(query_timeout),
     )
 }
 
