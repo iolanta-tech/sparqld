@@ -47,11 +47,16 @@ continue directly after the proposal.
 
 ## Verify and learn
 
-1. Rerun `j lint` after the edits and summarize resolved and remaining groups.
-   `j evolve` will stop on the uncommitted fix, so use `j lint` for this check.
-2. Run relevant existing tests when the refactor changes behavior; run
+1. Run `j fmt`.
+2. Run `j lint --diff`. It reports findings only on lines the working tree
+   changes. Those findings must be zero: an edit in one place must not leave a
+   lint failure on the lines it touches.
+3. `j evolve` stops on the uncommitted fix, so do not use it for this check.
+4. Run relevant existing tests when the refactor changes behavior; run
    `cargo test --locked` when Rust code changed.
-3. Review the final diff for accidental formatter or unrelated changes.
+5. Review the final diff for accidental formatter or unrelated changes.
+6. When `j fmt` exits 0 and `j lint --diff` prints nothing, propose `/commit`.
+   Do not commit until the user accepts.
 
 When a validated choice applies across the project—for example, the same
 approved pattern is used in multiple occurrences—or the user calls it a
