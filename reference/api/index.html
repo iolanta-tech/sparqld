@@ -2401,7 +2401,9 @@
 <p><code>sparqld</code> binds its HTTP listener before it finishes the initial directory
 load. Requests at <code>/</code> wait until that load has published its first dataset, so
 the first ordinary query can be the readiness wait. Set the HTTP timeout in the
-client; <code>sparqld</code> does not impose a startup wait deadline.</p>
+client; <code>sparqld</code> does not impose a startup wait deadline. The
+<a href="../#limit-query-time">query timeout</a> starts after this wait, so a
+client-side timeout is still what bounds readiness.</p>
 <p>File-level load errors remain visible in the file catalog and do not prevent
 the first dataset from becoming ready. A fatal initialization error marks root
 requests unavailable with <code>503 Service Unavailable</code> before <code>sparqld</code> exits
@@ -2472,7 +2474,7 @@ not currently negotiate another representation.</p>
 </tr>
 <tr>
 <td><code>503 Service Unavailable</code></td>
-<td>Fatal initial dataset failure before process exit</td>
+<td>Fatal initial dataset failure before process exit, or a query that exceeded <a href="../#limit-query-time"><code>--query-timeout</code></a>. The response body tells them apart.</td>
 </tr>
 <tr>
 <td><code>500 Internal Server Error</code></td>

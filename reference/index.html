@@ -2238,6 +2238,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#limit-query-time" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Limit query time
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#wait-for-the-first-dataset" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -2312,6 +2323,11 @@
 <p>Include or exclude source paths; repeat for multiple patterns</p>
 </li>
 <li>
+<p><span class="twemoji lg middle"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 20a7 7 0 0 1-7-7 7 7 0 0 1 7-7 7 7 0 0 1 7 7 7 7 0 0 1-7 7m7.03-12.61 1.42-1.42c-.45-.51-.9-.97-1.41-1.41L17.62 6c-1.55-1.26-3.5-2-5.62-2a9 9 0 0 0-9 9 9 9 0 0 0 9 9c5 0 9-4.03 9-9 0-2.12-.74-4.07-1.97-5.61M11 14h2V8h-2m4-7H9v2h6z"/></svg></span> <strong><code>--query-timeout &lt;SECONDS&gt;</code></strong></p>
+<hr />
+<p>Stop queries that run longer than this many seconds · Default unlimited</p>
+</li>
+<li>
 <p><span class="twemoji lg middle"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M11 18h2v-2h-2zm1-16A10 10 0 0 0 2 12a10 10 0 0 0 10 10 10 10 0 0 0 10-10A10 10 0 0 0 12 2m0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8m0-14a4 4 0 0 0-4 4h2a2 2 0 0 1 2-2 2 2 0 0 1 2 2c0 2-3 1.75-3 5h2c0-2.25 3-2.5 3-5a4 4 0 0 0-4-4"/></svg></span> <strong><code>-h</code>, <code>--help</code></strong></p>
 <hr />
 <p>Show command help</p>
@@ -2324,7 +2340,7 @@
 </ul>
 </div>
 <h2 id="mcp-server"><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13.85 0a4.16 4.16 0 0 0-2.95 1.217L1.456 10.66a.835.835 0 0 0 0 1.18.835.835 0 0 0 1.18 0l9.442-9.442a2.49 2.49 0 0 1 3.541 0 2.49 2.49 0 0 1 0 3.541L8.59 12.97l-.1.1a.835.835 0 0 0 0 1.18.835.835 0 0 0 1.18 0l.1-.098 7.03-7.034a2.49 2.49 0 0 1 3.542 0l.049.05a2.49 2.49 0 0 1 0 3.54l-8.54 8.54a1.96 1.96 0 0 0 0 2.755l1.753 1.753a.835.835 0 0 0 1.18 0 .835.835 0 0 0 0-1.18l-1.753-1.753a.266.266 0 0 1 0-.394l8.54-8.54a4.185 4.185 0 0 0 0-5.9l-.05-.05a4.16 4.16 0 0 0-2.95-1.218c-.2 0-.401.02-.6.048a4.17 4.17 0 0 0-1.17-3.552A4.16 4.16 0 0 0 13.85 0m0 3.333a.84.84 0 0 0-.59.245L6.275 10.56a4.186 4.186 0 0 0 0 5.902 4.186 4.186 0 0 0 5.902 0L19.16 9.48a.835.835 0 0 0 0-1.18.835.835 0 0 0-1.18 0l-6.985 6.984a2.49 2.49 0 0 1-3.54 0 2.49 2.49 0 0 1 0-3.54l6.983-6.985a.835.835 0 0 0 0-1.18.84.84 0 0 0-.59-.245"/></svg></span> MCP server</h2>
-<div class="highlight"><pre><span></span><code><span class="go">sparqld mcp [--pattern &lt;GLOB&gt;]... &lt;DIRECTORY&gt;</span>
+<div class="highlight"><pre><span></span><code><span class="go">sparqld mcp [--pattern &lt;GLOB&gt;]... [--query-timeout &lt;SECONDS&gt;] &lt;DIRECTORY&gt;</span>
 </code></pre></div>
 <p><code>mcp</code> exposes the directory to an MCP client over standard input and output and
 always watches it for source changes.</p>
@@ -2332,6 +2348,7 @@ always watches it for source changes.</p>
 <li><code>&lt;DIRECTORY&gt;</code> is required.</li>
 <li>Repeat <code>--pattern &lt;GLOB&gt;</code> to include or exclude source paths, using the same
   pattern rules as the HTTP server.</li>
+<li><code>--query-timeout &lt;SECONDS&gt;</code> works the same as for the HTTP server.</li>
 <li><code>--host</code>, <code>--port</code>, and <code>--no-watch</code> apply only to the HTTP server; <code>mcp</code>
   does not accept them.</li>
 </ul>
@@ -2340,6 +2357,21 @@ always watches it for source changes.</p>
 <div class="admonition command">
 <p class="admonition-title">Command</p>
 <div class="highlight"><pre><span></span><code><span class="go">sparqld ./examples --host 0.0.0.0 --port 8080 --no-watch</span>
+</code></pre></div>
+</div>
+<h2 id="limit-query-time"><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 20a7 7 0 0 1-7-7 7 7 0 0 1 7-7 7 7 0 0 1 7 7 7 7 0 0 1-7 7m7.03-12.61 1.42-1.42c-.45-.51-.9-.97-1.41-1.41L17.62 6c-1.55-1.26-3.5-2-5.62-2a9 9 0 0 0-9 9 9 9 0 0 0 9 9c5 0 9-4.03 9-9 0-2.12-.74-4.07-1.97-5.61M11 14h2V8h-2m4-7H9v2h6z"/></svg></span> Limit query time</h2>
+<p><code>--query-timeout</code> takes a positive whole number of seconds. Leaving it unset
+keeps query execution unlimited.</p>
+<p>The budget covers parsing, evaluation, reading every result, and building the
+response. It excludes waiting for the first dataset, reading the request, and
+sending the response. Each query has its own deadline. Partial results are
+discarded.</p>
+<p>Cancellation is cooperative: sorting, aggregation, and similar work between
+engine checkpoints can run past the deadline. <code>sparqld</code> does not stop the
+process.</p>
+<div class="admonition command">
+<p class="admonition-title">Command</p>
+<div class="highlight"><pre><span></span><code><span class="go">sparqld ./examples --query-timeout 20</span>
 </code></pre></div>
 </div>
 <h2 id="wait-for-the-first-dataset"><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 1C8.14 1 5 4.14 5 8a7 7 0 0 0 7 7c3.86 0 7-3.13 7-7 0-3.86-3.14-7-7-7m0 2.15c2.67 0 4.85 2.17 4.85 4.85s-2.18 4.85-4.85 4.85A4.85 4.85 0 0 1 7.15 8 4.85 4.85 0 0 1 12 3.15M11 5v3.69l3.19 1.84.75-1.3-2.44-1.41V5M4 16v8h2v-3h12v3l4-4-4-4v3H6v-3"/></svg></span> Wait for the first dataset</h2>

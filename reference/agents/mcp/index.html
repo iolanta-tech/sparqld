@@ -2517,10 +2517,38 @@ Each term has a string <code>type</code> and string <code>value</code>:</p>
 <p>A triple's subject is an IRI or blank node, its predicate is an IRI, and its
 object can be any of these term kinds.</p>
 <h2 id="errors-and-limits"><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M11 15h2v2h-2zm0-8h2v6h-2zm1-5C6.47 2 2 6.5 2 12a10 10 0 0 0 10 10 10 10 0 0 0 10-10A10 10 0 0 0 12 2m0 18a8 8 0 0 1-8-8 8 8 0 0 1 8-8 8 8 0 0 1 8 8 8 8 0 0 1-8 8"/></svg></span> Errors and limits</h2>
-<p>Tool errors set <code>isError</code> to <code>true</code> and explain the failure in <code>content</code> text.
-This includes invalid queries, SPARQL Update, evaluation failures, and fatal
-initial dataset failures. Queries larger than 1 MiB in UTF-8 are rejected.
-Change data by editing the source files.</p>
+<p>Tool errors set <code>isError</code> to <code>true</code> and explain the failure in <code>content</code> text.</p>
+<table>
+<thead>
+<tr>
+<th>Condition</th>
+<th>Result</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Invalid query or SPARQL Update</td>
+<td>Error text from evaluation</td>
+</tr>
+<tr>
+<td>Query larger than 1 MiB in UTF-8</td>
+<td><code>Query is too large</code></td>
+</tr>
+<tr>
+<td>Fatal initial dataset failure</td>
+<td>The load error</td>
+</tr>
+<tr>
+<td>Query exceeded <a href="../../#limit-query-time"><code>--query-timeout</code></a></td>
+<td>Same reason text as HTTP</td>
+</tr>
+<tr>
+<td>Client cancelled the query</td>
+<td>Server-side work stops at the next checkpoint; no tool result</td>
+</tr>
+</tbody>
+</table>
+<p>Change data by editing the source files.</p>
 <h2 id="investigation-prompt"><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M15.5 12c2.5 0 4.5 2 4.5 4.5 0 .88-.25 1.71-.69 2.4l3.08 3.1L21 23.39l-3.12-3.07c-.69.43-1.51.68-2.38.68-2.5 0-4.5-2-4.5-4.5s2-4.5 4.5-4.5m0 2a2.5 2.5 0 0 0-2.5 2.5 2.5 2.5 0 0 0 2.5 2.5 2.5 2.5 0 0 0 2.5-2.5 2.5 2.5 0 0 0-2.5-2.5M5 3h14c1.11 0 2 .89 2 2v8.03c-.5-.8-1.19-1.49-2-2.03V5H5v14h4.5c.31.75.76 1.42 1.31 2H5c-1.11 0-2-.89-2-2V5c0-1.11.89-2 2-2m2 4h10v2H7zm0 4h5.03c-.8.5-1.49 1.19-2.03 2H7zm0 4h2.17c-.11.5-.17 1-.17 1.5v.5H7z"/></svg></span> Investigation prompt</h2>
 <p>The <code>investigate</code> prompt takes a required <code>question</code> string. It guides the agent
 to discover the vocabulary, run focused queries, and report evidence with the
