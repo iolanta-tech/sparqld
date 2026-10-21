@@ -51,6 +51,12 @@ sparqld [OPTIONS] <DIRECTORY>
 
     Include or exclude source paths; repeat for multiple patterns
 
+-   :material-timer-outline:{ .lg .middle } **`--query-timeout <SECONDS>`**
+
+    ---
+
+    Stop queries that run longer than this many seconds · Default unlimited
+
 -   :material-help-circle-outline:{ .lg .middle } **`-h`, `--help`**
 
     ---
@@ -68,7 +74,7 @@ sparqld [OPTIONS] <DIRECTORY>
 ## :simple-modelcontextprotocol: MCP server
 
 ```console
-sparqld mcp [--pattern <GLOB>]... <DIRECTORY>
+sparqld mcp [--pattern <GLOB>]... [--query-timeout <SECONDS>] <DIRECTORY>
 ```
 
 `mcp` exposes the directory to an MCP client over standard input and output and
@@ -77,6 +83,7 @@ always watches it for source changes.
 - `<DIRECTORY>` is required.
 - Repeat `--pattern <GLOB>` to include or exclude source paths, using the same
   pattern rules as the HTTP server.
+- `--query-timeout <SECONDS>` works the same as for the HTTP server.
 - `--host`, `--port`, and `--no-watch` apply only to the HTTP server; `mcp`
   does not accept them.
 
@@ -85,6 +92,22 @@ always watches it for source changes.
 Options can be composed in any order:
 
 {{ command('sparqld ./examples --host 0.0.0.0 --port 8080 --no-watch') }}
+
+## :material-timer-outline: Limit query time
+
+`--query-timeout` takes a positive whole number of seconds. Leaving it unset
+keeps query execution unlimited.
+
+The budget covers parsing, evaluation, reading every result, and building the
+response. It excludes waiting for the first dataset, reading the request, and
+sending the response. Each query has its own deadline. Partial results are
+discarded.
+
+Cancellation is cooperative: sorting, aggregation, and similar work between
+engine checkpoints can run past the deadline. `sparqld` does not stop the
+process.
+
+{{ command('sparqld ./examples --query-timeout 20') }}
 
 ## :material-clock-start: Wait for the first dataset
 
