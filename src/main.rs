@@ -1,4 +1,5 @@
 use std::path::PathBuf;
+use std::time::Duration;
 
 use clap::{Args, Parser, Subcommand, ValueHint};
 
@@ -51,6 +52,15 @@ struct Cli {
     )]
     patterns: Vec<String>,
 
+    /// Stop queries that run longer than this many seconds
+    #[arg(
+        long = "query-timeout",
+        value_name = "SECONDS",
+        allow_hyphen_values = true,
+        value_parser = sparqld::parse_query_timeout
+    )]
+    query_timeout: Option<Duration>,
+
     #[command(subcommand)]
     command: Option<Command>,
 }
@@ -75,6 +85,15 @@ struct McpCli {
         value_parser = sparqld::patterns::validate_pattern
     )]
     patterns: Vec<String>,
+
+    /// Stop queries that run longer than this many seconds
+    #[arg(
+        long = "query-timeout",
+        value_name = "SECONDS",
+        allow_hyphen_values = true,
+        value_parser = sparqld::parse_query_timeout
+    )]
+    query_timeout: Option<Duration>,
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
@@ -91,13 +110,15 @@ fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         port,
         no_watch,
         patterns,
+        query_timeout,
         command,
     } = Cli::parse();
     match command {
         Some(Command::Mcp(McpCli {
             directory,
             patterns,
-        })) => sparqld::serve_mcp(directory, patterns),
+            query_timeout,
+        })) => sparqld::serve_mcp(directory, patterns, query_timeout),
         None => sparqld::serve_at_with_options(
             directory.expect("Clap requires a directory when no subcommand is given"),
             &host,
@@ -105,6 +126,7 @@ fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
             sparqld::ServeOptions {
                 watch: !no_watch,
                 patterns,
+                query_timeout,
             },
         ),
     }
@@ -124,6 +146,7 @@ mod tests {
         assert_eq!(cli.port, 7737);
         assert!(!cli.no_watch);
         assert!(cli.patterns.is_empty());
+        assert!(cli.query_timeout.is_none());
     }
 
     #[test]
@@ -160,6 +183,7 @@ mod tests {
         assert!(help.contains("--port <PORT>"));
         assert!(help.contains("--no-watch"));
         assert!(help.contains("--pattern <GLOB>"));
+        assert!(help.contains("--query-timeout <SECONDS>"));
         assert!(help.contains("mcp"));
     }
 
@@ -204,9 +228,50 @@ mod tests {
             command,
             Some(Command::Mcp(McpCli {
                 directory,
-                patterns
+                patterns,
+                query_timeout: None,
             })) if directory.as_path() == std::path::Path::new("fixtures/data") && patterns == ["**/*.ttl"]
         ));
+    }
+
+    #[test]
+    fn parses_a_query_timeout() {
+        let cli =
+            Cli::try_parse_from(["sparqld", "--query-timeout", "20", "fixtures/data"]).unwrap();
+        assert_eq!(cli.query_timeout, Some(Duration::from_secs(20)));
+
+        let Cli { command, .. } =
+            Cli::try_parse_from(["sparqld", "mcp", "--query-timeout", "20", "fixtures/data"])
+                .unwrap();
+        assert!(matches!(
+            command,
+            Some(Command::Mcp(McpCli {
+                query_timeout: Some(timeout),
+                ..
+            })) if timeout == Duration::from_secs(20)
+        ));
+    }
+
+    #[test]
+    fn rejects_invalid_query_timeouts() {
+        for value in ["0", "-1", "abc", "1.5", "20s", &u64::MAX.to_string()] {
+            let error = Cli::try_parse_from(["sparqld", "--query-timeout", value, "fixtures/data"])
+                .unwrap_err();
+            assert_eq!(error.kind(), ErrorKind::ValueValidation, "{value}");
+
+            let error =
+                Cli::try_parse_from(["sparqld", "mcp", "--query-timeout", value, "fixtures/data"])
+                    .unwrap_err();
+            assert_eq!(error.kind(), ErrorKind::ValueValidation, "mcp {value}");
+        }
+    }
+
+    #[test]
+    fn mcp_help_lists_query_timeout() {
+        let error = Cli::try_parse_from(["sparqld", "mcp", "--help"]).unwrap_err();
+
+        assert_eq!(error.kind(), ErrorKind::DisplayHelp);
+        assert!(error.to_string().contains("--query-timeout <SECONDS>"));
     }
 
     #[test]
