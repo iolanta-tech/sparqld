@@ -1,0 +1,4 @@
+interface:
+  display_name: "Evolve"
+  short_description: "Format a clean tree, then fix the next lint group"
+  default_prompt: "Use $evolve to run `j evolve` and resolve the next lint group."
