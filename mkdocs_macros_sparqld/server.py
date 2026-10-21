@@ -40,6 +40,7 @@ _endpoint: str | None = None
 #     process and that stop_server() leaves the endpoint usable.
 #   - Test the existing managed-server path unchanged.
 
+
 # @todo(riddles-integration): Serve Riddles output through sparqld.
 # description: >
 #   Build or use the real `riddles` executable and start sparqld with
