@@ -160,6 +160,10 @@ serde = { version = "1", features = ["derive"] }
 serde-saphyr = "1"
 serde_json = "1"
 tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
+tokio-util = "0.7"
+
+[lints.clippy]
+cognitive_complexity = "deny"
 
 [dev-dependencies]
 rmcp = { version = "3.0.1", features = ["client", "transport-child-process"] }
