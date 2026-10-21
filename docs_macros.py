@@ -33,7 +33,7 @@ DISPLAY_ENDPOINT = 'http://127.0.0.1:7737/'
 #   project mission, and any roadmap outcome that is not owned by a code
 #   annotation. Add docs/queries/roadmap.rq, a SELECT query returning each
 #   roadmap item, title, and optional urn:riddle:blockedBy item. Add
-#   `roadmap_mermaid('docs/queries/roadmap.rq')` to DocumentationMacros; it
+#   `roadmap_mermaid('docs/queries/roadmap.rq')`; it
 #   runs that stored query and returns a deterministic `flowchart LR` block.
 # rendering:
 #   - Give each IRI a deterministic Mermaid-safe node ID and HTML-escape title
@@ -116,6 +116,10 @@ def _github_url(relative, repo_url, directory=False):
     return f'{repo_url.rstrip("/")}/{operation}/main/{relative}'
 
 
+def _repository_url(env):
+    return env.conf.get('repo_url') or REPO_URL
+
+
 def _indent_block(body, indent):
     return textwrap.indent(body, ' ' * indent, lambda _: True)
 
@@ -174,7 +178,7 @@ def _human_date(date_value):
     return f'{parsed.day} {parsed.strftime("%B %Y")}'
 
 
-def _adr_metadata(value_date, status):
+def adr_metadata(value_date, status):
     status_key = str(status).lower()
     kind = _ADR_STATUS_ADMONITION.get(status_key, 'note')
     parts = []
@@ -202,7 +206,7 @@ _UNIVERSE_STATUS = MappingProxyType(
 )
 
 
-def _universe_metadata(adr_path, status):
+def universe_metadata(adr_path, status):
     """Render the relationship and status of a supporting alternative page."""
     status_key = str(status).lower()
     kind, label = _UNIVERSE_STATUS.get(status_key, ('note', str(status).title()))
@@ -214,68 +218,300 @@ def _universe_metadata(adr_path, status):
     )
 
 
-class DocumentationMacros:
-    """Documentation macros bound to one MkDocs environment."""
+def example_code(name, indent=0):
+    path = _example_path(name)
+    source = path.read_text().rstrip('\n')
+    syntax = _EXAMPLE_SYNTAXES.get(path.suffix.lower(), 'text')
+    return _indent_block(f'```{syntax}\n{source}\n```\n', indent)
+
+
+def decision_log():
+    query = (QUERIES_DIR / 'decisions.rq').read_text()
+    _, body = run_query(query)
+    bindings = json.loads(body)['results']['bindings']
+    cards = ['<div class="grid cards adr-cards" markdown>', '']
+    for binding in bindings:
+        page = binding['graph']['value'].rsplit('/', 1)[-1]
+        title = binding['title']['value']
+        status_key = binding['status']['value'].lower()
+        status = _ADR_STATUS.get(
+            status_key,
+            status_key.replace('_', ' ').title(),
+        )
+        date = _human_date(binding['date']['value'])
+        cards.extend(
+            [
+                f'-   __[{title}]({page})__',
+                '',
+                '    ---',
+                '',
+                (
+                    f'    <span class="adr-status adr-status--{status_key}">'
+                    f'{status}</span>'
+                ),
+                '',
+                (
+                    f'    :material-calendar-outline: '
+                    f'<span class="adr-date">{date}</span>'
+                ),
+                '',
+            ]
+        )
+    cards.append('</div>')
+    return '\n'.join(cards)
+
+
+def shell(command, env=None, output_format=None, indent=0):
+    """Run a shell command and render its JSON output."""
+    if output_format is None:
+        output_format = json.__name__
+    if output_format != json.__name__:
+        raise ValueError(f'Unsupported shell output format: {output_format}')
+    try:
+        output = json.dumps(
+            json.loads(
+                _run(
+                    command,
+                    environment={
+                        **os.environ,
+                        **{
+                            name: str(env_value)
+                            for name, env_value in (env or {}).items()
+                        },
+                    },
+                    shell=True,
+                )
+            ),
+            indent=2,
+        )
+    except json.JSONDecodeError as error:
+        stop_server()
+        raise RuntimeError(
+            f'Documentation shell command did not return JSON: {command}'
+        ) from error
+    return _indent_block(
+        f'```console\n{command}\n```\n\n'
+        f'```{json.__name__} title="Response"\n{output}\n```',
+        indent,
+    )
+
+
+def verify_clients():
+    endpoint = ensure_endpoint()
+    query_files = {
+        'select': QUERIES_DIR / 'names.rq',
+        'ask': QUERIES_DIR / 'ask-data.rq',
+        'construct': QUERIES_DIR / 'construct-name.rq',
+    }
+    clients = {
+        'sq': (
+            _command('sq'),
+            [
+                (
+                    ['-e', endpoint, 'graphs'],
+                    'sparqld:examples/alpha-centauri.yamlld',
+                ),
+                (['-e', endpoint, '-f', str(query_files['ask'])], 'true'),
+                (
+                    ['-e', endpoint, '-f', str(query_files['construct'])],
+                    'Alpha Centauri',
+                ),
+            ],
+        ),
+        'rsparql': (
+            _command(
+                'rsparql',
+                next(
+                    iter(
+                        sorted((ROOT_DIR / '.tools').glob('apache-jena-*/bin/rsparql'))
+                    ),
+                    None,
+                ),
+            ),
+            [
+                (
+                    ['--service', endpoint, '--query', str(query_files['select'])],
+                    'Alpha Centauri',
+                ),
+                (
+                    ['--service', endpoint, '--query', str(query_files['ask'])],
+                    'Yes',
+                ),
+                (
+                    [
+                        '--service',
+                        endpoint,
+                        '--query',
+                        str(query_files['construct']),
+                    ],
+                    'Alpha Centauri',
+                ),
+            ],
+        ),
+        'comunica-sparql': (
+            _command(
+                'comunica-sparql',
+                ROOT_DIR / 'node_modules' / '.bin' / 'comunica-sparql',
+            ),
+            [
+                (
+                    [f'sparql@{endpoint}', '-f', str(query_files['select'])],
+                    'Alpha Centauri',
+                ),
+                ([f'sparql@{endpoint}', '-f', str(query_files['ask'])], 'true'),
+                (
+                    [f'sparql@{endpoint}', '-f', str(query_files['construct'])],
+                    'Alpha Centauri',
+                ),
+            ],
+        ),
+        'sparqlquery': (
+            _command('sparqlquery'),
+            [
+                (
+                    [endpoint, '--queryfile', str(query_files['select'])],
+                    'Alpha Centauri',
+                ),
+                ([endpoint, '--queryfile', str(query_files['ask'])], 'true'),
+                (
+                    [endpoint, '--queryfile', str(query_files['construct'])],
+                    'Alpha Centauri',
+                ),
+            ],
+        ),
+    }
+    for executable, checks in clients.values():
+        for arguments, expected in checks:
+            _run([executable, *arguments], expected=expected)
+
+    _run(
+        [
+            _command('curl'),
+            '--silent',
+            '--show-error',
+            '--fail-with-body',
+            '--get',
+            endpoint,
+            '--data-urlencode',
+            'query=ASK { ?subject ?predicate ?object }',
+        ],
+        expected='"boolean":true',
+    )
+
+    sq = clients['sq'][0]
+    config = (
+        (CLIENTS_DIR / 'sq' / 'sq.toml')
+        .read_text()
+        .replace(
+            DISPLAY_ENDPOINT,
+            endpoint,
+        )
+    )
+    with tempfile.TemporaryDirectory(prefix='sparqld-docs-sq-') as directory:
+        config_directory = Path(directory)
+        (config_directory / '.sq.toml').write_text(config)
+        _run(
+            [sq, 'graphs'],
+            expected='data:index.md',
+            cwd=directory,
+        )
+        _run(
+            [sq, '-f', str(QUERIES_DIR / 'sq-named-graph.rq')],
+            expected='sparqld',
+            cwd=directory,
+        )
+    return (
+        '<!-- curl, sq, rsparql, Comunica, and sparqlquery passed '
+        'live compatibility checks. -->'
+    )
+
+
+def command(command_text, indent=0):
+    body = f'```console\n{command_text}\n```'
+    return f'!!! command "Command"\n\n{_indent_block(body, indent + 4)}\n'
+
+
+def _source_data(path, repository_path, indent, title, repo_url):
+    if not path.is_file():
+        raise ValueError(f'Documentation source does not exist: {path}')
+    source = path.read_text().rstrip('\n')
+    syntax = _EXAMPLE_SYNTAXES.get(path.suffix.lower(), 'text')
+    github_url = _github_url(
+        repository_path,
+        repo_url,
+    )
+    heading = (
+        f'{title}<span class="example-source-link" markdown>'
+        f':fontawesome-brands-github: [`{path.name}`]({github_url})'
+        f'</span>'
+    )
+    body = f'```{syntax}\n{source}\n```'
+    rendered = f'!!! example "{heading}"\n\n{_indent_block(body, 4)}\n'
+    return _indent_block(rendered, indent)
+
+
+def _append_directory(lines, directory, depth, repo_url):
+    entries = sorted(
+        directory.iterdir(),
+        key=lambda entry: (not entry.is_dir(), entry.name.lower()),
+    )
+    for index, entry in enumerate(entries):
+        last = index == len(entries) - 1
+        connector = '└──' if last else '├──'
+        relative = entry.relative_to(ROOT_DIR)
+        padding = '&nbsp;&nbsp;&nbsp;&nbsp;' * depth
+        if entry.is_dir():
+            url = _github_url(relative, repo_url, directory=True)
+            lines.append(
+                f'{padding}{connector} :material-folder: **[`{entry.name}/`]({url})**  '
+            )
+            _append_directory(lines, entry, depth + 1, repo_url)
+        else:
+            url = _github_url(relative, repo_url)
+            icon = _EXAMPLE_ICONS.get(entry.suffix.lower(), ':material-file-outline:')
+            lines.append(f'{padding}{connector} {icon} [`{entry.name}`]({url})  ')
+
+
+class EnvironmentMacros:
+    """Macros that read the repository URL from the MkDocs environment."""
 
     def __init__(self, env):
         self._env = env
-
-    def _source_data(self, path, repository_path, indent, title):
-        if not path.is_file():
-            raise ValueError(f'Documentation source does not exist: {path}')
-        source = path.read_text().rstrip('\n')
-        syntax = _EXAMPLE_SYNTAXES.get(path.suffix.lower(), 'text')
-        github_url = _github_url(
-            repository_path,
-            self._env.conf.get('repo_url') or REPO_URL,
-        )
-        heading = (
-            f'{title}<span class="example-source-link" markdown>'
-            f':fontawesome-brands-github: [`{path.name}`]({github_url})'
-            f'</span>'
-        )
-        body = f'```{syntax}\n{source}\n```'
-        rendered = f'!!! example "{heading}"\n\n{_indent_block(body, 4)}\n'
-        return _indent_block(rendered, indent)
-
-    def adr_metadata(self, date, status):
-        return _adr_metadata(date, status)
-
-    def universe_metadata(self, adr_path, status):
-        return _universe_metadata(adr_path, status)
 
     def source(self, path, indent=0, title='Source'):
         """Render any project file as an example admonition."""
         file_path = (ROOT_DIR / path).resolve()
         if not file_path.is_relative_to(ROOT_DIR):
             raise ValueError(f'Invalid path outside the project: {path}')
-        return self._source_data(file_path, Path(path), indent, title)
+        return _source_data(
+            file_path,
+            Path(path),
+            indent,
+            title,
+            _repository_url(self._env),
+        )
 
     def example_data(self, name, indent=0, title='Source'):
         return self.source(Path('docs/examples') / name, indent=indent, title=title)
 
-    def example_code(self, name, indent=0):
-        path = _example_path(name)
-        source = path.read_text().rstrip('\n')
-        syntax = _EXAMPLE_SYNTAXES.get(path.suffix.lower(), 'text')
-        return _indent_block(f'```{syntax}\n{source}\n```\n', indent)
-
     def result_data(self, name, indent=0, title='Result'):
         path = RESULTS_DIR / name
-        return self._source_data(
+        return _source_data(
             path,
             Path('docs/results') / name,
             indent,
             title,
+            _repository_url(self._env),
         )
 
     def client_data(self, name, indent=0, title='Configuration'):
         path = CLIENTS_DIR / name
-        return self._source_data(
+        return _source_data(
             path,
             Path('docs/reference/clients') / name,
             indent,
             title,
+            _repository_url(self._env),
         )
 
     def agent_conversation(self, name):
@@ -285,7 +521,7 @@ class DocumentationMacros:
         if not prompt_path.is_file() or not response_path.is_file():
             raise ValueError(f'Agent conversation does not exist: {name}')
 
-        repo_url = self._env.conf.get('repo_url') or REPO_URL
+        repo_url = _repository_url(self._env)
         prompt_url = _github_url(
             Path('docs/conversations') / name / prompt_path.name,
             repo_url,
@@ -313,234 +549,6 @@ class DocumentationMacros:
             f'!!! agent-codex "{response_heading}"\n\n{response}\n'
         )
 
-    def decision_log(self):
-        query = (QUERIES_DIR / 'decisions.rq').read_text()
-        _, body = run_query(query)
-        bindings = json.loads(body)['results']['bindings']
-        cards = ['<div class="grid cards adr-cards" markdown>', '']
-        for binding in bindings:
-            page = binding['graph']['value'].rsplit('/', 1)[-1]
-            title = binding['title']['value']
-            status_key = binding['status']['value'].lower()
-            status = _ADR_STATUS.get(
-                status_key,
-                status_key.replace('_', ' ').title(),
-            )
-            date = _human_date(binding['date']['value'])
-            cards.extend(
-                [
-                    f'-   __[{title}]({page})__',
-                    '',
-                    '    ---',
-                    '',
-                    (
-                        f'    <span class="adr-status adr-status--{status_key}">'
-                        f'{status}</span>'
-                    ),
-                    '',
-                    (
-                        f'    :material-calendar-outline: '
-                        f'<span class="adr-date">{date}</span>'
-                    ),
-                    '',
-                ]
-            )
-        cards.append('</div>')
-        return '\n'.join(cards)
-
-    def shell(self, command, env=None, output_format=None, indent=0):
-        """Run a shell command and render its JSON output."""
-        if output_format is None:
-            output_format = json.__name__
-        if output_format != json.__name__:
-            raise ValueError(f'Unsupported shell output format: {output_format}')
-        try:
-            output = json.dumps(
-                json.loads(
-                    _run(
-                        command,
-                        environment={
-                            **os.environ,
-                            **{
-                                name: str(env_value)
-                                for name, env_value in (env or {}).items()
-                            },
-                        },
-                        shell=True,
-                    )
-                ),
-                indent=2,
-            )
-        except json.JSONDecodeError as error:
-            stop_server()
-            raise RuntimeError(
-                f'Documentation shell command did not return JSON: {command}'
-            ) from error
-        return _indent_block(
-            f'```console\n{command}\n```\n\n'
-            f'```{json.__name__} title="Response"\n{output}\n```',
-            indent,
-        )
-
-    def verify_clients(self):
-        endpoint = ensure_endpoint()
-        query_files = {
-            'select': QUERIES_DIR / 'names.rq',
-            'ask': QUERIES_DIR / 'ask-data.rq',
-            'construct': QUERIES_DIR / 'construct-name.rq',
-        }
-        clients = {
-            'sq': (
-                _command('sq'),
-                [
-                    (
-                        ['-e', endpoint, 'graphs'],
-                        'sparqld:examples/alpha-centauri.yamlld',
-                    ),
-                    (['-e', endpoint, '-f', str(query_files['ask'])], 'true'),
-                    (
-                        ['-e', endpoint, '-f', str(query_files['construct'])],
-                        'Alpha Centauri',
-                    ),
-                ],
-            ),
-            'rsparql': (
-                _command(
-                    'rsparql',
-                    next(
-                        iter(
-                            sorted(
-                                (ROOT_DIR / '.tools').glob('apache-jena-*/bin/rsparql')
-                            )
-                        ),
-                        None,
-                    ),
-                ),
-                [
-                    (
-                        ['--service', endpoint, '--query', str(query_files['select'])],
-                        'Alpha Centauri',
-                    ),
-                    (
-                        ['--service', endpoint, '--query', str(query_files['ask'])],
-                        'Yes',
-                    ),
-                    (
-                        [
-                            '--service',
-                            endpoint,
-                            '--query',
-                            str(query_files['construct']),
-                        ],
-                        'Alpha Centauri',
-                    ),
-                ],
-            ),
-            'comunica-sparql': (
-                _command(
-                    'comunica-sparql',
-                    ROOT_DIR / 'node_modules' / '.bin' / 'comunica-sparql',
-                ),
-                [
-                    (
-                        [f'sparql@{endpoint}', '-f', str(query_files['select'])],
-                        'Alpha Centauri',
-                    ),
-                    ([f'sparql@{endpoint}', '-f', str(query_files['ask'])], 'true'),
-                    (
-                        [f'sparql@{endpoint}', '-f', str(query_files['construct'])],
-                        'Alpha Centauri',
-                    ),
-                ],
-            ),
-            'sparqlquery': (
-                _command('sparqlquery'),
-                [
-                    (
-                        [endpoint, '--queryfile', str(query_files['select'])],
-                        'Alpha Centauri',
-                    ),
-                    ([endpoint, '--queryfile', str(query_files['ask'])], 'true'),
-                    (
-                        [endpoint, '--queryfile', str(query_files['construct'])],
-                        'Alpha Centauri',
-                    ),
-                ],
-            ),
-        }
-        for executable, checks in clients.values():
-            for arguments, expected in checks:
-                _run([executable, *arguments], expected=expected)
-
-        _run(
-            [
-                _command('curl'),
-                '--silent',
-                '--show-error',
-                '--fail-with-body',
-                '--get',
-                endpoint,
-                '--data-urlencode',
-                'query=ASK { ?subject ?predicate ?object }',
-            ],
-            expected='"boolean":true',
-        )
-
-        sq = clients['sq'][0]
-        config = (
-            (CLIENTS_DIR / 'sq' / 'sq.toml')
-            .read_text()
-            .replace(
-                DISPLAY_ENDPOINT,
-                endpoint,
-            )
-        )
-        with tempfile.TemporaryDirectory(prefix='sparqld-docs-sq-') as directory:
-            config_directory = Path(directory)
-            (config_directory / '.sq.toml').write_text(config)
-            _run(
-                [sq, 'graphs'],
-                expected='data:index.md',
-                cwd=directory,
-            )
-            _run(
-                [sq, '-f', str(QUERIES_DIR / 'sq-named-graph.rq')],
-                expected='sparqld',
-                cwd=directory,
-            )
-        return (
-            '<!-- curl, sq, rsparql, Comunica, and sparqlquery passed '
-            'live compatibility checks. -->'
-        )
-
-    def command(self, command_text, indent=0):
-        body = f'```console\n{command_text}\n```'
-        return f'!!! command "Command"\n\n{_indent_block(body, indent + 4)}\n'
-
-    def _append_directory(self, lines, directory, depth, repo_url):
-        entries = sorted(
-            directory.iterdir(),
-            key=lambda entry: (not entry.is_dir(), entry.name.lower()),
-        )
-        for index, entry in enumerate(entries):
-            last = index == len(entries) - 1
-            connector = '└──' if last else '├──'
-            relative = entry.relative_to(ROOT_DIR)
-            padding = '&nbsp;&nbsp;&nbsp;&nbsp;' * depth
-            if entry.is_dir():
-                url = _github_url(relative, repo_url, directory=True)
-                lines.append(
-                    f'{padding}{connector} :material-folder: '
-                    f'**[`{entry.name}/`]({url})**  '
-                )
-                self._append_directory(lines, entry, depth + 1, repo_url)
-            else:
-                url = _github_url(relative, repo_url)
-                icon = _EXAMPLE_ICONS.get(
-                    entry.suffix.lower(), ':material-file-outline:'
-                )
-                lines.append(f'{padding}{connector} {icon} [`{entry.name}`]({url})  ')
-
     def directory_tree(self, directory):
         root = (ROOT_DIR / directory).resolve()
         if not root.is_relative_to(ROOT_DIR):
@@ -548,30 +556,30 @@ class DocumentationMacros:
         if not root.is_dir():
             raise ValueError(f'Directory does not exist: {directory}')
 
-        repo_url = self._env.conf.get('repo_url') or REPO_URL
+        repo_url = _repository_url(self._env)
         root_relative = root.relative_to(ROOT_DIR)
         root_url = _github_url(root_relative, repo_url, directory=True)
         lines = [
             f':material-folder: **[`{root.name}/`]({root_url})**  ',
         ]
 
-        self._append_directory(lines, root, 0, repo_url)
+        _append_directory(lines, root, 0, repo_url)
         return '\n'.join(lines)
 
 
 def define_env(env):
     """Register documentation macros."""
-    macros = DocumentationMacros(env)
-    env.macro(macros.adr_metadata)
-    env.macro(macros.universe_metadata)
+    macros = EnvironmentMacros(env)
+    env.macro(adr_metadata)
+    env.macro(universe_metadata)
     env.macro(macros.source)
     env.macro(macros.example_data)
-    env.macro(macros.example_code)
+    env.macro(example_code)
     env.macro(macros.result_data)
     env.macro(macros.client_data)
     env.macro(macros.agent_conversation)
-    env.macro(macros.decision_log)
-    env.macro(macros.shell)
-    env.macro(macros.verify_clients)
-    env.macro(macros.command)
+    env.macro(decision_log)
+    env.macro(shell)
+    env.macro(verify_clients)
+    env.macro(command)
     env.macro(macros.directory_tree)
