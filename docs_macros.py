@@ -21,6 +21,8 @@ QUERIES_DIR = ROOT_DIR / 'docs' / 'queries'
 RESULTS_DIR = ROOT_DIR / 'docs' / 'results'
 REPO_URL = 'https://github.com/iolanta-tech/sparqld'
 DISPLAY_ENDPOINT = 'http://127.0.0.1:7737/'
+_QUERY_FILE_FLAG = '-f'
+_SQ = 'sq'
 _ALPHA_CENTAURI = 'Alpha Centauri'
 
 # @todo(generated-roadmap): Render the roadmap from the sparqld dataset.
@@ -311,16 +313,16 @@ def verify_clients():
         'construct': QUERIES_DIR / 'construct-name.rq',
     }
     clients = {
-        'sq': (
-            _command('sq'),
+        _SQ: (
+            _command(_SQ),
             [
                 (
                     ['-e', endpoint, 'graphs'],
                     'sparqld:examples/alpha-centauri.yamlld',
                 ),
-                (['-e', endpoint, '-f', str(query_files['ask'])], 'true'),
+                (['-e', endpoint, _QUERY_FILE_FLAG, str(query_files['ask'])], 'true'),
                 (
-                    ['-e', endpoint, '-f', str(query_files['construct'])],
+                    ['-e', endpoint, _QUERY_FILE_FLAG, str(query_files['construct'])],
                     _ALPHA_CENTAURI,
                 ),
             ],
@@ -362,12 +364,12 @@ def verify_clients():
             ),
             [
                 (
-                    [f'sparql@{endpoint}', '-f', str(query_files['select'])],
+                    [f'sparql@{endpoint}', _QUERY_FILE_FLAG, str(query_files['select'])],
                     _ALPHA_CENTAURI,
                 ),
-                ([f'sparql@{endpoint}', '-f', str(query_files['ask'])], 'true'),
+                ([f'sparql@{endpoint}', _QUERY_FILE_FLAG, str(query_files['ask'])], 'true'),
                 (
-                    [f'sparql@{endpoint}', '-f', str(query_files['construct'])],
+                    [f'sparql@{endpoint}', _QUERY_FILE_FLAG, str(query_files['construct'])],
                     _ALPHA_CENTAURI,
                 ),
             ],
@@ -405,9 +407,9 @@ def verify_clients():
         expected='"boolean":true',
     )
 
-    sq = clients['sq'][0]
+    sq = clients[_SQ][0]
     config = (
-        (CLIENTS_DIR / 'sq' / 'sq.toml')
+        (CLIENTS_DIR / _SQ / 'sq.toml')
         .read_text()
         .replace(
             DISPLAY_ENDPOINT,
@@ -423,7 +425,7 @@ def verify_clients():
             cwd=directory,
         )
         _run(
-            [sq, '-f', str(QUERIES_DIR / 'sq-named-graph.rq')],
+            [sq, _QUERY_FILE_FLAG, str(QUERIES_DIR / 'sq-named-graph.rq')],
             expected='sparqld',
             cwd=directory,
         )
