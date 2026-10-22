@@ -6,6 +6,14 @@
   Render them in documentation through the corresponding MkDocs macro instead
   of embedding their contents directly in a page.
 
+## Commands
+
+- `jeeves.py` runs with the direnv virtualenv active. Invoke `ruff`, `flake8`,
+  `mkdocs`, and Cargo through `sh` (`sh.ruff`, `sh.flake8`, `sh.mkdocs`,
+  `sh.cargo`).
+- Bake optional or repeated arguments with `bake`. Pass rustfmt `--check` after
+  `--` on `sh.cargo.fmt`.
+
 ## Browser validation
 
 - Before starting a development server, check whether the project's documented
