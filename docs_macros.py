@@ -214,7 +214,8 @@ _UNIVERSE_STATUS = MappingProxyType(
 def universe_metadata(adr_path, status):
     """Render the relationship and status of a supporting alternative page."""
     status_key = str(status).lower()
-    kind, label = _UNIVERSE_STATUS.get(status_key, ('note', str(status).title()))
+    unknown_status = ('note', str(status).title())
+    kind, label = _UNIVERSE_STATUS.get(status_key, unknown_status)
     article = label.lower()
     return (
         f'!!! {kind} "{label} alternative universe"\n\n'
