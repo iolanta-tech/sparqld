@@ -280,7 +280,7 @@ def _modified_lines():
     )
     for relative in untracked.splitlines():
         counted = _file_line_count(relative)
-        lines.setdefault(relative, set()).update(range(1, counted + 1))
+        _add_lines(lines, relative, 1, counted + 1)
     return lines
 
 
@@ -303,8 +303,14 @@ def _diff_lines(diff):
         count = int(header.group(2) or '1')
         if count == 0:
             continue
-        lines.setdefault(current, set()).update(range(start, start + count))
+        _add_lines(lines, current, start, start + count)
     return lines
+
+
+def _add_lines(lines, path, start, stop):
+    """Record line numbers `start` through `stop` for `path`."""
+    numbered = lines.setdefault(path, set())
+    numbered.update(range(start, stop))
 
 
 def _file_line_count(relative):
