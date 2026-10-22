@@ -140,7 +140,7 @@ def ensure_endpoint() -> str:
             _endpoint = None
             raise RuntimeError(
                 'Could not start sparqld for documentation macros.\n'
-                f'{stderr.strip() or stdout.strip()}'
+                + (stderr.strip() or stdout.strip())
             )
         try:
             with urlopen(endpoint, timeout=_PROBE_TIMEOUT_SECONDS) as response:
