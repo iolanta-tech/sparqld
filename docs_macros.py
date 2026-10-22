@@ -136,9 +136,14 @@ def _command(name, fallback=None):
     )
 
 
+def _command_text(command):
+    return ' '.join(map(str, command))
+
+
 def _run(command, expected=None, environment=None, cwd=ROOT_DIR, shell=False):
     if shell:
         command = ['/bin/sh', '-c', command]
+    command_text = _command_text(command)
     try:
         completed_process = subprocess.run(
             command,
@@ -157,14 +162,14 @@ def _run(command, expected=None, environment=None, cwd=ROOT_DIR, shell=False):
         stop_server()
         detail = (error.stderr or error.stdout).strip()
         raise RuntimeError(
-            f'Documentation command failed: {" ".join(map(str, command))}\n{detail}'
+            f'Documentation command failed: {command_text}\n{detail}'
         ) from error
     output = completed_process.stdout.strip()
     if expected and expected not in output:
         stop_server()
         raise RuntimeError(
             f'Documentation command did not return `{expected}`: '
-            f'{" ".join(map(str, command))}\n{output}'
+            f'{command_text}\n{output}'
         )
     return output
 
