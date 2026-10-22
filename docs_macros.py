@@ -168,7 +168,7 @@ def _run(command, expected=None, environment=None, cwd=ROOT_DIR, shell=False):
     if expected and expected not in output:
         stop_server()
         raise RuntimeError(
-            f'Documentation command did not return `{expected}`: '
+            f'Documentation command did not return `{expected}`:\n'
             f'{command_text}\n{output}'
         )
     return output
