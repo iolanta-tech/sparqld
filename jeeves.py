@@ -15,6 +15,7 @@ from matplotlib import pyplot
 
 docs = typer.Typer(no_args_is_help=True)
 PROJECT_ROOT = Path(__file__).parent
+_SH_CWD = str(PROJECT_ROOT)
 LANGUAGE_HISTORY_PATH = PROJECT_ROOT / 'docs/project/language-history.svg'
 LANGUAGE_MEASURES = MappingProxyType(
     {
@@ -34,7 +35,7 @@ def _serve():
 def _main_history():
     """Return first-parent main commits from oldest to newest."""
     return sh.git(
-        'rev-list', 'main', first_parent=True, reverse=True, _cwd=PROJECT_ROOT
+        'rev-list', 'main', first_parent=True, reverse=True, _cwd=_SH_CWD
     ).splitlines()
 
 
@@ -45,7 +46,7 @@ def _commit_timestamp(commit):
             commit,
             no_patch=True,
             format='%at',
-            _cwd=PROJECT_ROOT,
+            _cwd=_SH_CWD,
             _tty_out=False,
         ).strip()
     )
@@ -76,7 +77,7 @@ def _render_language_history(points):
     }
     figure, axes = pyplot.subplots(figsize=(12, 5), layout='constrained')
     axes.stackplot(
-        dates,
+        matplotlib_dates.date2num(dates),
         *([point[language] for point in points] for language in colors),
         colors=colors.values(),
         labels=colors,
@@ -110,8 +111,8 @@ def _language_history():
         for index, commit in enumerate(commits):
             snapshot = Path(temporary) / str(index)
             snapshot.mkdir()
-            sh.git.archive(commit, format='tar', _cwd=PROJECT_ROOT, _out=archive)
-            sh.tar(extract=True, file=archive, directory=snapshot)
+            sh.git.archive(commit, format='tar', _cwd=_SH_CWD, _out=str(archive))
+            sh.tar(extract=True, file=str(archive), directory=str(snapshot))
             points.append(
                 {
                     'timestamp': _commit_timestamp(commit),
@@ -142,7 +143,7 @@ def evolve():
     status = sh.git(
         'status',
         '--porcelain',
-        _cwd=PROJECT_ROOT,
+        _cwd=_SH_CWD,
         _tty_out=False,
     )
     if str(status).strip():
@@ -157,9 +158,9 @@ def evolve():
 
 def publish_pluglet():
     """Build a clean pluglet distribution and publish it."""
-    poetry = sh.Command(PROJECT_ROOT / '.venv/bin/poetry')
-    poetry('build', '--clean', _cwd=PROJECT_ROOT, _fg=True)
-    poetry('publish', _cwd=PROJECT_ROOT, _fg=True)
+    poetry = sh.Command(str(PROJECT_ROOT / '.venv/bin/poetry'))
+    poetry('build', '--clean', _cwd=_SH_CWD, _fg=True)
+    poetry('publish', _cwd=_SH_CWD, _fg=True)
 
 
 def _in_parallel(rust_task, python_task):
@@ -197,19 +198,20 @@ def _fmt_python():
 def _lint_rust():
     """Check Rust formatting and run Clippy."""
     _cargo_fmt(check=True)
-    sh.cargo('clippy', _cwd=PROJECT_ROOT, _fg=True)
+    sh.cargo('clippy', _cwd=_SH_CWD, _fg=True)
 
 
 def _lint_python():
-    """Check Python formatting, Ruff, and Flake8."""
+    """Check Python formatting, Ruff, Flake8, and ty."""
     _ruff_format(check=True)
-    sh.ruff.check(PROJECT_ROOT, _cwd=PROJECT_ROOT, _fg=True)
-    sh.flake8(PROJECT_ROOT, _cwd=PROJECT_ROOT, _fg=True)
+    sh.ruff.check(str(PROJECT_ROOT), _cwd=_SH_CWD, _fg=True)
+    sh.ty.check(_fg=True)
+    sh.flake8(str(PROJECT_ROOT), _cwd=_SH_CWD, _fg=True)
 
 
 def _cargo_fmt(*, check):
     """Run `cargo fmt`, or `cargo fmt -- --check` when `check` is true."""
-    _cargo_fmt_command(check=check)(_cwd=PROJECT_ROOT, _fg=True)
+    _cargo_fmt_command(check=check)(_cwd=_SH_CWD, _fg=True)
 
 
 def _cargo_fmt_command(*, check):
@@ -223,8 +225,8 @@ def _cargo_fmt_command(*, check):
 def _ruff_format(*, check):
     """Run Ruff format. Writing exits 1 when Ruff changes a file."""
     _ruff_format_command(check=check)(
-        PROJECT_ROOT,
-        _cwd=PROJECT_ROOT,
+        str(PROJECT_ROOT),
+        _cwd=_SH_CWD,
         _fg=True,
     )
 
@@ -262,7 +264,7 @@ def _modified_lines():
                 'HEAD',
                 '-U0',
                 '--no-color',
-                _cwd=PROJECT_ROOT,
+                _cwd=_SH_CWD,
                 _tty_out=False,
             )
         )
@@ -272,7 +274,7 @@ def _modified_lines():
             'ls-files',
             '--others',
             '--exclude-standard',
-            _cwd=PROJECT_ROOT,
+            _cwd=_SH_CWD,
             _tty_out=False,
         )
     )
@@ -338,7 +340,7 @@ def _output_text(stream):
 def _command_output(command, *arguments):
     """Run a command and return its combined output, including failures."""
     try:
-        completed = command(*arguments, _cwd=PROJECT_ROOT, _tty_out=False)
+        completed = command(*arguments, _cwd=_SH_CWD, _tty_out=False)
     except sh.ErrorReturnCode as error:
         return _output_text(error.stdout) + _output_text(error.stderr)
     return str(completed)
@@ -353,6 +355,7 @@ def _check_output():
             str(PROJECT_ROOT),
         ),
         _command_output(sh.flake8, str(PROJECT_ROOT)),
+        _command_output(sh.ty.check.bake('--output-format', 'concise')),
         _command_output(_cargo_fmt_command(check=True)),
     )
     return '\n'.join(chunk for chunk in chunks if str(chunk).strip())
