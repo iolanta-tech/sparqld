@@ -326,12 +326,21 @@ def _line_is_modified(path, line, modified):
     return int(line) in modified.get(_relative_path(path), ())
 
 
+def _output_text(stream):
+    """Return a command stream as text."""
+    if not stream:
+        return ''
+    if isinstance(stream, bytes):
+        return stream.decode()
+    return stream
+
+
 def _command_output(command, *arguments):
     """Run a command and return its combined output, including failures."""
     try:
         completed = command(*arguments, _cwd=PROJECT_ROOT, _tty_out=False)
     except sh.ErrorReturnCode as error:
-        return f'{error.stdout or ""}{error.stderr or ""}'
+        return _output_text(error.stdout) + _output_text(error.stderr)
     return str(completed)
 
 
