@@ -156,6 +156,14 @@ def evolve():
     lint()
 
 
+def verify_clients():
+    """Run the SPARQL client checks and write their YAML-LD record."""
+    from docs_macros import write_client_compatibility
+
+    written = write_client_compatibility()
+    typer.echo(f'Wrote {written.relative_to(PROJECT_ROOT)}')
+
+
 def publish_pluglet():
     """Build a clean pluglet distribution and publish it."""
     poetry = sh.Command(str(PROJECT_ROOT / '.venv/bin/poetry'))
