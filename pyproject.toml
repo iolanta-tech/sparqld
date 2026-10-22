@@ -59,9 +59,13 @@ mkdocs-material = "9.7.7"
 sparqlwrapper = ">=2.0.0"
 ruff = "^0.16.2"
 wemake-python-styleguide = "^1.7.1"
+ty = "^0.0.90"
 
 [tool.ruff.format]
 quote-style = "single"
+
+[tool.ty.environment]
+python-version = "3.13"
 
 [build-system]
 requires = ["poetry-core"]
