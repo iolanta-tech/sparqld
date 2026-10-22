@@ -14,10 +14,10 @@ description: Command-line SPARQL clients and HTTP tools tested against sparqld.
 
 # :material-console-network-outline: Clients
 
-These command-line tools are exercised against the current `sparqld` binary
-whenever this documentation is built.
+These command-line tools are checked against the current `sparqld` binary
+by `j verify-clients`. The recorded result is included here.
 
-{{ verify_clients() }}
+{{ client_compatibility() }}
 
 ## :material-database-search-outline: SPARQL clients
 
