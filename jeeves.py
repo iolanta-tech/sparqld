@@ -3,7 +3,6 @@
 import datetime
 import json
 import re
-import sys
 import tempfile
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
@@ -29,7 +28,7 @@ LANGUAGE_MEASURES = MappingProxyType(
 @docs.command(name='serve')
 def _serve():
     """Serve the documentation with MkDocs."""
-    _python_module('mkdocs')('serve', _fg=True)
+    sh.mkdocs.serve(_fg=True)
 
 
 def _main_history():
@@ -204,38 +203,38 @@ def _lint_rust():
 def _lint_python():
     """Check Python formatting, Ruff, and Flake8."""
     _ruff_format(check=True)
-    ruff = _python_module('ruff')
-    flake8 = _python_module('flake8')
-    ruff('check', PROJECT_ROOT, _cwd=PROJECT_ROOT, _fg=True)
-    flake8(PROJECT_ROOT, _cwd=PROJECT_ROOT, _fg=True)
+    sh.ruff.check(PROJECT_ROOT, _cwd=PROJECT_ROOT, _fg=True)
+    sh.flake8(PROJECT_ROOT, _cwd=PROJECT_ROOT, _fg=True)
 
 
 def _cargo_fmt(*, check):
     """Run `cargo fmt`, or `cargo fmt -- --check` when `check` is true."""
-    arguments = ['fmt']
+    _cargo_fmt_command(check=check)(_cwd=PROJECT_ROOT, _fg=True)
+
+
+def _cargo_fmt_command(*, check):
+    """Return `cargo fmt`, baking rustfmt's `--check` when requested."""
+    command = sh.cargo.fmt
     if check:
-        arguments.extend(('--', '--check'))
-    sh.cargo(*arguments, _cwd=PROJECT_ROOT, _fg=True)
-
-
-def _python_module(name):
-    """Return a command for `python -m <name>`."""
-    return sh.Command(sys.executable).bake('-m', name)
+        return command.bake('--', '--check')
+    return command
 
 
 def _ruff_format(*, check):
     """Run Ruff format. Writing exits 1 when Ruff changes a file."""
-    ruff = _python_module('ruff')
-    if check:
-        ruff('format', '--check', PROJECT_ROOT, _cwd=PROJECT_ROOT, _fg=True)
-        return
-    ruff(
-        'format',
-        '--exit-non-zero-on-format',
+    _ruff_format_command(check=check)(
         PROJECT_ROOT,
         _cwd=PROJECT_ROOT,
         _fg=True,
     )
+
+
+def _ruff_format_command(*, check):
+    """Return `ruff format`, baking `--check` or the write-and-exit flag."""
+    command = sh.ruff.format
+    if check:
+        return command.bake('--check')
+    return command.bake('--exit-non-zero-on-format')
 
 
 _HUNK_HEADER = re.compile(r'^@@ -\d+(?:,\d+)? \+(\d+)(?:,(\d+))? @@')
@@ -338,19 +337,14 @@ def _command_output(command, *arguments):
 
 def _check_output():
     """Return formatter and Python linter output for the whole tree."""
-    ruff = _python_module('ruff')
-    flake8 = _python_module('flake8')
     chunks = (
-        _command_output(ruff, 'format', '--check', str(PROJECT_ROOT)),
+        _command_output(_ruff_format_command(check=True), str(PROJECT_ROOT)),
         _command_output(
-            ruff,
-            'check',
-            '--output-format',
-            'concise',
+            sh.ruff.check.bake('--output-format', 'concise'),
             str(PROJECT_ROOT),
         ),
-        _command_output(flake8, str(PROJECT_ROOT)),
-        _command_output(sh.cargo, 'fmt', '--', '--check'),
+        _command_output(sh.flake8, str(PROJECT_ROOT)),
+        _command_output(_cargo_fmt_command(check=True)),
     )
     return '\n'.join(chunk for chunk in chunks if str(chunk).strip())
 
