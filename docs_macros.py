@@ -21,6 +21,7 @@ QUERIES_DIR = ROOT_DIR / 'docs' / 'queries'
 RESULTS_DIR = ROOT_DIR / 'docs' / 'results'
 REPO_URL = 'https://github.com/iolanta-tech/sparqld'
 DISPLAY_ENDPOINT = 'http://127.0.0.1:7737/'
+_ALPHA_CENTAURI = 'Alpha Centauri'
 
 # @todo(generated-roadmap): Render the roadmap from the sparqld dataset.
 # description: >
@@ -320,7 +321,7 @@ def verify_clients():
                 (['-e', endpoint, '-f', str(query_files['ask'])], 'true'),
                 (
                     ['-e', endpoint, '-f', str(query_files['construct'])],
-                    'Alpha Centauri',
+                    _ALPHA_CENTAURI,
                 ),
             ],
         ),
@@ -337,7 +338,7 @@ def verify_clients():
             [
                 (
                     ['--service', endpoint, '--query', str(query_files['select'])],
-                    'Alpha Centauri',
+                    _ALPHA_CENTAURI,
                 ),
                 (
                     ['--service', endpoint, '--query', str(query_files['ask'])],
@@ -350,7 +351,7 @@ def verify_clients():
                         '--query',
                         str(query_files['construct']),
                     ],
-                    'Alpha Centauri',
+                    _ALPHA_CENTAURI,
                 ),
             ],
         ),
@@ -362,12 +363,12 @@ def verify_clients():
             [
                 (
                     [f'sparql@{endpoint}', '-f', str(query_files['select'])],
-                    'Alpha Centauri',
+                    _ALPHA_CENTAURI,
                 ),
                 ([f'sparql@{endpoint}', '-f', str(query_files['ask'])], 'true'),
                 (
                     [f'sparql@{endpoint}', '-f', str(query_files['construct'])],
-                    'Alpha Centauri',
+                    _ALPHA_CENTAURI,
                 ),
             ],
         ),
@@ -376,12 +377,12 @@ def verify_clients():
             [
                 (
                     [endpoint, '--queryfile', str(query_files['select'])],
-                    'Alpha Centauri',
+                    _ALPHA_CENTAURI,
                 ),
                 ([endpoint, '--queryfile', str(query_files['ask'])], 'true'),
                 (
                     [endpoint, '--queryfile', str(query_files['construct'])],
-                    'Alpha Centauri',
+                    _ALPHA_CENTAURI,
                 ),
             ],
         ),
