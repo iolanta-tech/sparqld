@@ -69,9 +69,10 @@ class SelectResult(BaseModel):
 _JSON_RESULT: TypeAdapter[AskResult | SelectResult] = TypeAdapter(
     AskResult | SelectResult,
 )
+QueryOutput = list[dict[str, str]] | bool | str
 
 
-def parse_result(content_type: str, body: str) -> list[dict[str, str]] | bool | str:
+def parse_result(content_type: str, body: str) -> QueryOutput:
     """Parse a SPARQL response into bindings, a boolean, or Turtle text."""
     if content_type == 'text/turtle':
         return body.strip()
