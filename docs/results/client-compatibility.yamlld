@@ -1,0 +1,52 @@
+"@context":
+  schema: https://schema.org/
+  name: schema:name
+  summary: schema:abstract
+  expected: schema:value
+"@id": results/client-compatibility.yamlld
+"@type": schema:ReviewAction
+name: "SPARQL client compatibility"
+summary: "curl, sq, rsparql, Comunica, and sparqlquery passed live compatibility checks."
+client:
+  - name: "sq"
+    check:
+      - name: "graphs"
+        expected: "sparqld:examples/alpha-centauri.yamlld"
+      - name: "ask"
+        expected: "true"
+      - name: "construct"
+        expected: "Alpha Centauri"
+  - name: "rsparql"
+    check:
+      - name: "select"
+        expected: "Alpha Centauri"
+      - name: "ask"
+        expected: "Yes"
+      - name: "construct"
+        expected: "Alpha Centauri"
+  - name: "comunica-sparql"
+    check:
+      - name: "select"
+        expected: "Alpha Centauri"
+      - name: "ask"
+        expected: "true"
+      - name: "construct"
+        expected: "Alpha Centauri"
+  - name: "sparqlquery"
+    check:
+      - name: "select"
+        expected: "Alpha Centauri"
+      - name: "ask"
+        expected: "true"
+      - name: "construct"
+        expected: "Alpha Centauri"
+  - name: "curl"
+    check:
+      - name: "ask"
+        expected: "\"boolean\":true"
+  - name: "sq configuration"
+    check:
+      - name: "graphs"
+        expected: "data:index.md"
+      - name: "named graph"
+        expected: "sparqld"
