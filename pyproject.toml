@@ -33,7 +33,7 @@ exclude = [
   "AGENTS.md",
   "CLAUDE.md",
   "docs_macros.py",
-  "jeeves.py",
+  "jeeves",
   "mkdocs.yml",
   "package.json",
   "package-lock.json",
