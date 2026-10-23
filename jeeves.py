@@ -7,11 +7,13 @@ import tempfile
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from types import MappingProxyType
+from typing import Literal
 
 import sh
 import typer
 from matplotlib import dates as matplotlib_dates
 from matplotlib import pyplot
+from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
 docs = typer.Typer(no_args_is_help=True)
 PROJECT_ROOT = Path(__file__).parent
@@ -436,21 +438,59 @@ def _clippy_findings(modified):
     return selected
 
 
-def _clippy_row(message, modified):
+_JSON_CONFIG = ConfigDict(extra='ignore')
+
+
+class ClippySpan(BaseModel):
+    """One source span in a rustc diagnostic."""
+
+    model_config = _JSON_CONFIG
+
+    file_name: str
+    line_start: int
+    column_start: int
+    is_primary: bool
+
+
+class ClippyDiagnostic(BaseModel):
+    """A rustc warning or error."""
+
+    model_config = _JSON_CONFIG
+
+    level: Literal['warning', 'error']
+    text: str = Field(alias='message')
+    spans: list[ClippySpan] = Field(default_factory=list)
+
+
+class CompilerMessage(BaseModel):
+    """A cargo JSON event that carries a rustc diagnostic."""
+
+    model_config = _JSON_CONFIG
+
+    reason: Literal['compiler-message']
+    diagnostic: ClippyDiagnostic = Field(alias='message')
+
+
+def _clippy_text(diagnostic, primary):
+    location = _relative_path(primary.file_name)
+    line = primary.line_start
+    column = primary.column_start
+    text = diagnostic.text
+    return f'{location}:{line}:{column}: {text}'
+
+
+def _clippy_row(payload, modified):
     """Format one Clippy JSON message when it touches the diff."""
-    if message.get('reason') != 'compiler-message':
+    try:
+        parsed = CompilerMessage.model_validate(payload)
+    except ValidationError:
         return None
-    diagnostic = message.get('message') or {}
-    if diagnostic.get('level') not in {'warning', 'error'}:
-        return None
-    spans = diagnostic.get('spans') or []
-    primary = next((span for span in spans if span.get('is_primary')), None)
+    primary = next(
+        (span for span in parsed.diagnostic.spans if span.is_primary),
+        None,
+    )
     if primary is None:
         return None
-    path = primary.get('file_name') or ''
-    line = primary.get('line_start')
-    if not _line_is_modified(path, line, modified):
+    if not _line_is_modified(primary.file_name, primary.line_start, modified):
         return None
-    column = primary.get('column_start')
-    text = diagnostic.get('message')
-    return f'{_relative_path(path)}:{line}:{column}: {text}'
+    return _clippy_text(parsed.diagnostic, primary)
