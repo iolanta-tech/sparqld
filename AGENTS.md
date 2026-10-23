@@ -8,7 +8,7 @@
 
 ## Commands
 
-- `jeeves.py` runs with the direnv virtualenv active. Invoke `ruff`, `flake8`,
+- The `jeeves` package runs with the direnv virtualenv active. Invoke `ruff`, `flake8`,
   `mkdocs`, and Cargo through `sh` (`sh.ruff`, `sh.flake8`, `sh.mkdocs`,
   `sh.cargo`).
 - Bake optional or repeated arguments with `bake`. Pass rustfmt `--check` after
