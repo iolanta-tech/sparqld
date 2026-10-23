@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Any
 from urllib.parse import urlparse
 
 from . import render
@@ -18,7 +19,7 @@ __all__ = [
 ]
 
 
-def _extra_config(env) -> dict:
+def _extra_config(env: Any) -> dict:
     extra = env.conf.get('extra') or {}
     config = extra.get('sparqld') or {}
     if not isinstance(config, dict):
@@ -26,14 +27,14 @@ def _extra_config(env) -> dict:
     return config
 
 
-def _project_dir(env) -> Path:
+def _project_dir(env: Any) -> Path:
     project_dir = getattr(env, 'project_dir', None)
     if project_dir is not None:
         return Path(project_dir)
     return Path(env.conf['docs_dir']).resolve().parent
 
 
-def configure(env) -> Path:
+def configure(env: Any) -> Path:
     """Read `extra.sparqld` and configure the shared sparqld server."""
     project_dir = _project_dir(env)
     config = _extra_config(env)
@@ -64,27 +65,27 @@ def _execute(query: str) -> list[dict[str, str]] | bool | str:
 class SparqldMacros:
     """Macros and filters bound to one MkDocs environment."""
 
-    def __init__(self, env):
+    def __init__(self, env: Any) -> None:
         self._project_dir = configure(env)
         port = urlparse(ensure_endpoint()).port
         if port is None:
             raise RuntimeError('sparqld endpoint does not include a port')
         env.variables['sparqld_port'] = port
 
-    def sparql(self, query):
+    def sparql(self, query: str) -> list[dict[str, str]] | bool | str:
         """Run a verbatim SPARQL query. SELECT returns a list of binding dicts."""
         return _execute(query)
 
-    def stored_sparql(self, path):
+    def stored_sparql(self, path: str) -> list[dict[str, str]] | bool | str:
         """Run a `.rq` file relative to the MkDocs project root."""
         return _execute(_project_file(self._project_dir, path).read_text())
 
-    def sparql_table(self, rows):
+    def sparql_table(self, rows: list[dict[str, str]]) -> str:
         """Render SELECT bindings from sparql() / stored_sparql() as a Markdown table."""
         return render.bindings_table(rows)
 
 
-def define_env(env):
+def define_env(env: Any) -> None:
     """Register sparqld documentation macros and filters."""
     macros = SparqldMacros(env)
     env.macro(macros.sparql)
@@ -92,6 +93,6 @@ def define_env(env):
     env.filter(macros.sparql_table)
 
 
-def on_post_build(env):
+def on_post_build(env: Any) -> None:
     """Stop the endpoint used to render live documentation macros."""
     stop_server()
