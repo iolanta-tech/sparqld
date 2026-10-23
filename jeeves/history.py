@@ -9,6 +9,7 @@ from types import MappingProxyType
 import sh
 from matplotlib import dates as matplotlib_dates
 from matplotlib import pyplot
+from matplotlib.axes import Axes
 
 from jeeves.repository import PROJECT_ROOT, SH_CWD
 
@@ -29,7 +30,7 @@ def main_history():
     ).splitlines()
 
 
-def commit_timestamp(commit):
+def commit_timestamp(commit: str) -> int:
     """Return a commit's author timestamp."""
     return int(
         sh.git.show(
@@ -42,7 +43,7 @@ def commit_timestamp(commit):
     )
 
 
-def language_line_counts(directory):
+def language_line_counts(directory: Path) -> dict[str, int]:
     """Return the selected Tokei line count for each charted language."""
     report = json.loads(sh.tokei(directory, output='json'))
     return {
@@ -51,7 +52,7 @@ def language_line_counts(directory):
     }
 
 
-def chart_dates(points):
+def chart_dates(points: list[dict[str, int]]) -> list[datetime.datetime]:
     return [
         datetime.datetime.fromtimestamp(point['timestamp'], tz=datetime.UTC)
         for point in points
@@ -66,7 +67,7 @@ def language_colors():
     }
 
 
-def draw_history(axes, points):
+def draw_history(axes: Axes, points: list[dict[str, int]]) -> None:
     dates = chart_dates(points)
     colors = language_colors()
     axes.stackplot(
@@ -78,7 +79,7 @@ def draw_history(axes, points):
     format_history_axes(axes)
 
 
-def format_history_axes(axes):
+def format_history_axes(axes: Axes) -> None:
     locator = matplotlib_dates.AutoDateLocator()
     axes.xaxis.set_major_locator(locator)
     axes.xaxis.set_major_formatter(matplotlib_dates.ConciseDateFormatter(locator))
@@ -92,7 +93,7 @@ def format_history_axes(axes):
     axes.spines[['top', 'right']].set_visible(False)
 
 
-def render_language_history(points):
+def render_language_history(points: list[dict[str, int]]) -> None:
     """Render the language-line history chart with Matplotlib."""
     if not points:
         raise RuntimeError('main has no commits to chart.')
@@ -106,7 +107,7 @@ def render_language_history(points):
     pyplot.close(figure)
 
 
-def history_point(archive, index, commit):
+def history_point(archive: Path, index: int, commit: str) -> dict[str, int]:
     snapshot = archive.parent / str(index)
     snapshot.mkdir()
     sh.git.archive(commit, format='tar', _cwd=SH_CWD, _out=str(archive))
