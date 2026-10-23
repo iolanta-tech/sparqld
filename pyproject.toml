@@ -60,12 +60,19 @@ sparqlwrapper = ">=2.0.0"
 ruff = "^0.16.2"
 wemake-python-styleguide = "^1.7.1"
 ty = "^0.0.90"
+pytest = "^9.1.1"
 
 [tool.ruff.format]
 quote-style = "single"
 
 [tool.ty.environment]
 python-version = "3.13"
+
+[tool.pytest.ini_options]
+addopts = "-m 'not integration'"
+markers = [
+    "integration: SPARQL clients against a live sparqld endpoint",
+]
 
 [build-system]
 requires = ["poetry-core"]
