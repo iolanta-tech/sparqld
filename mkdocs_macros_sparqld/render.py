@@ -5,7 +5,14 @@ from __future__ import annotations
 import json
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field, StrictBool, TypeAdapter
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    StrictBool,
+    TypeAdapter,
+    field_validator,
+)
 
 _JSON_CONFIG = ConfigDict(extra='ignore')
 
@@ -83,26 +90,34 @@ def parse_result(content_type: str, body: str) -> QueryOutput:
     return parsed.rows()
 
 
-def bindings_table(rows: list[dict[str, str]]) -> str:
-    """Render SELECT bindings as a Markdown table."""
-    if not isinstance(rows, list):
-        raise TypeError(
-            'sparql_table expects a list of bindings from sparql() or stored_sparql()'
-        )
-    if not rows:
-        return ''
+_BINDING_ROWS = TypeAdapter(list[dict[str, str]])
 
-    columns: list[str] = list(rows[0].keys())
+
+class BindingTable(BaseModel):
+    """SELECT bindings passed to `sparql_table`."""
+
+    rows: list[dict[str, str]]
+
+    @field_validator('rows', mode='plain')
+    @classmethod
+    def require_binding_rows(cls, rows: object) -> list[dict[str, str]]:
+        """Require a list of string-keyed binding rows."""
+        return _BINDING_ROWS.validate_python(rows)
+
+
+def _table_columns(rows: list[dict[str, str]]) -> list[str]:
+    columns = list(rows[0].keys())
     for row in rows[1:]:
-        if not isinstance(row, dict):
-            raise TypeError(
-                'sparql_table expects a list of binding dicts from sparql() '
-                'or stored_sparql()'
-            )
         for key in row:
             if key not in columns:
                 columns.append(key)
+    return columns
 
+
+def _table_lines(
+    columns: list[str],
+    rows: list[dict[str, str]],
+) -> list[str]:
     lines = [
         '| {values} |'.format(values=' | '.join(columns)),
         '| {values} |'.format(values=' | '.join('---' for _ in columns)),
@@ -110,4 +125,12 @@ def bindings_table(rows: list[dict[str, str]]) -> str:
     for row in rows:
         cells = [str(row.get(name, '')) for name in columns]
         lines.append('| {values} |'.format(values=' | '.join(cells)))
-    return '\n'.join(lines)
+    return lines
+
+
+def bindings_table(rows: list[dict[str, str]]) -> str:
+    """Render SELECT bindings as a Markdown table."""
+    binding_rows = BindingTable(rows=rows).rows
+    if not binding_rows:
+        return ''
+    return '\n'.join(_table_lines(_table_columns(binding_rows), binding_rows))
