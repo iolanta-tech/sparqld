@@ -42,7 +42,7 @@ class CompilerMessage(BaseModel):
     diagnostic: ClippyDiagnostic = Field(alias='message')
 
 
-def clippy_findings(modified):
+def clippy_findings(modified: dict[str, set[int]]) -> list[str]:
     """Return Clippy diagnostics whose primary span is on a changed line."""
     output = command_output(
         sh.cargo,
@@ -60,7 +60,7 @@ def clippy_findings(modified):
     return selected
 
 
-def clippy_text(diagnostic, primary):
+def clippy_text(diagnostic: ClippyDiagnostic, primary: ClippySpan) -> str:
     location = relative_path(primary.file_name)
     line = primary.line_start
     column = primary.column_start
@@ -68,7 +68,7 @@ def clippy_text(diagnostic, primary):
     return f'{location}:{line}:{column}: {text}'
 
 
-def clippy_row(payload, modified):
+def clippy_row(payload: object, modified: dict[str, set[int]]) -> str | None:
     """Format one Clippy JSON message when it touches the diff."""
     try:
         parsed = CompilerMessage.model_validate(payload)
