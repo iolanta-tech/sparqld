@@ -324,20 +324,21 @@ def command(command_text, indent=0):
     return f'!!! command "Command"\n\n{_indent_block(body, indent + 4)}\n'
 
 
+def _source_heading(path, repository_path, title, repo_url):
+    github_url = _github_url(repository_path, repo_url)
+    return (
+        f'{title}<span class="example-source-link" markdown>'
+        f':fontawesome-brands-github: [`{path.name}`]({github_url})'
+        f'</span>'
+    )
+
+
 def _source_data(path, repository_path, indent, title, repo_url):
     if not path.is_file():
         raise ValueError(f'Documentation source does not exist: {path}')
     source = path.read_text().rstrip('\n')
     syntax = _EXAMPLE_SYNTAXES.get(path.suffix.lower(), 'text')
-    github_url = _github_url(
-        repository_path,
-        repo_url,
-    )
-    heading = (
-        f'{title}<span class="example-source-link" markdown>'
-        f':fontawesome-brands-github: [`{path.name}`]({github_url})'
-        f'</span>'
-    )
+    heading = _source_heading(path, repository_path, title, repo_url)
     body = f'```{syntax}\n{source}\n```'
     rendered = f'!!! example "{heading}"\n\n{_indent_block(body, 4)}\n'
     return _indent_block(rendered, indent)
