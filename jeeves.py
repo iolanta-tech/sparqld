@@ -157,11 +157,22 @@ def evolve():
 
 
 def verify_clients():
-    """Run the SPARQL client checks and write their YAML-LD record."""
-    from docs_macros import write_client_compatibility
+    """Run the SPARQL client integration tests and write their record."""
+    import pytest
 
-    written = write_client_compatibility()
-    typer.echo(f'Wrote {written.relative_to(PROJECT_ROOT)}')
+    code = pytest.main(
+        [
+            '-m',
+            'integration',
+            '-o',
+            'addopts=',
+            '--tb=short',
+            'tests/integration',
+        ],
+    )
+    if code:
+        raise typer.Exit(code=int(code))
+    typer.echo('Wrote docs/results/client-compatibility.yamlld')
 
 
 def publish_pluglet():
