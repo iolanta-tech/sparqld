@@ -8,7 +8,10 @@ from datetime import date
 from pathlib import Path
 from types import MappingProxyType
 
+from pydantic import BaseModel, ConfigDict
+
 from mkdocs_macros_sparqld import run_query, stop_server
+from mkdocs_macros_sparqld.render import SelectResult, Term
 
 ROOT_DIR = Path(__file__).resolve().parent
 DOCS_DIR = ROOT_DIR / 'docs'
@@ -215,38 +218,54 @@ def example_code(name, indent=0):
     return _indent_block(f'```{syntax}\n{source}\n```\n', indent)
 
 
+class Decision(BaseModel):
+    """One row projected by the decision-log SELECT query."""
+
+    model_config = ConfigDict(extra='ignore')
+
+    graph: Term
+    title: Term
+    status: Term
+    date: Term
+    author: Term
+
+
+def _decisions(body):
+    selected = SelectResult.model_validate_json(body)
+    return [Decision.model_validate(binding) for binding in selected.solutions.bindings]
+
+
+def _decision_heading(decision):
+    title = decision.title.lexical_form
+    page = decision.graph.lexical_form.rsplit('/', 1)[-1]
+    return f'-   __[{title}]({page})__'
+
+
+def _decision_card(decision):
+    status_key = decision.status.lexical_form.lower()
+    status = _ADR_STATUS.get(
+        status_key,
+        status_key.replace('_', ' ').title(),
+    )
+    created = _human_date(decision.date.lexical_form)
+    return [
+        _decision_heading(decision),
+        '',
+        '    ---',
+        '',
+        f'    <span class="adr-status adr-status--{status_key}">{status}</span>',
+        '',
+        f'    :material-calendar-outline: <span class="adr-date">{created}</span>',
+        '',
+    ]
+
+
 def decision_log():
     query = (QUERIES_DIR / 'decisions.rq').read_text()
     _, body = run_query(query)
-    bindings = json.loads(body)['results']['bindings']
     cards = ['<div class="grid cards adr-cards" markdown>', '']
-    for binding in bindings:
-        page = binding['graph']['value'].rsplit('/', 1)[-1]
-        title = binding['title']['value']
-        status_key = binding['status']['value'].lower()
-        status = _ADR_STATUS.get(
-            status_key,
-            status_key.replace('_', ' ').title(),
-        )
-        date = _human_date(binding['date']['value'])
-        cards.extend(
-            [
-                f'-   __[{title}]({page})__',
-                '',
-                '    ---',
-                '',
-                (
-                    f'    <span class="adr-status adr-status--{status_key}">'
-                    f'{status}</span>'
-                ),
-                '',
-                (
-                    f'    :material-calendar-outline: '
-                    f'<span class="adr-date">{date}</span>'
-                ),
-                '',
-            ]
-        )
+    for decision in _decisions(body):
+        cards.extend(_decision_card(decision))
     cards.append('</div>')
     return '\n'.join(cards)
 
