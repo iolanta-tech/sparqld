@@ -2,16 +2,13 @@
 
 import json
 import os
-import shutil
 import subprocess
-import tempfile
 import textwrap
 from datetime import date
 from pathlib import Path
 from types import MappingProxyType
 
-from mkdocs_macros_sparqld import ensure_endpoint, run_query, stop_server
-from mkdocs_macros_sparqld.server import configure as configure_server
+from mkdocs_macros_sparqld import run_query, stop_server
 
 ROOT_DIR = Path(__file__).resolve().parent
 DOCS_DIR = ROOT_DIR / 'docs'
@@ -21,15 +18,7 @@ CONVERSATIONS_DIR = ROOT_DIR / 'docs' / 'conversations'
 QUERIES_DIR = ROOT_DIR / 'docs' / 'queries'
 RESULTS_DIR = ROOT_DIR / 'docs' / 'results'
 REPO_URL = 'https://github.com/iolanta-tech/sparqld'
-DISPLAY_ENDPOINT = 'http://127.0.0.1:7737/'
-_ALPHA_CENTAURI = 'Alpha Centauri'
-_QUERY_FILE_FLAG = '-f'
-_SQ = 'sq'
-_GRAPHS = 'graphs'
 CLIENT_COMPATIBILITY_PATH = RESULTS_DIR / 'client-compatibility.yamlld'
-_CLIENT_COMPATIBILITY_SUMMARY = (
-    'curl, sq, rsparql, Comunica, and sparqlquery passed live compatibility checks.'
-)
 
 # @todo(generated-roadmap): Render the roadmap from the sparqld dataset.
 # description: >
@@ -131,18 +120,6 @@ def _repository_url(env):
 
 def _indent_block(body, indent):
     return textwrap.indent(body, ' ' * indent, lambda _: True)
-
-
-def _command(name, fallback=None):
-    executable = shutil.which(name)
-    if executable:
-        return executable
-    if fallback and fallback.is_file():
-        return str(fallback)
-    raise RuntimeError(
-        f'Required documentation client `{name}` was not found. '
-        'Install it and make it available on PATH before building the documentation.'
-    )
 
 
 def _command_text(command):
@@ -311,59 +288,6 @@ def shell(command, env=None, output_format=None, indent=0):
     )
 
 
-def _yaml_string(literal):
-    escaped = str(literal).replace('\\', r'\\').replace('"', r'\"')
-    return f'"{escaped}"'
-
-
-def _compatibility_document(clients):
-    lines = [
-        '"@context":',
-        '  schema: https://schema.org/',
-        '  name: schema:name',
-        '  summary: schema:abstract',
-        '  expected: schema:value',
-        '"@id": results/client-compatibility.yamlld',
-        '"@type": schema:ReviewAction',
-        f'name: {_yaml_string("SPARQL client compatibility")}',
-        f'summary: {_yaml_string(_CLIENT_COMPATIBILITY_SUMMARY)}',
-        'client:',
-    ]
-    for client in clients:
-        lines.append(f'  - name: {_yaml_string(client["name"])}')
-        lines.append('    check:')
-        for check in client['check']:
-            lines.append(f'      - name: {_yaml_string(check["name"])}')
-            lines.append(f'        expected: {_yaml_string(check["expected"])}')
-    lines.append('')
-    return '\n'.join(lines)
-
-
-def _record_client(clients, name, executable, checks, cwd=ROOT_DIR):
-    recorded = []
-    for check_name, arguments, expected in checks:
-        _run([executable, *arguments], expected=expected, cwd=cwd)
-        recorded.append({'name': check_name, 'expected': expected})
-    clients.append({'name': name, 'check': recorded})
-
-
-def write_client_compatibility():
-    """Run the client checks and write their YAML-LD record."""
-    configure_server(
-        project_dir=ROOT_DIR,
-        directory=(ROOT_DIR / 'docs').resolve(),
-        binary='sparqld',
-    )
-    try:
-        clients = _run_client_checks()
-    except Exception:
-        stop_server()
-        raise
-    stop_server()
-    CLIENT_COMPATIBILITY_PATH.write_text(_compatibility_document(clients))
-    return CLIENT_COMPATIBILITY_PATH
-
-
 def client_compatibility():
     """Render the recorded SPARQL client checks."""
     if not CLIENT_COMPATIBILITY_PATH.is_file():
@@ -376,186 +300,6 @@ def client_compatibility():
             summary = line.split(':', 1)[1].strip().strip('"')
             return f'<!-- {summary} -->\n'
     raise RuntimeError(f'{CLIENT_COMPATIBILITY_PATH} does not include a summary.')
-
-
-def _client_commands(endpoint):
-    query_files = {
-        'select': QUERIES_DIR / 'names.rq',
-        'ask': QUERIES_DIR / 'ask-data.rq',
-        'construct': QUERIES_DIR / 'construct-name.rq',
-    }
-    return (
-        (
-            _SQ,
-            _command(_SQ),
-            [
-                (
-                    _GRAPHS,
-                    ['-e', endpoint, _GRAPHS],
-                    'sparqld:examples/alpha-centauri.yamlld',
-                ),
-                (
-                    'ask',
-                    ['-e', endpoint, _QUERY_FILE_FLAG, str(query_files['ask'])],
-                    'true',
-                ),
-                (
-                    'construct',
-                    ['-e', endpoint, _QUERY_FILE_FLAG, str(query_files['construct'])],
-                    _ALPHA_CENTAURI,
-                ),
-            ],
-        ),
-        (
-            'rsparql',
-            _command(
-                'rsparql',
-                next(
-                    iter(
-                        sorted((ROOT_DIR / '.tools').glob('apache-jena-*/bin/rsparql'))
-                    ),
-                    None,
-                ),
-            ),
-            [
-                (
-                    'select',
-                    ['--service', endpoint, '--query', str(query_files['select'])],
-                    _ALPHA_CENTAURI,
-                ),
-                (
-                    'ask',
-                    ['--service', endpoint, '--query', str(query_files['ask'])],
-                    'Yes',
-                ),
-                (
-                    'construct',
-                    [
-                        '--service',
-                        endpoint,
-                        '--query',
-                        str(query_files['construct']),
-                    ],
-                    _ALPHA_CENTAURI,
-                ),
-            ],
-        ),
-        (
-            'comunica-sparql',
-            _command(
-                'comunica-sparql',
-                ROOT_DIR / 'node_modules' / '.bin' / 'comunica-sparql',
-            ),
-            [
-                (
-                    'select',
-                    [
-                        f'sparql@{endpoint}',
-                        _QUERY_FILE_FLAG,
-                        str(query_files['select']),
-                    ],
-                    _ALPHA_CENTAURI,
-                ),
-                (
-                    'ask',
-                    [f'sparql@{endpoint}', _QUERY_FILE_FLAG, str(query_files['ask'])],
-                    'true',
-                ),
-                (
-                    'construct',
-                    [
-                        f'sparql@{endpoint}',
-                        _QUERY_FILE_FLAG,
-                        str(query_files['construct']),
-                    ],
-                    _ALPHA_CENTAURI,
-                ),
-            ],
-        ),
-        (
-            'sparqlquery',
-            _command('sparqlquery'),
-            [
-                (
-                    'select',
-                    [endpoint, '--queryfile', str(query_files['select'])],
-                    _ALPHA_CENTAURI,
-                ),
-                (
-                    'ask',
-                    [endpoint, '--queryfile', str(query_files['ask'])],
-                    'true',
-                ),
-                (
-                    'construct',
-                    [endpoint, '--queryfile', str(query_files['construct'])],
-                    _ALPHA_CENTAURI,
-                ),
-            ],
-        ),
-    )
-
-
-def _run_client_checks():
-    endpoint = ensure_endpoint()
-    recorded = []
-    for client in _client_commands(endpoint):
-        _record_client(recorded, *client)
-    _record_curl(recorded, endpoint)
-    _record_configured_sq(recorded, endpoint)
-    return recorded
-
-
-def _record_curl(recorded, endpoint):
-    _record_client(
-        recorded,
-        'curl',
-        _command('curl'),
-        [
-            (
-                'ask',
-                [
-                    '--silent',
-                    '--show-error',
-                    '--fail-with-body',
-                    '--get',
-                    endpoint,
-                    '--data-urlencode',
-                    'query=ASK { ?subject ?predicate ?object }',
-                ],
-                '"boolean":true',
-            ),
-        ],
-    )
-
-
-def _record_configured_sq(recorded, endpoint):
-    sq = _command(_SQ)
-    config = (
-        (CLIENTS_DIR / _SQ / 'sq.toml')
-        .read_text()
-        .replace(
-            DISPLAY_ENDPOINT,
-            endpoint,
-        )
-    )
-    with tempfile.TemporaryDirectory(prefix='sparqld-docs-sq-') as directory:
-        config_directory = Path(directory)
-        (config_directory / '.sq.toml').write_text(config)
-        _record_client(
-            recorded,
-            'sq configuration',
-            sq,
-            [
-                (_GRAPHS, [_GRAPHS], 'data:index.md'),
-                (
-                    'named graph',
-                    [_QUERY_FILE_FLAG, str(QUERIES_DIR / 'sq-named-graph.rq')],
-                    'sparqld',
-                ),
-            ],
-            cwd=directory,
-        )
 
 
 def command(command_text, indent=0):
