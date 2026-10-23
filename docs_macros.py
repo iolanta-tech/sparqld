@@ -344,26 +344,47 @@ def _source_data(path, repository_path, indent, title, repo_url):
     return _indent_block(rendered, indent)
 
 
-def _append_directory(lines, directory, depth, repo_url):
-    entries = sorted(
+def _directory_entries(directory):
+    return sorted(
         directory.iterdir(),
         key=lambda entry: (not entry.is_dir(), entry.name.lower()),
     )
+
+
+def _tree_connector(index, count):
+    if index == count - 1:
+        return '└──'
+    return '├──'
+
+
+def _folder_line(entry, relative, connector, padding, repo_url):
+    url = _github_url(relative, repo_url, directory=True)
+    name = entry.name
+    return f'{padding}{connector} :material-folder: **[`{name}/`]({url})**  '
+
+
+def _file_line(entry, relative, connector, padding, repo_url):
+    url = _github_url(relative, repo_url)
+    icon = _EXAMPLE_ICONS.get(entry.suffix.lower(), ':material-file-outline:')
+    name = entry.name
+    return f'{padding}{connector} {icon} [`{name}`]({url})  '
+
+
+def _append_entry(lines, entry, connector, depth, repo_url):
+    relative = entry.relative_to(ROOT_DIR)
+    padding = '&nbsp;&nbsp;&nbsp;&nbsp;' * depth
+    if entry.is_dir():
+        lines.append(_folder_line(entry, relative, connector, padding, repo_url))
+        _append_directory(lines, entry, depth + 1, repo_url)
+        return
+    lines.append(_file_line(entry, relative, connector, padding, repo_url))
+
+
+def _append_directory(lines, directory, depth, repo_url):
+    entries = _directory_entries(directory)
     for index, entry in enumerate(entries):
-        last = index == len(entries) - 1
-        connector = '└──' if last else '├──'
-        relative = entry.relative_to(ROOT_DIR)
-        padding = '&nbsp;&nbsp;&nbsp;&nbsp;' * depth
-        if entry.is_dir():
-            url = _github_url(relative, repo_url, directory=True)
-            lines.append(
-                f'{padding}{connector} :material-folder: **[`{entry.name}/`]({url})**  '
-            )
-            _append_directory(lines, entry, depth + 1, repo_url)
-        else:
-            url = _github_url(relative, repo_url)
-            icon = _EXAMPLE_ICONS.get(entry.suffix.lower(), ':material-file-outline:')
-            lines.append(f'{padding}{connector} {icon} [`{entry.name}`]({url})  ')
+        connector = _tree_connector(index, len(entries))
+        _append_entry(lines, entry, connector, depth, repo_url)
 
 
 class EnvironmentMacros:
