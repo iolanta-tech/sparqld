@@ -5,6 +5,7 @@
 import shutil
 import subprocess
 import tempfile
+from collections.abc import Iterator, Mapping, Sequence
 from pathlib import Path
 
 import pytest
@@ -25,7 +26,7 @@ SUMMARY = (
 )
 
 
-def _executable(name, fallback=None):
+def _executable(name: str, fallback: Path | None = None) -> str:
     found = shutil.which(name)
     if found:
         return found
@@ -99,7 +100,7 @@ def curl():
 
 
 @pytest.fixture(scope='session')
-def sq_directory(endpoint):
+def sq_directory(endpoint: str) -> Iterator[Path]:
     """Temporary sq configuration pointed at the live endpoint."""
     source = DOCS / 'reference/clients/sq/sq.toml'
     config = source.read_text().replace(DISPLAY_ENDPOINT, endpoint)
@@ -110,7 +111,9 @@ def sq_directory(endpoint):
 
 
 @pytest.fixture(scope='session')
-def compatibility(request):
+def compatibility(
+    request: pytest.FixtureRequest,
+) -> Iterator[list[tuple[str, str, str]]]:
     """Collect passed checks and write the YAML-LD record."""
     passed = []
     yield passed
@@ -119,7 +122,11 @@ def compatibility(request):
     CLIENT_COMPATIBILITY_PATH.write_text(_document(passed))
 
 
-def _arguments(template, endpoint, queries):
+def _arguments(
+    template: Sequence[str],
+    endpoint: str,
+    queries: Mapping[str, str],
+) -> list[str]:
     values = {'endpoint': endpoint, **queries}
     rendered = []
     for part in template:
@@ -130,7 +137,12 @@ def _arguments(template, endpoint, queries):
     return rendered
 
 
-def _run(executable, arguments, expected, cwd):
+def _run(
+    executable: str,
+    arguments: Sequence[str],
+    expected: str,
+    cwd: Path | None,
+) -> None:
     completed = subprocess.run(
         [executable, *arguments],
         capture_output=True,
@@ -155,7 +167,15 @@ def _run(executable, arguments, expected, cwd):
         ),
     ],
 )
-def test_sq(endpoint, queries, sq, compatibility, check, arguments, expected):
+def test_sq(
+    endpoint: str,
+    queries: Mapping[str, str],
+    sq: str,
+    compatibility: list[tuple[str, str, str]],
+    check: str,
+    arguments: Sequence[str],
+    expected: str,
+) -> None:
     """sq prints the expected response."""
     _run(sq, _arguments(arguments, endpoint, queries), expected, None)
     compatibility.append(('sq', check, expected))
@@ -179,14 +199,14 @@ def test_sq(endpoint, queries, sq, compatibility, check, arguments, expected):
     ],
 )
 def test_rsparql(
-    endpoint,
-    queries,
-    rsparql,
-    compatibility,
-    check,
-    arguments,
-    expected,
-):
+    endpoint: str,
+    queries: Mapping[str, str],
+    rsparql: str,
+    compatibility: list[tuple[str, str, str]],
+    check: str,
+    arguments: Sequence[str],
+    expected: str,
+) -> None:
     """rsparql prints the expected response."""
     _run(rsparql, _arguments(arguments, endpoint, queries), expected, None)
     compatibility.append(('rsparql', check, expected))
@@ -206,14 +226,14 @@ def test_rsparql(
     ],
 )
 def test_comunica(
-    endpoint,
-    queries,
-    comunica,
-    compatibility,
-    check,
-    arguments,
-    expected,
-):
+    endpoint: str,
+    queries: Mapping[str, str],
+    comunica: str,
+    compatibility: list[tuple[str, str, str]],
+    check: str,
+    arguments: Sequence[str],
+    expected: str,
+) -> None:
     """Comunica prints the expected response."""
     _run(comunica, _arguments(arguments, endpoint, queries), expected, None)
     compatibility.append(('comunica-sparql', check, expected))
@@ -233,14 +253,14 @@ def test_comunica(
     ],
 )
 def test_sparqlquery(
-    endpoint,
-    queries,
-    sparqlquery,
-    compatibility,
-    check,
-    arguments,
-    expected,
-):
+    endpoint: str,
+    queries: Mapping[str, str],
+    sparqlquery: str,
+    compatibility: list[tuple[str, str, str]],
+    check: str,
+    arguments: Sequence[str],
+    expected: str,
+) -> None:
     """sparqlquery prints the expected response."""
     _run(sparqlquery, _arguments(arguments, endpoint, queries), expected, None)
     compatibility.append(('sparqlquery', check, expected))
@@ -265,7 +285,15 @@ def test_sparqlquery(
         ),
     ],
 )
-def test_curl(endpoint, queries, curl, compatibility, check, arguments, expected):
+def test_curl(
+    endpoint: str,
+    queries: Mapping[str, str],
+    curl: str,
+    compatibility: list[tuple[str, str, str]],
+    check: str,
+    arguments: Sequence[str],
+    expected: str,
+) -> None:
     """curl prints the expected response."""
     _run(curl, _arguments(arguments, endpoint, queries), expected, None)
     compatibility.append(('curl', check, expected))
@@ -280,20 +308,20 @@ def test_curl(endpoint, queries, curl, compatibility, check, arguments, expected
     ],
 )
 def test_sq_configuration(
-    queries,
-    sq,
-    sq_directory,
-    compatibility,
-    check,
-    arguments,
-    expected,
-):
+    queries: Mapping[str, str],
+    sq: str,
+    sq_directory: Path,
+    compatibility: list[tuple[str, str, str]],
+    check: str,
+    arguments: Sequence[str],
+    expected: str,
+) -> None:
     """sq uses its configuration file for the endpoint."""
     _run(sq, _arguments(arguments, '', queries), expected, sq_directory)
     compatibility.append(('sq configuration', check, expected))
 
 
-def _document(checks):
+def _document(checks: list[tuple[str, str, str]]) -> str:
     grouped = {}
     order = []
     for client, check, expected in checks:
@@ -323,6 +351,6 @@ def _document(checks):
     return '\n'.join(lines)
 
 
-def _quoted(literal):
+def _quoted(literal: str) -> str:
     escaped = str(literal).replace('\\', r'\\').replace('"', r'\"')
     return f'"{escaped}"'
