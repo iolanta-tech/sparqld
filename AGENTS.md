@@ -14,6 +14,11 @@
 - Bake optional or repeated arguments with `bake`. Pass rustfmt `--check` after
   `--` on `sh.cargo.fmt`.
 
+## JSON documents
+
+- Parse a nested JSON document with a Pydantic model and read the fields from
+  that model.
+
 ## Browser validation
 
 - Before starting a development server, check whether the project's documented
