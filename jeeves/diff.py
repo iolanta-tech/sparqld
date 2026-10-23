@@ -7,6 +7,7 @@ import sh
 
 from jeeves.repository import PROJECT_ROOT, SH_CWD
 
+LineIndex = dict[str, set[int]]
 _HUNK_HEADER = re.compile(r'^@@ -\d+(?:,\d+)? \+(\d+)(?:,(\d+))? @@')
 _LOCATED_FINDING = re.compile(r'^(?P<path>.+?):(?P<line>\d+):\d+:')
 _FORMAT_DIFF = re.compile(r'^Diff in (?P<path>.+?):(?P<line>\d+):')
@@ -42,7 +43,7 @@ def modified_lines():
     return lines
 
 
-def diff_lines(diff):
+def diff_lines(diff: str) -> dict[str, set[int]]:
     """Collect new-file line numbers from a zero-context git diff."""
     lines = {}
     current = None
@@ -56,14 +57,14 @@ def diff_lines(diff):
     return lines
 
 
-def opened_path(row):
+def opened_path(row: str) -> str | None:
     path = row.removeprefix('+++ b/')
     if path == '/dev/null':
         return None
     return path
 
 
-def record_hunk(lines, current, row):
+def record_hunk(lines: dict[str, set[int]], current: str, row: str) -> None:
     header = _HUNK_HEADER.match(row)
     if header is None:
         return
@@ -74,18 +75,18 @@ def record_hunk(lines, current, row):
     add_lines(lines, current, start, start + count)
 
 
-def add_lines(lines, path, start, stop):
+def add_lines(lines: LineIndex, path: str, start: int, stop: int) -> None:
     """Record line numbers `start` through `stop` for `path`."""
     numbered = lines.setdefault(path, set())
     numbered.update(range(start, stop))
 
 
-def file_line_count(relative):
+def file_line_count(relative: str) -> int:
     """Return the number of lines in a working-tree file."""
     return len((PROJECT_ROOT / relative).read_text().splitlines())
 
 
-def relative_path(path):
+def relative_path(path: str) -> str:
     """Return a repository-relative posix path."""
     candidate = Path(path)
     if not candidate.is_absolute():
@@ -96,12 +97,16 @@ def relative_path(path):
         return candidate.as_posix()
 
 
-def line_is_modified(path, line, modified):
+def line_is_modified(
+    path: str,
+    line: str | int,
+    modified: dict[str, set[int]],
+) -> bool:
     """Return whether `line` of `path` is in the git diff."""
     return int(line) in modified.get(relative_path(path), ())
 
 
-def text_findings(output, modified):
+def text_findings(output: str, modified: dict[str, set[int]]) -> list[str]:
     """Keep text findings whose path and line are in `modified`."""
     selected = []
     include_following = False
@@ -115,7 +120,12 @@ def text_findings(output, modified):
     return selected
 
 
-def keep_finding(selected, include_following, row, modified):
+def keep_finding(
+    selected: list[str],
+    include_following: bool,
+    row: str,
+    modified: dict[str, set[int]],
+) -> bool:
     located = located_state(selected, row, modified)
     if located is not None:
         return located
@@ -130,7 +140,11 @@ def keep_finding(selected, include_following, row, modified):
     return include_following
 
 
-def located_state(selected, row, modified):
+def located_state(
+    selected: list[str],
+    row: str,
+    modified: dict[str, set[int]],
+) -> bool | None:
     located = _LOCATED_FINDING.match(row)
     if located is None:
         return None
@@ -139,7 +153,11 @@ def located_state(selected, row, modified):
     return False
 
 
-def format_diff_state(selected, row, modified):
+def format_diff_state(
+    selected: list[str],
+    row: str,
+    modified: dict[str, set[int]],
+) -> bool | None:
     formatted = _FORMAT_DIFF.match(row)
     if formatted is None:
         return None
@@ -153,7 +171,11 @@ def format_diff_state(selected, row, modified):
     return include_following
 
 
-def reformat_state(selected, row, modified):
+def reformat_state(
+    selected: list[str],
+    row: str,
+    modified: dict[str, set[int]],
+) -> bool | None:
     reformatted = _WOULD_REFORMAT.match(row)
     if reformatted is None:
         return None
