@@ -6,3 +6,4 @@ exclude =
     target
 max-line-length = 88
 select = WPS
+ignore = WPS462
