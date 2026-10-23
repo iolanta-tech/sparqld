@@ -6,7 +6,6 @@ import json
 import os
 import subprocess
 import textwrap
-from collections.abc import Mapping
 from datetime import date
 from pathlib import Path
 from types import MappingProxyType
@@ -138,7 +137,7 @@ def _command_text(command: list[str]) -> str:
 def _run(
     command: str | list[str],
     expected: str | None = None,
-    environment: Mapping[str, str] | None = None,
+    environment: dict[str, str] | None = None,
     cwd: Path = ROOT_DIR,
     shell: bool = False,
 ) -> str:
@@ -283,7 +282,7 @@ def decision_log():
 
 def shell(
     command: str,
-    env: Mapping[str, str] | None = None,
+    env: dict[str, str] | None = None,
     output_format: str | None = None,
     indent: int = 0,
 ) -> str:
