@@ -32,12 +32,12 @@ def fmt_python():
     return False
 
 
-def cargo_fmt(*, check):
+def cargo_fmt(*, check: bool) -> None:
     """Run `cargo fmt`, or `cargo fmt -- --check` when `check` is true."""
     cargo_fmt_command(check=check)(_cwd=SH_CWD, _fg=True)
 
 
-def cargo_fmt_command(*, check):
+def cargo_fmt_command(*, check: bool):
     """Return `cargo fmt`, baking rustfmt's `--check` when requested."""
     command = sh.cargo.fmt
     if check:
@@ -45,7 +45,7 @@ def cargo_fmt_command(*, check):
     return command
 
 
-def ruff_format(*, check):
+def ruff_format(*, check: bool) -> None:
     """Run Ruff format. Writing exits 1 when Ruff changes a file."""
     ruff_format_command(check=check)(
         str(PROJECT_ROOT),
@@ -54,7 +54,7 @@ def ruff_format(*, check):
     )
 
 
-def ruff_format_command(*, check):
+def ruff_format_command(*, check: bool):
     """Return `ruff format`, baking `--check` or the write-and-exit flag."""
     command = sh.ruff.format
     if check:
