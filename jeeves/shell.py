@@ -1,5 +1,6 @@
 """Shared process helpers for project commands."""
 
+from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
 
 import sh
@@ -7,7 +8,10 @@ import sh
 from jeeves.repository import SH_CWD
 
 
-def in_parallel(rust_task, python_task):
+def in_parallel(
+    rust_task: Callable[[], bool | None],
+    python_task: Callable[[], bool | None],
+) -> bool:
     """Run the Rust and Python tasks. Return whether formatting changed files."""
     with ThreadPoolExecutor(max_workers=2) as executor:
         tasks = (
@@ -20,7 +24,7 @@ def in_parallel(rust_task, python_task):
         return changed
 
 
-def output_text(stream):
+def output_text(stream: str | bytes | None) -> str:
     """Return a command stream as text."""
     if not stream:
         return ''
@@ -29,7 +33,7 @@ def output_text(stream):
     return stream
 
 
-def command_output(command, *arguments):
+def command_output(command: Callable[..., str | bytes], *arguments: str) -> str:
     """Run a command and return its combined output, including failures."""
     try:
         completed = command(*arguments, _cwd=SH_CWD, _tty_out=False)
