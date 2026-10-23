@@ -75,8 +75,7 @@ def configure(*, project_dir: Path, directory: Path, binary: str | Path) -> None
 def _resolve_binary() -> str:
     if _binary is None or _project_dir is None:
         raise RuntimeError(
-            'mkdocs_macros_sparqld is not configured. '
-            'Ensure the pluglet is listed under macros.modules.'
+            'mkdocs_macros_sparqld is not configured. Ensure the pluglet is listed under macros.modules.',
         )
     candidate = Path(_binary)
     if candidate.is_absolute() and candidate.is_file():
@@ -88,8 +87,7 @@ def _resolve_binary() -> str:
     if found:
         return found
     raise RuntimeError(
-        f'sparqld binary `{_binary}` was not found. '
-        'Install sparqld on PATH or set extra.sparqld.binary to an executable path.'
+        f'sparqld binary `{_binary}` was not found. Install sparqld on PATH or set extra.sparqld.binary to an executable path.',
     )
 
 
@@ -106,8 +104,7 @@ def ensure_endpoint() -> str:
         return _endpoint
     if _directory is None or _project_dir is None:
         raise RuntimeError(
-            'mkdocs_macros_sparqld is not configured. '
-            'Ensure the pluglet is listed under macros.modules.'
+            'mkdocs_macros_sparqld is not configured. Ensure the pluglet is listed under macros.modules.',
         )
     if not _directory.is_dir():
         raise RuntimeError(f'sparqld directory does not exist: {_directory}')
