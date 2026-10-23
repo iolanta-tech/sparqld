@@ -13,10 +13,10 @@ from mkdocs_macros_sparqld import run_query, stop_server
 ROOT_DIR = Path(__file__).resolve().parent
 DOCS_DIR = ROOT_DIR / 'docs'
 EXAMPLES_DIR = DOCS_DIR / 'examples'
-CLIENTS_DIR = ROOT_DIR / 'docs' / 'reference' / 'clients'
-CONVERSATIONS_DIR = ROOT_DIR / 'docs' / 'conversations'
-QUERIES_DIR = ROOT_DIR / 'docs' / 'queries'
-RESULTS_DIR = ROOT_DIR / 'docs' / 'results'
+CLIENTS_DIR = DOCS_DIR / 'reference' / 'clients'
+CONVERSATIONS_DIR = DOCS_DIR / 'conversations'
+QUERIES_DIR = DOCS_DIR / 'queries'
+RESULTS_DIR = DOCS_DIR / 'results'
 REPO_URL = 'https://github.com/iolanta-tech/sparqld'
 CLIENT_COMPATIBILITY_PATH = RESULTS_DIR / 'client-compatibility.yamlld'
 
@@ -92,8 +92,6 @@ _EXAMPLE_SYNTAXES = MappingProxyType(
         '.rq': 'sparql',
         '.sh': 'console',
         '.toml': 'toml',
-        '.tsv': 'text',
-        '.txt': 'text',
         '.yaml': 'yaml',
         '.yamlld': 'yaml',
         '.yml': 'yaml',
