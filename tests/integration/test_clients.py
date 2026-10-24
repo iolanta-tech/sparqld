@@ -6,10 +6,11 @@ import shutil
 import subprocess
 import tempfile
 from collections.abc import Iterator, Mapping, Sequence
+from io import StringIO
 from pathlib import Path
 
 import pytest
-import yaml
+from ruamel.yaml import YAML
 
 from docs_macros import CLIENT_COMPATIBILITY_PATH
 from mkdocs_macros_sparqld import ensure_endpoint, stop_server
@@ -333,6 +334,14 @@ def _clients(checks: list[tuple[str, str, str]]) -> list[dict[str, object]]:
     return [{'name': client, 'check': grouped[client]} for client in order]
 
 
+def _yaml() -> YAML:
+    emitter = YAML(typ='safe', pure=True)
+    emitter.default_flow_style = False
+    emitter.sort_base_mapping_type_on_output = False
+    emitter.width = 4096
+    return emitter
+
+
 def _document(checks: list[tuple[str, str, str]]) -> str:
     document = {
         '@context': {
@@ -347,4 +356,6 @@ def _document(checks: list[tuple[str, str, str]]) -> str:
         'summary': SUMMARY,
         'client': _clients(checks),
     }
-    return yaml.safe_dump(document, sort_keys=False, allow_unicode=True)
+    buffer = StringIO()
+    _yaml().dump(document, buffer)
+    return buffer.getvalue()
