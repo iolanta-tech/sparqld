@@ -17,8 +17,7 @@ jobs:
       - run: cargo build --locked
       - run: cargo test --locked
 
-  publish-docs:
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+  build-docs:
     needs: build-and-test
     runs-on: ubuntu-latest
     permissions:
@@ -50,5 +49,10 @@ jobs:
           virtualenvs-create: true
           virtualenvs-in-project: true
       - run: poetry install --with dev
+      - run: poetry run pytest
+      - run: git branch main origin/main
+        if: github.event_name == 'pull_request'
       - run: poetry run j docs language-history
+      - run: poetry run mkdocs build --strict
       - run: poetry run mkdocs gh-deploy --force --strict
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
