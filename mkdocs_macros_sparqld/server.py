@@ -7,14 +7,23 @@ import shutil
 import socket
 import subprocess
 import time
+from dataclasses import dataclass
 from pathlib import Path
 from urllib.request import Request, urlopen
 
-_project_dir: Path | None = None
-_directory: Path | None = None
-_binary: str | Path | None = None
-_server: subprocess.Popen | None = None
-_endpoint: str | None = None
+
+@dataclass
+class ServerState:
+    """Configuration and process shared by the documentation macros."""
+
+    project_directory: Path | None = None
+    directory: Path | None = None
+    binary: str | Path | None = None
+    process: subprocess.Popen | None = None
+    endpoint: str | None = None
+
+
+server_state = ServerState()
 _STARTUP_TIMEOUT_SECONDS = 30
 _PROBE_TIMEOUT_SECONDS = 0.25
 _HTTP_OK = 200
@@ -66,28 +75,27 @@ _HTTP_OK = 200
 #   - extractor-registration
 def configure(*, project_dir: Path, directory: Path, binary: str | Path) -> None:
     """Store paths used to launch sparqld for this MkDocs project."""
-    global _project_dir, _directory, _binary
-    _project_dir = project_dir
-    _directory = directory
-    _binary = binary
+    server_state.project_directory = project_dir
+    server_state.directory = directory
+    server_state.binary = binary
 
 
 def _resolve_binary() -> str:
-    if _binary is None or _project_dir is None:
+    if server_state.binary is None or server_state.project_directory is None:
         raise RuntimeError(
             'mkdocs_macros_sparqld is not configured. Ensure the pluglet is listed under macros.modules.',
         )
-    candidate = Path(_binary)
+    candidate = Path(server_state.binary)
     if candidate.is_absolute() and candidate.is_file():
         return str(candidate)
-    relative = (_project_dir / candidate).resolve()
+    relative = (server_state.project_directory / candidate).resolve()
     if relative.is_file():
         return str(relative)
-    found = shutil.which(str(_binary))
+    found = shutil.which(str(server_state.binary))
     if found:
         return found
     raise RuntimeError(
-        f'sparqld binary `{_binary}` was not found. Install sparqld on PATH or set extra.sparqld.binary to an executable path.',
+        f'sparqld binary `{server_state.binary}` was not found. Install sparqld on PATH or set extra.sparqld.binary to an executable path.',
     )
 
 
@@ -99,42 +107,47 @@ def _unused_port() -> int:
 
 def ensure_endpoint() -> str:
     """Start sparqld if needed and return its SPARQL endpoint URL."""
-    global _server, _endpoint
-    if _server is not None and _server.poll() is None and _endpoint is not None:
-        return _endpoint
-    if _directory is None or _project_dir is None:
+    if (
+        server_state.process is not None
+        and server_state.process.poll() is None
+        and server_state.endpoint is not None
+    ):
+        return server_state.endpoint
+    if server_state.directory is None or server_state.project_directory is None:
         raise RuntimeError(
             'mkdocs_macros_sparqld is not configured. Ensure the pluglet is listed under macros.modules.',
         )
-    if not _directory.is_dir():
-        raise RuntimeError(f'sparqld directory does not exist: {_directory}')
+    if not server_state.directory.is_dir():
+        raise RuntimeError(
+            f'sparqld directory does not exist: {server_state.directory}'
+        )
 
     port = _unused_port()
     endpoint = f'http://127.0.0.1:{port}/'
     binary = _resolve_binary()
-    _server = subprocess.Popen(
+    server_state.process = subprocess.Popen(
         [
             binary,
-            str(_directory),
+            str(server_state.directory),
             '--host',
             '127.0.0.1',
             '--port',
             str(port),
             '--no-watch',
         ],
-        cwd=_project_dir,
+        cwd=server_state.project_directory,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
         text=True,
     )
-    _endpoint = endpoint
+    server_state.endpoint = endpoint
 
     deadline = time.monotonic() + _STARTUP_TIMEOUT_SECONDS
     while time.monotonic() < deadline:
-        if _server.poll() is not None:
-            stdout, stderr = _server.communicate()
-            _server = None
-            _endpoint = None
+        if server_state.process.poll() is not None:
+            stdout, stderr = server_state.process.communicate()
+            server_state.process = None
+            server_state.endpoint = None
             raise RuntimeError(
                 'Could not start sparqld for documentation macros.\n'
                 + (stderr.strip() or stdout.strip())
@@ -152,18 +165,17 @@ def ensure_endpoint() -> str:
 
 def stop_server() -> None:
     """Terminate the build-time sparqld process if it is running."""
-    global _server, _endpoint
-    if _server is None:
+    if server_state.process is None:
         return
-    if _server.poll() is None:
-        _server.terminate()
+    if server_state.process.poll() is None:
+        server_state.process.terminate()
         try:
-            _server.communicate(timeout=5)
+            server_state.process.communicate(timeout=5)
         except subprocess.TimeoutExpired:
-            _server.kill()
-            _server.communicate()
-    _server = None
-    _endpoint = None
+            server_state.process.kill()
+            server_state.process.communicate()
+    server_state.process = None
+    server_state.endpoint = None
 
 
 def run_query(query: str) -> tuple[str, str]:
