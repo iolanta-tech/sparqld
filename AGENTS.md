@@ -18,6 +18,7 @@
 
 - Parse a nested JSON document with a Pydantic model and read the fields from
   that model.
+- Build YAML and JSON as data and serialize them with a library.
 
 ## Browser validation
 
