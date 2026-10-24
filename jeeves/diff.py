@@ -1,7 +1,6 @@
 """Changed-line lookup for `j lint --diff`."""
 
 import re
-from pathlib import Path
 
 import sh
 
@@ -9,9 +8,6 @@ from jeeves.repository import PROJECT_ROOT, SH_CWD
 
 LineIndex = dict[str, set[int]]
 _HUNK_HEADER = re.compile(r'^@@ -\d+(?:,\d+)? \+(\d+)(?:,(\d+))? @@')
-_LOCATED_FINDING = re.compile(r'^(?P<path>.+?):(?P<line>\d+):\d+:')
-_FORMAT_DIFF = re.compile(r'^Diff in (?P<path>.+?):(?P<line>\d+):')
-_WOULD_REFORMAT = re.compile(r'^Would reformat: (?P<path>.+)$')
 
 
 def modified_lines():
@@ -84,101 +80,3 @@ def add_lines(lines: LineIndex, path: str, start: int, stop: int) -> None:
 def file_line_count(relative: str) -> int:
     """Return the number of lines in a working-tree file."""
     return len((PROJECT_ROOT / relative).read_text().splitlines())
-
-
-def relative_path(path: str) -> str:
-    """Return a repository-relative posix path."""
-    candidate = Path(path)
-    if not candidate.is_absolute():
-        return candidate.as_posix()
-    try:
-        return candidate.resolve().relative_to(PROJECT_ROOT.resolve()).as_posix()
-    except ValueError:
-        return candidate.as_posix()
-
-
-def line_is_modified(
-    path: str,
-    line: str | int,
-    modified: dict[str, set[int]],
-) -> bool:
-    """Return whether `line` of `path` is in the git diff."""
-    return int(line) in modified.get(relative_path(path), ())
-
-
-def text_findings(output: str, modified: dict[str, set[int]]) -> list[str]:
-    """Keep text findings whose path and line are in `modified`."""
-    selected = []
-    include_following = False
-    for row in output.splitlines():
-        include_following = keep_finding(
-            selected,
-            include_following,
-            row,
-            modified,
-        )
-    return selected
-
-
-def keep_finding(
-    selected: list[str],
-    include_following: bool,
-    row: str,
-    modified: dict[str, set[int]],
-) -> bool:
-    located = located_state(selected, row, modified)
-    if located is not None:
-        return located
-    formatted = format_diff_state(selected, row, modified)
-    if formatted is not None:
-        return formatted
-    reformatted = reformat_state(selected, row, modified)
-    if reformatted is not None:
-        return reformatted
-    if include_following:
-        selected.append(row)
-    return include_following
-
-
-def located_state(
-    selected: list[str],
-    row: str,
-    modified: dict[str, set[int]],
-) -> bool | None:
-    located = _LOCATED_FINDING.match(row)
-    if located is None:
-        return None
-    if line_is_modified(located['path'], located['line'], modified):
-        selected.append(row)
-    return False
-
-
-def format_diff_state(
-    selected: list[str],
-    row: str,
-    modified: dict[str, set[int]],
-) -> bool | None:
-    formatted = _FORMAT_DIFF.match(row)
-    if formatted is None:
-        return None
-    include_following = line_is_modified(
-        formatted['path'],
-        formatted['line'],
-        modified,
-    )
-    if include_following:
-        selected.append(row)
-    return include_following
-
-
-def reformat_state(
-    selected: list[str],
-    row: str,
-    modified: dict[str, set[int]],
-) -> bool | None:
-    reformatted = _WOULD_REFORMAT.match(row)
-    if reformatted is None:
-        return None
-    if modified.get(relative_path(reformatted['path'])):
-        selected.append(row)
-    return False
