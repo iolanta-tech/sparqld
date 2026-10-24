@@ -9,6 +9,7 @@ from collections.abc import Iterator, Mapping, Sequence
 from pathlib import Path
 
 import pytest
+import yaml
 
 from docs_macros import CLIENT_COMPATIBILITY_PATH
 from mkdocs_macros_sparqld import ensure_endpoint, stop_server
@@ -321,36 +322,29 @@ def test_sq_configuration(
     compatibility.append(('sq configuration', check, expected))
 
 
-def _document(checks: list[tuple[str, str, str]]) -> str:
-    grouped = {}
-    order = []
+def _clients(checks: list[tuple[str, str, str]]) -> list[dict[str, object]]:
+    grouped: dict[str, list[dict[str, str]]] = {}
+    order: list[str] = []
     for client, check, expected in checks:
         if client not in grouped:
             order.append(client)
             grouped[client] = []
         grouped[client].append({'name': check, 'expected': expected})
-    lines = [
-        '"@context":',
-        '  schema: https://schema.org/',
-        '  name: schema:name',
-        '  summary: schema:abstract',
-        '  expected: schema:value',
-        '"@id": results/client-compatibility.yamlld',
-        '"@type": schema:ReviewAction',
-        f'name: {_quoted("SPARQL client compatibility")}',
-        f'summary: {_quoted(SUMMARY)}',
-        'client:',
-    ]
-    for client in order:
-        lines.append(f'  - name: {_quoted(client)}')
-        lines.append('    check:')
-        for check in grouped[client]:
-            lines.append(f'      - name: {_quoted(check["name"])}')
-            lines.append(f'        expected: {_quoted(check["expected"])}')
-    lines.append('')
-    return '\n'.join(lines)
+    return [{'name': client, 'check': grouped[client]} for client in order]
 
 
-def _quoted(literal: str) -> str:
-    escaped = str(literal).replace('\\', r'\\').replace('"', r'\"')
-    return f'"{escaped}"'
+def _document(checks: list[tuple[str, str, str]]) -> str:
+    document = {
+        '@context': {
+            'schema': 'https://schema.org/',
+            'name': 'schema:name',
+            'summary': 'schema:abstract',
+            'expected': 'schema:value',
+        },
+        '@id': 'results/client-compatibility.yamlld',
+        '@type': 'schema:ReviewAction',
+        'name': 'SPARQL client compatibility',
+        'summary': SUMMARY,
+        'client': _clients(checks),
+    }
+    return yaml.safe_dump(document, sort_keys=False, allow_unicode=True)
