@@ -6,7 +6,7 @@ from typing import Literal
 import sh
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
-from jeeves.diff import line_is_modified, relative_path
+from jeeves.findings import line_is_modified, relative_path
 from jeeves.shell import command_output
 
 _JSON_CONFIG = ConfigDict(extra='ignore')
