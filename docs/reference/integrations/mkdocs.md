@@ -97,5 +97,5 @@ Render `SELECT` bindings as a Markdown table. Pipe the result of `sparql` or
 A local MkDocs macros module can reuse the same endpoint:
 
 ```python
-{% include 'reference/integrations/helpers.py' %}
+{% include 'reference/integrations/endpoint_query.py' %}
 ```
