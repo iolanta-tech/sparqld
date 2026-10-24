@@ -10,6 +10,14 @@ from mkdocs_macros_sparqld import render
 from mkdocs_macros_sparqld.configuration import configure
 from mkdocs_macros_sparqld.server import ensure_endpoint, run_query, stop_server
 
+__all__ = [
+    'configure',
+    'define_env',
+    'ensure_endpoint',
+    'on_post_build',
+    'run_query',
+]
+
 
 def _project_file(project_dir: Path, relative: str) -> Path:
     path = (project_dir / relative).resolve()
