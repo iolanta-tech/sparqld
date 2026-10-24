@@ -7,6 +7,8 @@ exclude =
 max-line-length = 88
 select = WPS
 ignore = WPS462
+# Declare the package's public exports explicitly.
+allowed-module-metadata = __all__
 per-file-ignores =
     # Documentation examples print query results for readers and captured output.
     docs/**/*.py: WPS421
