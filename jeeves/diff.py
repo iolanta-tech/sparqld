@@ -10,20 +10,23 @@ LineIndex = dict[str, set[int]]
 _HUNK_HEADER = re.compile(r'^@@ -\d+(?:,\d+)? \+(\d+)(?:,(\d+))? @@')
 
 
-def modified_lines():
-    """Return changed line numbers for each path in the working tree."""
-    lines = diff_lines(
-        str(
-            sh.git(
-                'diff',
-                'HEAD',
-                '-U0',
-                '--no-color',
-                _cwd=SH_CWD,
-                _tty_out=False,
-            )
+def _git_diff(*revisions: str) -> str:
+    return str(
+        sh.git(
+            'diff',
+            *revisions,
+            '-U0',
+            '--no-color',
+            _cwd=SH_CWD,
+            _tty_out=False,
         )
     )
+
+
+def modified_lines(base: str = 'HEAD') -> LineIndex:
+    """Return changed line numbers since `base`, plus uncommitted lines."""
+    lines = diff_lines(_git_diff(f'{base}...HEAD'))
+    diff_lines(_git_diff('HEAD'), lines)
     untracked = str(
         sh.git(
             'ls-files',
@@ -39,9 +42,10 @@ def modified_lines():
     return lines
 
 
-def diff_lines(diff: str) -> dict[str, set[int]]:
+def diff_lines(diff: str, lines: LineIndex | None = None) -> LineIndex:
     """Collect new-file line numbers from a zero-context git diff."""
-    lines = {}
+    if lines is None:
+        lines = {}
     current = None
     for row in diff.splitlines():
         if row.startswith('+++ b/'):
