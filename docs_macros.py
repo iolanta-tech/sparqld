@@ -240,6 +240,9 @@ class Decision(BaseModel):
     author: Term
 
 
+Decision.model_rebuild(_types_namespace={'Term': Term})
+
+
 def _decisions(body: str) -> list[Decision]:
     selected = SelectResult.model_validate_json(body)
     return [Decision.model_validate(binding) for binding in selected.solutions.bindings]
