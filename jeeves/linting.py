@@ -4,7 +4,8 @@ import sh
 import typer
 
 from jeeves.clippy import clippy_findings
-from jeeves.diff import modified_lines, text_findings
+from jeeves.diff import modified_lines
+from jeeves.findings import text_findings
 from jeeves.formatting import (
     cargo_fmt,
     cargo_fmt_command,
