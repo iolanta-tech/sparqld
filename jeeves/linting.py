@@ -1,7 +1,11 @@
 """Lint and evolve commands."""
 
+from collections.abc import Sequence
+from typing import Annotated
+
 import sh
 import typer
+from typer._click.parser import _Option, _OptionParser, _ParsingState
 
 from jeeves.clippy import clippy_findings
 from jeeves.diff import modified_lines
@@ -17,11 +21,38 @@ from jeeves.formatting import (
 from jeeves.repository import PROJECT_ROOT, SH_CWD
 from jeeves.shell import command_output, in_parallel
 
+_DIFF_OPTION_VALUE = _OptionParser._get_value_from_state
 
-def lint(diff: bool = False):
+
+def _diff_option_value(
+    parser: _OptionParser,
+    option_name: str,
+    option: _Option,
+    state: _ParsingState,
+) -> str | Sequence[str]:
+    """Allow `--diff` alone, and `--diff REF`."""
+    if option.dest != 'diff':
+        return _DIFF_OPTION_VALUE(parser, option_name, option, state)
+    if state.rargs and not state.rargs[0].startswith('-'):
+        return state.rargs.pop(0)
+    return 'HEAD'
+
+
+_OptionParser._get_value_from_state = _diff_option_value  # ty: ignore[invalid-assignment]
+
+
+def lint(
+    diff: Annotated[
+        str | None,
+        typer.Option(
+            '--diff',
+            help='Report findings on lines changed from HEAD, or from a git ref.',
+        ),
+    ] = None,
+) -> None:
     """Check Rust and Python sources."""
-    if diff:
-        lint_diff()
+    if diff is not None:
+        lint_diff(diff)
         return
     in_parallel(lint_rust, lint_python)
 
@@ -58,9 +89,9 @@ def lint_python():
     sh.flake8(str(PROJECT_ROOT), _cwd=SH_CWD, _fg=True)
 
 
-def lint_diff():
-    """Report lint findings that sit on lines changed relative to HEAD."""
-    modified = modified_lines()
+def lint_diff(base: str) -> None:
+    """Report lint findings on lines changed from `base`."""
+    modified = modified_lines(base)
     findings = text_findings(check_output(), modified)
     findings.extend(clippy_findings(modified))
     if findings:
