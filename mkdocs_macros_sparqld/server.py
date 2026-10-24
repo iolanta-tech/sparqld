@@ -22,6 +22,39 @@ class ServerState:
     process: subprocess.Popen | None = None
     endpoint: str | None = None
 
+    def wait_for_endpoint(self, process: subprocess.Popen, endpoint: str) -> str:
+        """Wait for a ready endpoint or clean up a failed server startup."""
+        deadline = time.monotonic() + _STARTUP_TIMEOUT_SECONDS
+        while time.monotonic() < deadline:
+            self.check_process(process)
+            try:
+                ready = self.endpoint_is_ready(endpoint)
+            except OSError:
+                time.sleep(0.1)
+                continue
+            if ready:
+                return endpoint
+
+        stop_server()
+        raise RuntimeError('Timed out starting sparqld for documentation macros.')
+
+    def check_process(self, process: subprocess.Popen) -> None:
+        """Report a startup failure and clear the stopped process state."""
+        if process.poll() is None:
+            return
+        stdout, stderr = process.communicate()
+        self.process = None
+        self.endpoint = None
+        raise RuntimeError(
+            'Could not start sparqld for documentation macros.\n'
+            + (stderr.strip() or stdout.strip())
+        )
+
+    def endpoint_is_ready(self, endpoint: str) -> bool:
+        """Check whether the landing page responds successfully."""
+        with urlopen(endpoint, timeout=_PROBE_TIMEOUT_SECONDS) as response:
+            return response.status == _HTTP_OK
+
 
 server_state = ServerState()
 _STARTUP_TIMEOUT_SECONDS = 30
@@ -142,25 +175,7 @@ def ensure_endpoint() -> str:
     )
     server_state.endpoint = endpoint
 
-    deadline = time.monotonic() + _STARTUP_TIMEOUT_SECONDS
-    while time.monotonic() < deadline:
-        if server_state.process.poll() is not None:
-            stdout, stderr = server_state.process.communicate()
-            server_state.process = None
-            server_state.endpoint = None
-            raise RuntimeError(
-                'Could not start sparqld for documentation macros.\n'
-                + (stderr.strip() or stdout.strip())
-            )
-        try:
-            with urlopen(endpoint, timeout=_PROBE_TIMEOUT_SECONDS) as response:
-                if response.status == _HTTP_OK:
-                    return endpoint
-        except OSError:
-            time.sleep(0.1)
-
-    stop_server()
-    raise RuntimeError('Timed out starting sparqld for documentation macros.')
+    return server_state.wait_for_endpoint(server_state.process, endpoint)
 
 
 def stop_server() -> None:
