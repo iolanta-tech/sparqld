@@ -61,6 +61,7 @@ ruff = "^0.16.2"
 wemake-python-styleguide = "^1.7.1"
 ty = "^0.0.90"
 pytest = "^9.1.1"
+pyyaml = "^6.0.3"
 
 [tool.ruff.lint]
 extend-select = ["ANN001", "ANN002", "ANN003", "ISC001", "ISC002"]
