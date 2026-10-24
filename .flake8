@@ -7,3 +7,6 @@ exclude =
 max-line-length = 88
 select = WPS
 ignore = WPS462
+per-file-ignores =
+    # Documentation examples print query results for readers and captured output.
+    docs/**/*.py: WPS421
