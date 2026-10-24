@@ -6,9 +6,9 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import urlparse
 
-from . import render
-from .server import configure as configure_server
-from .server import ensure_endpoint, run_query, stop_server
+from mkdocs_macros_sparqld import render
+from mkdocs_macros_sparqld.server import configure as configure_server
+from mkdocs_macros_sparqld.server import ensure_endpoint, run_query, stop_server
 
 __all__ = [
     'configure',
