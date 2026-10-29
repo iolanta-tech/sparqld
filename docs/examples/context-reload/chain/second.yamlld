@@ -1,0 +1,4 @@
+"@context": urn:context:first
+"@id": urn:context:second
+"@type": jsonld:Context
+contentUrl: body.yamlld
