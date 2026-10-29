@@ -1,0 +1,5 @@
+{
+  "@context": {
+    "@import": "https://example.org/ctx"
+  }
+}

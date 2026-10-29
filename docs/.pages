@@ -3,4 +3,6 @@ nav:
       - Home: index.md
       - Quickstart: quickstart.md
   - reference
+  - Vocabulary:
+      - vocabulary
   - project

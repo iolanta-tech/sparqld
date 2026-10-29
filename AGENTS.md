@@ -6,6 +6,15 @@
   Render them in documentation through the corresponding MkDocs macro instead
   of embedding their contents directly in a page.
 
+## Executable examples
+
+- Store integration example projects, queries, and expected results in `docs`.
+  Documentation and integration tests must use the same files.
+- Point `sparqld` directly at an example project for read-only tests. Copy the
+  project to a temporary directory only when a test changes or deletes files.
+- Use pytest for user-facing example scenarios. Keep Rust tests for internal
+  behavior and MCP protocol checks.
+
 ## Commands
 
 - The `jeeves` package runs with the direnv virtualenv active. Invoke `ruff`, `flake8`,

@@ -1,0 +1,6 @@
+"@context":
+  - https://json-ld.org/contexts/dollar-convenience.jsonld
+  - name: https://schema.org/name
+
+$id: person
+name: Alice

@@ -7,6 +7,7 @@ nav:
   - Named graphs: named-graphs.md
   - File catalog: file-catalog.md
   - Contexts: contexts.md
+  - Context dependency example: context-dependencies.md
   - Libraries: libraries
   - clients
   - Agents: agents

@@ -1,0 +1,7 @@
+ASK {
+  GRAPH <sparqld:remote.jsonld> {
+    <https://example.org/ctx>
+      a <http://www.w3.org/ns/json-ld#Context> ;
+      <https://schema.org/contentUrl> <sparqld:example.jsonld> .
+  }
+}

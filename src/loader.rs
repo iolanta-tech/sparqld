@@ -71,7 +71,6 @@ use crate::patterns::SourcePatterns;
 //   - extractor-contributions
 
 type LoadResult<T> = Result<T, Box<dyn Error + Send + Sync>>;
-pub(crate) type ContextDependents = BTreeMap<PathBuf, BTreeSet<PathBuf>>;
 
 const GRAPH_PATH_ENCODE_SET: &AsciiSet = &CONTROLS
     .add(b' ')
@@ -88,6 +87,8 @@ const GRAPH_PATH_ENCODE_SET: &AsciiSet = &CONTROLS
 const FILE_CATALOG_GRAPH: NamedNodeRef<'_> = NamedNodeRef::new_unchecked("sparqld:");
 const DOLLAR_CONVENIENCE_CONTEXT_URL: &str =
     "https://json-ld.org/contexts/dollar-convenience.jsonld";
+const JSONLD_CONTEXT: NamedNodeRef<'_> =
+    NamedNodeRef::new_unchecked("http://www.w3.org/ns/json-ld#context");
 
 mod nfo {
     use oxigraph::model::NamedNodeRef;
@@ -159,7 +160,6 @@ struct FileCatalog<'a> {
 pub(crate) struct ReloadReport {
     pub(crate) loaded_sources: BTreeSet<PathBuf>,
     pub(crate) load_errors: BTreeMap<PathBuf, String>,
-    pub(crate) context_dependents: ContextDependents,
     pub(crate) updates: Vec<SourceUpdate>,
     pub(crate) failures: Vec<SourceFailure>,
     pub(crate) impacts: BTreeMap<PathBuf, BTreeSet<PathBuf>>,
@@ -168,7 +168,6 @@ pub(crate) struct ReloadReport {
 pub(crate) struct DirectoryLoad {
     pub(crate) loaded_sources: BTreeSet<PathBuf>,
     pub(crate) load_errors: BTreeMap<PathBuf, String>,
-    pub(crate) context_dependents: ContextDependents,
     pub(crate) ignored_files: usize,
 }
 
@@ -254,7 +253,20 @@ impl<'a> FileCatalog<'a> {
         Ok(())
     }
 
-    fn describe_load_error(&self, relative: &Path, message: &str) -> LoadResult<()> {
+    fn describe_contexts(&self, relative: &Path, contexts: &BTreeSet<NamedNode>) -> LoadResult<()> {
+        let source = graph_name(relative)?;
+        for context in contexts {
+            self.dataset.insert(QuadRef::new(
+                source.as_ref(),
+                JSONLD_CONTEXT,
+                context.as_ref(),
+                FILE_CATALOG_GRAPH,
+            ))?;
+        }
+        Ok(())
+    }
+
+    fn describe_load_error(&self, relative: &Path, error: &str) -> LoadResult<()> {
         let resource = graph_name(relative)?;
         let entry = NamedNode::new(format!("{}#load-error", resource.as_str()))?;
 
@@ -274,7 +286,7 @@ impl<'a> FileCatalog<'a> {
         self.dataset.insert(QuadRef::new(
             entry.as_ref(),
             rlog::MESSAGE,
-            LiteralRef::new_simple_literal(message),
+            LiteralRef::new_simple_literal(error),
             FILE_CATALOG_GRAPH,
         ))?;
         Ok(())
@@ -365,7 +377,6 @@ pub(crate) fn load_directory_with_patterns(
 
     let mut loaded_sources = BTreeSet::new();
     let mut load_errors = BTreeMap::new();
-    let mut context_dependents = ContextDependents::new();
     let mut ignored_files = 0;
     for file in &files {
         let Some(format) = source_format(file) else {
@@ -379,7 +390,7 @@ pub(crate) fn load_directory_with_patterns(
         }
         let mut context_dependencies = BTreeSet::new();
         let result = load_file(&root, file, dataset, &mut context_dependencies);
-        update_context_dependents(&mut context_dependents, relative, &context_dependencies);
+        catalog.describe_contexts(relative, &context_dependencies)?;
         match result {
             Ok(Some(embedded_graphs)) => {
                 catalog.describe_source(relative, &embedded_graphs)?;
@@ -404,7 +415,6 @@ pub(crate) fn load_directory_with_patterns(
     Ok(DirectoryLoad {
         loaded_sources,
         load_errors,
-        context_dependents,
         ignored_files,
     })
 }
@@ -415,7 +425,6 @@ pub(crate) fn reload_changed(
     changed_paths: &BTreeSet<PathBuf>,
     loaded_sources: &BTreeSet<PathBuf>,
     load_errors: &BTreeMap<PathBuf, String>,
-    context_dependents: &ContextDependents,
     dataset: &Store,
 ) -> LoadResult<ReloadReport> {
     reload_changed_with_patterns(
@@ -423,7 +432,6 @@ pub(crate) fn reload_changed(
         changed_paths,
         loaded_sources,
         load_errors,
-        context_dependents,
         dataset,
         &SourcePatterns::all(),
     )
@@ -434,7 +442,6 @@ pub(crate) fn reload_changed_with_patterns(
     changed_paths: &BTreeSet<PathBuf>,
     loaded_sources: &BTreeSet<PathBuf>,
     load_errors: &BTreeMap<PathBuf, String>,
-    context_dependents: &ContextDependents,
     dataset: &Store,
     source_patterns: &SourcePatterns,
 ) -> LoadResult<ReloadReport> {
@@ -450,15 +457,14 @@ pub(crate) fn reload_changed_with_patterns(
         changed_paths,
         &tracked_sources,
         &current_sources,
-        context_dependents,
-    );
+        dataset,
+    )?;
     let affected = impacts.values().flatten().cloned().collect::<BTreeSet<_>>();
 
     if affected.is_empty() {
         return Ok(ReloadReport {
             loaded_sources: loaded_sources.clone(),
             load_errors: load_errors.clone(),
-            context_dependents: context_dependents.clone(),
             updates: Vec::new(),
             failures: Vec::new(),
             impacts,
@@ -468,7 +474,6 @@ pub(crate) fn reload_changed_with_patterns(
     let staging = Store::new()?;
     let mut staged_sources = BTreeSet::new();
     let mut failed_sources = BTreeMap::new();
-    let mut next_context_dependents = context_dependents.clone();
     for relative in &affected {
         let mut context_dependencies = BTreeSet::new();
         if current_sources.contains(relative) {
@@ -487,11 +492,7 @@ pub(crate) fn reload_changed_with_patterns(
                 }
             }
         }
-        update_context_dependents(
-            &mut next_context_dependents,
-            relative,
-            &context_dependencies,
-        );
+        FileCatalog { dataset: &staging }.describe_contexts(relative, &context_dependencies)?;
     }
 
     let mut next_sources = loaded_sources.clone();
@@ -513,7 +514,37 @@ pub(crate) fn reload_changed_with_patterns(
             scoped_graphs_for_source(dataset, source)
         }
     })?;
-    let staged_quads = collect_quads(&staging)?;
+    let affected_graphs = affected
+        .iter()
+        .map(|source| graph_name(source))
+        .collect::<LoadResult<BTreeSet<_>>>()?;
+    for previous in dataset.quads_for_pattern(
+        None,
+        Some(JSONLD_CONTEXT),
+        None,
+        Some(FILE_CATALOG_GRAPH.into()),
+    ) {
+        let previous = previous?;
+        let replaced = match &previous.subject {
+            NamedOrBlankNode::NamedNode(source) => affected_graphs.contains(source),
+            NamedOrBlankNode::BlankNode(_) => false,
+        };
+        if !replaced {
+            catalog.insert(previous.as_ref())?;
+        }
+    }
+    for dependency in staging.quads_for_pattern(
+        None,
+        Some(JSONLD_CONTEXT),
+        None,
+        Some(FILE_CATALOG_GRAPH.into()),
+    ) {
+        catalog.insert(dependency?.as_ref())?;
+    }
+    let staged_quads = collect_quads(&staging)?
+        .into_iter()
+        .filter(|quad| quad.graph_name != FILE_CATALOG_GRAPH.into())
+        .collect::<Vec<_>>();
     let catalog_quads = collect_quads(&catalog)?;
     let removed_triples = affected
         .iter()
@@ -566,7 +597,7 @@ pub(crate) fn reload_changed_with_patterns(
                 graph: graph_name(&path)?.as_str().to_owned(),
                 path,
                 format: format.name(),
-                error,
+                error: error.to_string(),
             })
         })
         .collect::<LoadResult<Vec<_>>>()?;
@@ -574,7 +605,6 @@ pub(crate) fn reload_changed_with_patterns(
     Ok(ReloadReport {
         loaded_sources: next_sources,
         load_errors: next_errors,
-        context_dependents: next_context_dependents,
         updates,
         failures,
         impacts,
@@ -615,8 +645,8 @@ fn source_impacts(
     changed_paths: &BTreeSet<PathBuf>,
     loaded_sources: &BTreeSet<PathBuf>,
     current_sources: &BTreeSet<PathBuf>,
-    context_dependents: &ContextDependents,
-) -> BTreeMap<PathBuf, BTreeSet<PathBuf>> {
+    dataset: &Store,
+) -> LoadResult<BTreeMap<PathBuf, BTreeSet<PathBuf>>> {
     let mut impacts = BTreeMap::new();
     for changed in changed_paths {
         let changed = if changed.is_absolute() {
@@ -628,7 +658,29 @@ fn source_impacts(
             changed.as_path()
         };
 
-        let mut affected = context_dependents.get(changed).cloned().unwrap_or_default();
+        let mut affected = BTreeSet::new();
+        for dependency in dataset.quads_for_pattern(
+            None,
+            Some(JSONLD_CONTEXT),
+            None,
+            Some(FILE_CATALOG_GRAPH.into()),
+        ) {
+            let dependency = dependency?;
+            let (NamedOrBlankNode::NamedNode(source), Term::NamedNode(context)) =
+                (dependency.subject, dependency.object)
+            else {
+                continue;
+            };
+            let (Ok(source), Ok(context)) = (
+                local_context_relative(source.as_str()),
+                local_context_relative(context.as_str()),
+            ) else {
+                continue;
+            };
+            if context.starts_with(changed) && loaded_sources.contains(&source) {
+                affected.insert(source);
+            }
+        }
         if loaded_sources.contains(changed) || current_sources.contains(changed) {
             affected.insert(changed.to_owned());
         } else if root.join(changed).is_dir()
@@ -645,34 +697,10 @@ fn source_impacts(
                     .filter(|source| source.starts_with(changed))
                     .cloned(),
             );
-            affected.extend(
-                context_dependents
-                    .iter()
-                    .filter(|(context, _)| context.starts_with(changed))
-                    .flat_map(|(_, dependents)| dependents)
-                    .cloned(),
-            );
         }
         impacts.insert(changed.to_owned(), affected);
     }
-    impacts
-}
-
-fn update_context_dependents(
-    context_dependents: &mut ContextDependents,
-    source: &Path,
-    dependencies: &BTreeSet<PathBuf>,
-) {
-    context_dependents.retain(|_, dependents| {
-        dependents.remove(source);
-        !dependents.is_empty()
-    });
-    for dependency in dependencies {
-        context_dependents
-            .entry(dependency.clone())
-            .or_default()
-            .insert(source.to_owned());
-    }
+    Ok(impacts)
 }
 
 fn build_catalog(
@@ -753,7 +781,7 @@ fn load_file(
     root: &Path,
     file: &Path,
     dataset: &Store,
-    context_dependencies: &mut BTreeSet<PathBuf>,
+    context_dependencies: &mut BTreeSet<NamedNode>,
 ) -> LoadResult<Option<BTreeSet<NamedNode>>> {
     let format = source_format(file).ok_or_else(|| io::Error::other("unknown RDF format"))?;
     let relative = file.strip_prefix(root).map_err(io::Error::other)?;
@@ -834,7 +862,7 @@ fn load_json_ld(
     base_iri: &str,
     graph: NamedNode,
     dataset: &Store,
-    dependencies: &mut BTreeSet<PathBuf>,
+    dependencies: &mut BTreeSet<NamedNode>,
 ) -> LoadResult<BTreeSet<NamedNode>> {
     let root = root.to_owned();
     let loaded_contexts = Arc::new(Mutex::new(BTreeSet::new()));
@@ -847,7 +875,11 @@ fn load_json_ld(
         let quads = parser
             .for_slice(source)
             .with_document_loader(move |url| {
-                load_context_document(&root, url, Some(&context_dependencies))
+                context_dependencies
+                    .lock()
+                    .map_err(|error| io::Error::other(error.to_string()))?
+                    .insert(NamedNode::new(url)?);
+                load_context_document(&root, url)
             })
             .collect::<Result<Vec<_>, _>>()?;
         load_scoped_quads(dataset, quads, graph)
@@ -947,11 +979,7 @@ fn scope_quad(
     )
 }
 
-fn load_context_document(
-    root: &Path,
-    url: &str,
-    dependencies: Option<&Mutex<BTreeSet<PathBuf>>>,
-) -> LoadResult<LoadedDocument> {
+fn load_context_document(root: &Path, url: &str) -> LoadResult<LoadedDocument> {
     if url == DOLLAR_CONVENIENCE_CONTEXT_URL {
         return Ok(LoadedDocument {
             url: url.into(),
@@ -961,12 +989,6 @@ fn load_context_document(
     }
 
     let relative = local_context_relative(url)?;
-    if let Some(dependencies) = dependencies {
-        dependencies
-            .lock()
-            .map_err(|error| io::Error::other(error.to_string()))?
-            .insert(relative.clone());
-    }
     let path = local_context_path(root, &relative, url)?;
     let content = match path.extension().and_then(|extension| extension.to_str()) {
         Some(extension) if extension.eq_ignore_ascii_case("jsonld") => fs::read(&path)?,
@@ -993,9 +1015,9 @@ fn context_format() -> RdfFormat {
 }
 
 fn local_context_relative(url: &str) -> LoadResult<PathBuf> {
-    let relative = url
-        .strip_prefix("sparqld:")
-        .ok_or_else(|| io::Error::other(format!("context URL is not supported: {url}")))?;
+    let Some(relative) = url.strip_prefix("sparqld:") else {
+        return Err(io::Error::other(format!("context URL is not supported: {url}")).into());
+    };
     let relative = percent_decode_str(relative)
         .decode_utf8()
         .map_err(|_| io::Error::other(format!("context URL is not UTF-8: {url}")))?;
@@ -1087,6 +1109,173 @@ fn path_iri(relative: &Path, directory: bool) -> LoadResult<String> {
 mod tests {
     use super::*;
     use oxigraph::model::{LiteralRef, NamedNodeRef, QuadRef};
+    use oxigraph::sparql::{QueryResults, SparqlEvaluator};
+
+    fn context_dependencies(dataset: &Store) -> Vec<(String, String)> {
+        let mut dependencies = dataset
+            .quads_for_pattern(
+                None,
+                Some(JSONLD_CONTEXT),
+                None,
+                Some(FILE_CATALOG_GRAPH.into()),
+            )
+            .map(|quad| {
+                let quad = quad.unwrap();
+                (quad.subject.to_string(), quad.object.to_string())
+            })
+            .collect::<Vec<_>>();
+        dependencies.sort();
+        dependencies
+    }
+
+    #[test]
+    fn records_context_requests_for_successful_and_failed_sources() {
+        let directory = tempfile::tempdir().unwrap();
+        fs::write(
+            directory.path().join("terms.jsonld"),
+            r#"{"@context":{"name":"urn:name"}}"#,
+        )
+        .unwrap();
+        for (filename, content) in [
+            (
+                "success.jsonld",
+                serde_json::json!({"@context": ["terms.jsonld", "terms.jsonld"], "@id": "urn:alice", "name": "Alice"}),
+            ),
+            (
+                "remote.jsonld",
+                serde_json::json!({"@context": "did:example:context"}),
+            ),
+            (
+                "ordinary.jsonld",
+                serde_json::json!({"@context": ["terms.jsonld", {"bad": {"@id": 42}}]}),
+            ),
+            (
+                "bundled.jsonld",
+                serde_json::json!({"@context": [DOLLAR_CONVENIENCE_CONTEXT_URL, DOLLAR_CONVENIENCE_CONTEXT_URL]}),
+            ),
+            (
+                "inline.jsonld",
+                serde_json::json!({"@context": {"name": "urn:name"}}),
+            ),
+        ] {
+            fs::write(
+                directory.path().join(filename),
+                serde_json::to_vec(&content).unwrap(),
+            )
+            .unwrap();
+        }
+        let dataset = Store::new().unwrap();
+        let load = load_directory_with_stats(directory.path(), &dataset).unwrap();
+        assert_eq!(load.load_errors.len(), 2);
+        assert!(load.load_errors[Path::new("ordinary.jsonld")].contains("@id"));
+        assert_eq!(
+            context_dependencies(&dataset),
+            vec![
+                (
+                    "<sparqld:bundled.jsonld>".into(),
+                    format!("<{DOLLAR_CONVENIENCE_CONTEXT_URL}>")
+                ),
+                (
+                    "<sparqld:ordinary.jsonld>".into(),
+                    "<sparqld:terms.jsonld>".into()
+                ),
+                (
+                    "<sparqld:remote.jsonld>".into(),
+                    "<did:example:context>".into()
+                ),
+                (
+                    "<sparqld:success.jsonld>".into(),
+                    "<sparqld:terms.jsonld>".into()
+                ),
+            ]
+        );
+    }
+
+    #[test]
+    fn reloads_failed_sources_after_excluded_context_directory_changes() {
+        let directory = tempfile::tempdir().unwrap();
+        let contexts = directory.path().join("hidden contexts");
+        let terms = contexts.join("name #.yamlld");
+        let source = directory.path().join("alice.jsonld");
+        let context = graph_name(Path::new("hidden contexts/name #.yamlld")).unwrap();
+        fs::write(
+            &source,
+            serde_json::to_vec(&serde_json::json!({
+                "@context": context.as_str(), "@id": "urn:alice", "name": "Alice"
+            }))
+            .unwrap(),
+        )
+        .unwrap();
+        let patterns = SourcePatterns::compile(&["alice.jsonld".into()]).unwrap();
+        let dataset = Store::new().unwrap();
+        let mut load = load_directory_with_patterns(directory.path(), &dataset, &patterns).unwrap();
+        assert_eq!(load.load_errors.len(), 1);
+        let expected = context_dependencies(&dataset);
+        for present in [true, false, true] {
+            if present {
+                fs::create_dir_all(&contexts).unwrap();
+                fs::write(&terms, "'@context':\n  name: urn:name\n").unwrap();
+            } else {
+                fs::remove_dir_all(&contexts).unwrap();
+            }
+            let report = reload_changed_with_patterns(
+                directory.path(),
+                &BTreeSet::from([contexts.clone()]),
+                &load.loaded_sources,
+                &load.load_errors,
+                &dataset,
+                &patterns,
+            )
+            .unwrap();
+            assert_eq!(
+                report.impacts[Path::new("hidden contexts")],
+                BTreeSet::from([PathBuf::from("alice.jsonld")])
+            );
+            assert_eq!(
+                report.loaded_sources.contains(Path::new("alice.jsonld")),
+                present
+            );
+            assert_eq!(report.load_errors.is_empty(), present);
+            assert_eq!(context_dependencies(&dataset), expected);
+            let fresh = Store::new().unwrap();
+            load_directory_with_patterns(directory.path(), &fresh, &patterns).unwrap();
+            assert_eq!(context_dependencies(&dataset), context_dependencies(&fresh));
+            load.loaded_sources = report.loaded_sources;
+            load.load_errors = report.load_errors;
+        }
+    }
+
+    #[test]
+    fn ignores_context_edges_outside_the_reserved_catalog() {
+        let directory = tempfile::tempdir().unwrap();
+        fs::write(
+            directory.path().join("source.ttl"),
+            "<urn:s> <urn:p> <urn:o> .",
+        )
+        .unwrap();
+        let patterns = SourcePatterns::compile(&["source.ttl".into()]).unwrap();
+        let dataset = Store::new().unwrap();
+        let load = load_directory_with_patterns(directory.path(), &dataset, &patterns).unwrap();
+        dataset
+            .insert(QuadRef::new(
+                NamedNodeRef::new("sparqld:source.ttl").unwrap(),
+                JSONLD_CONTEXT,
+                NamedNodeRef::new("sparqld:excluded.jsonld").unwrap(),
+                NamedNodeRef::new("urn:user-graph").unwrap(),
+            ))
+            .unwrap();
+        let report = reload_changed_with_patterns(
+            directory.path(),
+            &BTreeSet::from([PathBuf::from("excluded.jsonld")]),
+            &load.loaded_sources,
+            &load.load_errors,
+            &dataset,
+            &patterns,
+        )
+        .unwrap();
+        assert!(report.updates.is_empty());
+        assert!(context_dependencies(&dataset).is_empty());
+    }
 
     #[test]
     fn loads_each_source_file_into_a_relative_path_graph() {
@@ -1271,7 +1460,6 @@ mod tests {
             &BTreeSet::from([source]),
             &load.loaded_sources,
             &load.load_errors,
-            &load.context_dependents,
             &dataset,
         )
         .unwrap();
@@ -1302,7 +1490,6 @@ mod tests {
             &BTreeSet::from([source]),
             &load.loaded_sources,
             &load.load_errors,
-            &load.context_dependents,
             &dataset,
         )
         .unwrap();
@@ -1426,6 +1613,331 @@ mod tests {
             error.contains("context URL is not supported"),
             "unexpected error: {error}"
         );
+        assert_eq!(
+            context_dependencies(&dataset),
+            vec![(
+                "<sparqld:source.jsonld>".into(),
+                "<https://example.org/context.jsonld>".into()
+            )]
+        );
+    }
+
+    #[test]
+    fn queries_context_dependencies_for_failed_sources() {
+        let directory = tempfile::tempdir().unwrap();
+        fs::write(
+            directory.path().join("source.yamlld"),
+            include_str!("../docs/examples/missing-context.yamlld"),
+        )
+        .unwrap();
+        let dataset = Store::new().unwrap();
+        load_directory_with_stats(directory.path(), &dataset).unwrap();
+
+        let QueryResults::Solutions(solutions) = SparqlEvaluator::new()
+            .parse_query(include_str!("../docs/queries/context-dependencies.rq"))
+            .unwrap()
+            .on_store(&dataset)
+            .execute()
+            .unwrap()
+        else {
+            panic!("expected SELECT results");
+        };
+        let solutions = solutions.collect::<Result<Vec<_>, _>>().unwrap();
+        assert_eq!(solutions.len(), 1);
+        assert_eq!(
+            solutions[0].get("file"),
+            Some(&NamedNode::new("sparqld:source.yamlld").unwrap().into())
+        );
+        assert_eq!(
+            solutions[0].get("context"),
+            Some(
+                &NamedNode::new("https://example.org/context")
+                    .unwrap()
+                    .into()
+            )
+        );
+    }
+
+    #[test]
+    fn records_every_context_request_in_a_context_array() {
+        let directory = tempfile::tempdir().unwrap();
+        fs::write(
+            directory.path().join("source.jsonld"),
+            r#"{"@context":["https://example.org/first","https://example.org/second"]}"#,
+        )
+        .unwrap();
+        let dataset = Store::new().unwrap();
+        let load = load_directory_with_stats(directory.path(), &dataset).unwrap();
+        let error = &load.load_errors[Path::new("source.jsonld")];
+        assert_eq!(
+            context_dependencies(&dataset),
+            vec![
+                (
+                    "<sparqld:source.jsonld>".into(),
+                    "<https://example.org/first>".into()
+                ),
+                (
+                    "<sparqld:source.jsonld>".into(),
+                    "<https://example.org/second>".into()
+                ),
+            ]
+        );
+        assert!(error.contains("https://example.org/first"));
+    }
+
+    #[test]
+    fn records_context_requests_alongside_context_failures() {
+        for first in ["missing-local.jsonld", "invalid.jsonld"] {
+            let directory = tempfile::tempdir().unwrap();
+            fs::write(directory.path().join("invalid.jsonld"), "{").unwrap();
+            fs::write(
+                directory.path().join("source.jsonld"),
+                serde_json::to_vec(&serde_json::json!({
+                    "@context": [first, "https://example.org/remote"]
+                }))
+                .unwrap(),
+            )
+            .unwrap();
+            let dataset = Store::new().unwrap();
+            let load = load_directory_with_stats(directory.path(), &dataset).unwrap();
+            let error = &load.load_errors[Path::new("source.jsonld")];
+            let mut expected = vec![
+                (
+                    "<sparqld:source.jsonld>".into(),
+                    format!("<sparqld:{first}>"),
+                ),
+                (
+                    "<sparqld:source.jsonld>".into(),
+                    "<https://example.org/remote>".into(),
+                ),
+            ];
+            expected.sort();
+            assert_eq!(context_dependencies(&dataset), expected);
+            assert!(error.contains(first), "{error}");
+        }
+    }
+
+    #[test]
+    fn records_requests_from_imports_and_scoped_contexts() {
+        let contexts = [
+            serde_json::json!({"@import": "https://example.org/terms"}),
+            serde_json::json!({"child": {"@id": "urn:child", "@context": "https://example.org/terms"}}),
+        ];
+        for context in contexts {
+            let directory = tempfile::tempdir().unwrap();
+            fs::write(
+                directory.path().join("source.jsonld"),
+                serde_json::to_vec(&serde_json::json!({
+                    "@context": context,
+                    "@id": "urn:subject",
+                    "child": {"name": "Alice"}
+                }))
+                .unwrap(),
+            )
+            .unwrap();
+            let dataset = Store::new().unwrap();
+            let load = load_directory_with_stats(directory.path(), &dataset).unwrap();
+            assert!(load.load_errors.contains_key(Path::new("source.jsonld")));
+            assert_eq!(
+                context_dependencies(&dataset),
+                vec![(
+                    "<sparqld:source.jsonld>".into(),
+                    "<https://example.org/terms>".into()
+                )],
+                "{context}"
+            );
+        }
+    }
+
+    #[test]
+    fn catalogs_context_requests_for_arbitrary_uri_schemes() {
+        for context in [
+            "ipfs://bafyexample/context",
+            "ipns://example.org/context",
+            "did:example:123",
+            "ni:///sha-256;example",
+            "https://example.org/context?version=1#terms",
+        ] {
+            let directory = tempfile::tempdir().unwrap();
+            fs::write(
+                directory.path().join("source.md"),
+                format!("---\n'@context': '{context}'\n---\n# Example\n"),
+            )
+            .unwrap();
+            let dataset = Store::new().unwrap();
+            let load = load_directory_with_stats(directory.path(), &dataset).unwrap();
+            assert!(load.load_errors.contains_key(Path::new("source.md")));
+            assert_eq!(
+                context_dependencies(&dataset),
+                vec![("<sparqld:source.md>".into(), format!("<{context}>"))]
+            );
+        }
+    }
+
+    #[test]
+    fn keeps_local_context_failures_and_source_attempts_distinct() {
+        let directory = tempfile::tempdir().unwrap();
+        fs::write(
+            directory.path().join("a-remote.yamlld"),
+            "'@context': https://example.org/context\n",
+        )
+        .unwrap();
+        fs::write(directory.path().join("invalid.jsonld"), "{").unwrap();
+        fs::write(directory.path().join("invalid.yamlld"), "'@context': [").unwrap();
+        for (name, context) in [
+            ("b-missing", "missing.jsonld"),
+            ("c-invalid-json", "invalid.jsonld"),
+            ("d-invalid-yaml", "invalid.yamlld"),
+        ] {
+            fs::write(
+                directory.path().join(format!("{name}.yamlld")),
+                format!("'@context': {context}\n"),
+            )
+            .unwrap();
+        }
+        fs::write(directory.path().join("ordinary.jsonld"), "{").unwrap();
+        let dataset = Store::new().unwrap();
+        let load = load_directory_with_stats(directory.path(), &dataset).unwrap();
+
+        assert_eq!(load.load_errors.len(), 7);
+        assert_eq!(
+            context_dependencies(&dataset),
+            vec![
+                (
+                    "<sparqld:a-remote.yamlld>".into(),
+                    "<https://example.org/context>".into()
+                ),
+                (
+                    "<sparqld:b-missing.yamlld>".into(),
+                    "<sparqld:missing.jsonld>".into()
+                ),
+                (
+                    "<sparqld:c-invalid-json.yamlld>".into(),
+                    "<sparqld:invalid.jsonld>".into()
+                ),
+                (
+                    "<sparqld:d-invalid-yaml.yamlld>".into(),
+                    "<sparqld:invalid.yamlld>".into()
+                ),
+            ]
+        );
+    }
+
+    #[test]
+    fn preserves_context_dependencies_during_unrelated_reloads() {
+        let directory = tempfile::tempdir().unwrap();
+        fs::write(
+            directory.path().join("source.yamlld"),
+            include_str!("../docs/examples/missing-context.yamlld"),
+        )
+        .unwrap();
+        let other = directory.path().join("other.ttl");
+        fs::write(&other, "<urn:other> <urn:value> <urn:old> .").unwrap();
+        let dataset = Store::new().unwrap();
+        let load = load_directory_with_stats(directory.path(), &dataset).unwrap();
+        let before_dependencies = context_dependencies(&dataset);
+
+        fs::write(&other, "<urn:other> <urn:value> <urn:new> .").unwrap();
+        let report = reload_changed(
+            directory.path(),
+            &BTreeSet::from([other]),
+            &load.loaded_sources,
+            &load.load_errors,
+            &dataset,
+        )
+        .unwrap();
+
+        assert_eq!(report.updates.len(), 1);
+        assert_eq!(report.updates[0].path, Path::new("other.ttl"));
+        assert_eq!(context_dependencies(&dataset), before_dependencies);
+        assert_eq!(report.load_errors, load.load_errors);
+    }
+
+    #[test]
+    fn replaces_context_dependencies_and_errors_on_reload() {
+        let directory = tempfile::tempdir().unwrap();
+        let source = directory.path().join("source.jsonld");
+        fs::write(&source, r#"{"@context":"https://example.org/old"}"#).unwrap();
+        let dataset = Store::new().unwrap();
+        let load = load_directory_with_stats(directory.path(), &dataset).unwrap();
+        let mut errors = load.load_errors;
+        let mut sources = load.loaded_sources;
+
+        for content in [
+            r#"{"@context":["https://example.org/old","https://example.org/new"]}"#,
+            r#"{"@context":"https://example.org/new"}"#,
+            "{",
+            r#"{"@context":"https://example.org/old"}"#,
+            r#"{"@id":"urn:subject","urn:value":"recovered"}"#,
+        ] {
+            fs::write(&source, content).unwrap();
+            let report = reload_changed(
+                directory.path(),
+                &BTreeSet::from([source.clone()]),
+                &sources,
+                &errors,
+                &dataset,
+            )
+            .unwrap();
+            let fresh = Store::new().unwrap();
+            let fresh_load = load_directory_with_stats(directory.path(), &fresh).unwrap();
+            assert_eq!(context_dependencies(&dataset), context_dependencies(&fresh));
+            assert_eq!(report.load_errors.len(), fresh_load.load_errors.len());
+            let entry = NamedNode::new("sparqld:source.jsonld#load-error").unwrap();
+            assert_eq!(
+                dataset
+                    .quads_for_pattern(Some(entry.as_ref().into()), None, None, None)
+                    .count(),
+                fresh
+                    .quads_for_pattern(Some(entry.as_ref().into()), None, None, None)
+                    .count()
+            );
+            errors = report.load_errors;
+            sources = report.loaded_sources;
+        }
+        assert!(errors.is_empty());
+        assert!(sources.contains(Path::new("source.jsonld")));
+    }
+
+    #[test]
+    fn removes_dependencies_and_errors_when_a_failed_source_is_deleted() {
+        let directory = tempfile::tempdir().unwrap();
+        let source = directory.path().join("source.yamlld");
+        fs::write(
+            &source,
+            include_str!("../docs/examples/missing-context.yamlld"),
+        )
+        .unwrap();
+        let dataset = Store::new().unwrap();
+        let load = load_directory_with_stats(directory.path(), &dataset).unwrap();
+        assert_eq!(context_dependencies(&dataset).len(), 1);
+
+        fs::remove_file(&source).unwrap();
+        let report = reload_changed(
+            directory.path(),
+            &BTreeSet::from([source]),
+            &load.loaded_sources,
+            &load.load_errors,
+            &dataset,
+        )
+        .unwrap();
+        assert!(report.load_errors.is_empty());
+        assert!(context_dependencies(&dataset).is_empty());
+        assert_eq!(
+            dataset
+                .quads_for_pattern(
+                    Some(
+                        NamedNodeRef::new("sparqld:source.yamlld#load-error")
+                            .unwrap()
+                            .into()
+                    ),
+                    None,
+                    None,
+                    None,
+                )
+                .count(),
+            0
+        );
     }
 
     #[test]
@@ -1517,7 +2029,6 @@ mod tests {
             &BTreeSet::from([first]),
             &loaded_sources,
             &BTreeMap::new(),
-            &ContextDependents::new(),
             &dataset,
         )
         .unwrap();
@@ -1613,7 +2124,6 @@ mod tests {
             &BTreeSet::from([excluded]),
             &load.loaded_sources,
             &load.load_errors,
-            &load.context_dependents,
             &dataset,
             &patterns,
         )
@@ -1650,7 +2160,6 @@ mod tests {
             &BTreeSet::from([source.clone()]),
             &load.loaded_sources,
             &load.load_errors,
-            &load.context_dependents,
             &dataset,
         )
         .unwrap();
@@ -1679,7 +2188,6 @@ mod tests {
             &BTreeSet::from([source]),
             &failed.loaded_sources,
             &failed.load_errors,
-            &failed.context_dependents,
             &dataset,
         )
         .unwrap();
@@ -1726,7 +2234,6 @@ mod tests {
             &BTreeSet::from([source]),
             &loaded_sources,
             &BTreeMap::new(),
-            &ContextDependents::new(),
             &dataset,
         )
         .unwrap();
@@ -1753,7 +2260,6 @@ mod tests {
             &BTreeSet::from([source]),
             &loaded_sources,
             &BTreeMap::new(),
-            &ContextDependents::new(),
             &dataset,
         )
         .unwrap();
@@ -1847,7 +2353,16 @@ mod tests {
 
         let load = load_directory_with_stats(directory.path(), &dataset).unwrap();
         let terms_relative = PathBuf::from("contexts/astronomy/terms.yamlld");
-        assert!(load.context_dependents[&terms_relative].contains(Path::new("source.jsonld")));
+        assert!(
+            dataset
+                .contains(QuadRef::new(
+                    NamedNodeRef::new("sparqld:source.jsonld").unwrap(),
+                    JSONLD_CONTEXT,
+                    graph_name(&terms_relative).unwrap().as_ref(),
+                    FILE_CATALOG_GRAPH,
+                ))
+                .unwrap()
+        );
 
         fs::write(&terms, "'@context':\n  value: urn:new-predicate\n").unwrap();
         let report = reload_changed(
@@ -1855,7 +2370,6 @@ mod tests {
             &BTreeSet::from([terms]),
             &load.loaded_sources,
             &load.load_errors,
-            &load.context_dependents,
             &dataset,
         )
         .unwrap();
@@ -1911,7 +2425,6 @@ mod tests {
             &BTreeSet::from([context]),
             &load.loaded_sources,
             &load.load_errors,
-            &load.context_dependents,
             &dataset,
             &patterns,
         )
