@@ -1,0 +1,42 @@
+{
+  "head": {
+    "vars": [
+      "file",
+      "context"
+    ]
+  },
+  "results": {
+    "bindings": [
+      {
+        "file": {
+          "type": "uri",
+          "value": "sparqld:alice.jsonld"
+        },
+        "context": {
+          "type": "uri",
+          "value": "sparqld:context.jsonld"
+        }
+      },
+      {
+        "file": {
+          "type": "uri",
+          "value": "sparqld:alice.jsonld"
+        },
+        "context": {
+          "type": "uri",
+          "value": "sparqld:example.jsonld"
+        }
+      },
+      {
+        "file": {
+          "type": "uri",
+          "value": "sparqld:context.jsonld"
+        },
+        "context": {
+          "type": "uri",
+          "value": "sparqld:example.jsonld"
+        }
+      }
+    ]
+  }
+}
