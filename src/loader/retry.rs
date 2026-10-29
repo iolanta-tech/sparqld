@@ -91,6 +91,7 @@ pub(crate) fn reload_with_retries(
     Ok(report)
 }
 
+/// Query catalog error entries for failed source paths.
 pub(super) fn failed_files(dataset: &Store) -> LoadResult<BTreeSet<PathBuf>> {
     let query = "
         PREFIX rlog: <http://persistence.uni-leipzig.org/nlp2rdf/ontologies/rlog#>
@@ -113,6 +114,7 @@ pub(super) fn failed_files(dataset: &Store) -> LoadResult<BTreeSet<PathBuf>> {
     Ok(files)
 }
 
+/// Log final source errors with their detected formats.
 fn log_load_errors(root: &Path, errors: &BTreeMap<PathBuf, String>) {
     for (relative, error) in errors {
         let format = source_format(&root.join(relative))
