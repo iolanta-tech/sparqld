@@ -1,0 +1,23 @@
+{
+  "head": {
+    "vars": [
+      "file"
+    ]
+  },
+  "results": {
+    "bindings": [
+      {
+        "file": {
+          "type": "uri",
+          "value": "sparqld:alice.jsonld"
+        }
+      },
+      {
+        "file": {
+          "type": "uri",
+          "value": "sparqld:context.jsonld"
+        }
+      }
+    ]
+  }
+}

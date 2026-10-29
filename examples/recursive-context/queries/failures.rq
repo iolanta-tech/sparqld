@@ -1,0 +1,9 @@
+PREFIX rlog: <http://persistence.uni-leipzig.org/nlp2rdf/ontologies/rlog#>
+
+SELECT ?file
+WHERE {
+  GRAPH <sparqld:> {
+    ?error rlog:resource ?file .
+  }
+}
+ORDER BY ?file
