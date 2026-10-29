@@ -9,20 +9,19 @@ icon: material/book-alphabet
 hide:
   - toc
 title: Vocabulary
-description: RDF terms defined by sparqld and their use in the file catalog.
+description: RDF terms used by sparqld in the file catalog.
 ---
 
 # :material-book-alphabet: Vocabulary
 
-The `sparqld` prefix expands to `https://sparqld.iolanta.tech/`. Each term has
-its own page with its RDF definition and usage.
+The [file catalog](../reference/file-catalog.md) uses these RDF terms.
 
 <div class="grid cards" markdown>
 
--   :material-link-off:{ .lg .middle } **[`sparqld:misses-context`](../misses-context.md)**
+-   :material-link-variant:{ .lg .middle } **[`jsonld:context`](http://www.w3.org/ns/json-ld#context)**
 
     ---
 
-    Link a load-error entry to an unresolved context URI.
+    Link a source file to the context URIs requested while parsing it.
 
 </div>
