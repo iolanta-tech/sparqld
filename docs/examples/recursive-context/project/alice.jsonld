@@ -1,0 +1,5 @@
+{
+  "@context": "context.jsonld",
+  "@id": "urn:alice",
+  "name": "Alice"
+}
