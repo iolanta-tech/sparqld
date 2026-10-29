@@ -30,8 +30,8 @@ when source files are created, moved, or deleted.
 ## :material-link-variant: Context dependencies
 
 Each source file links to the context URIs requested while parsing it through
-[`jsonld:context`](http://www.w3.org/ns/json-ld#context). This includes local,
-remote, and bundled contexts, including imports and nested context requests.
+[`jsonld:context`](http://www.w3.org/ns/json-ld#context). This includes local
+paths and absolute URIs, including imports and nested context requests.
 Repeated requests produce one edge. Inline context objects produce no URI edge.
 
 These edges record observed requests, including unsuccessful ones. Each edge
@@ -44,7 +44,8 @@ dependencies after errors are cleared. Deleting a source removes its outgoing
 edges. Changes to local context files reload their dependent sources, including
 sources whose previous loading attempt failed.
 
-This source uses the bundled dollar-convenience context:
+This source requests the dollar-keyword context URL. That URL loads from the
+project declaration in `dollar-convenience-context.jsonld`:
 
 {{ example_data('context-dependencies.yamlld') }}
 
@@ -58,8 +59,9 @@ Query the catalog to find the context requests:
 
 {{ stored_sparql('docs/queries/context-dependencies.rq') | sparql_table }}
 
-The [recursive context example](context-dependencies.md) demonstrates failed
-imports, dependency queries, and recovery after a context edit.
+The [context dependency example](context-dependencies.md) shows a remote
+context registration, catalog errors after that declaration is removed, and
+restore.
 
 ## :material-graph-outline: Embedded graphs
 
