@@ -3,4 +3,7 @@ nav:
       - Home: index.md
       - Quickstart: quickstart.md
   - reference
+  - Vocabulary:
+      - vocabulary
+      - misses-context: misses-context.md
   - project
