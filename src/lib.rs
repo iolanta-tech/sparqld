@@ -25,7 +25,6 @@ type SparqldResult<T> = Result<T, Box<dyn Error + Send + Sync>>;
 struct DatasetLoad {
     loaded_sources: BTreeSet<PathBuf>,
     load_errors: BTreeMap<PathBuf, String>,
-    context_dependents: loader::ContextDependents,
     ignored_files: usize,
     triples: usize,
 }
@@ -190,7 +189,6 @@ fn load_dataset(
     Ok(DatasetLoad {
         loaded_sources: load.loaded_sources,
         load_errors: load.load_errors,
-        context_dependents: load.context_dependents,
         ignored_files: load.ignored_files,
         triples,
     })
