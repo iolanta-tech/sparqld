@@ -9,7 +9,7 @@
 hide: [toc]
 name: JSON-LD contexts
 title: Contexts
-description: Context URLs and local context files supported by sparqld.
+description: Local context files and remote context URIs registered in project RDF.
 ---
 
 # :material-code-braces-box: Contexts
@@ -21,19 +21,15 @@ context, so the same file keeps its meaning in another JSON-LD tool.
 
 | Context | Use |
 | --- | --- |
-| [Dollar keyword aliases](https://json-ld.org/contexts/dollar-convenience.jsonld) | `$id`, `$type`, `$reverse`, and the other JSON-LD keyword aliases |
-| A relative `.jsonld` or `.yamlld` path | Project-specific terms kept under the served directory |
-
-The dollar-keyword URL identifies a bundled context. `sparqld` uses its local
-copy and never requests it over the network. Put that URL in a document's
-`@context` when using dollar aliases.
+| A relative `.jsonld` or `.yamlld` path | A context file under the served directory |
+| An absolute context URI with a project registration | A local body declared as [`jsonld:Context`](http://www.w3.org/ns/json-ld#Context) with [`schema:contentUrl`](https://schema.org/contentUrl) |
 
 Relative contexts resolve from the source's directory. They may also use
 `@import` to reference another relative context. Every referenced file must
 remain inside the directory served by `sparqld`.
 
-When a local context changes, `sparqld` reloads every source that reaches it
-through `@context` or `@import`.
+When a local context file or a registered body changes, `sparqld` reloads every
+source that requested that context.
 
 ## :material-folder-outline: Local context files
 
@@ -56,9 +52,25 @@ that context explicitly:
 
 {{ example_code('alpha-centauri.yamlld', indent=4) }}
 
+## :material-link-variant: Remote context URIs
+
+`sparqld` does not download context URLs. A source that names an absolute
+context URI loads when some project RDF resource with that `@id` has type
+[`jsonld:Context`](http://www.w3.org/ns/json-ld#Context) and
+[`schema:contentUrl`](https://schema.org/contentUrl) pointing at a local
+`.json`, `.jsonld`, or `.yamlld` body. Write that declaration with `@id` and
+`@type`; `$id` and `$type` are available only after a registration for
+[the dollar-keyword context](https://json-ld.org/contexts/dollar-convenience.jsonld)
+has loaded.
+
+The [context dependency example](context-dependencies.md) shows a declaration
+that sorts after its consumer. The served `docs/examples` tree registers the
+dollar-keyword URL the same way:
+
+{{ example_data('dollar-convenience-context.jsonld') }}
+
 ## :material-shield-lock-outline: Context access
 
-Other absolute URLs are rejected. `sparqld` does not fetch contexts from the
-web, and a relative path cannot escape the served directory. This keeps a
-dataset reproducible and prevents a context change elsewhere from changing its
-meaning.
+An unregistered absolute URL fails the source that requested it. A relative
+path cannot escape the served directory. This keeps a dataset reproducible and
+prevents a context change elsewhere from changing its meaning.
