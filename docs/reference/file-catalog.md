@@ -58,6 +58,9 @@ Query the catalog to find the context requests:
 
 {{ stored_sparql('docs/queries/context-dependencies.rq') | sparql_table }}
 
+The [recursive context example](context-dependencies.md) demonstrates failed
+imports, dependency queries, and recovery after a context edit.
+
 ## :material-graph-outline: Embedded graphs
 
 For every embedded graph, the catalog uses
