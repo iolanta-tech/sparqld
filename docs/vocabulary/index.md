@@ -24,4 +24,16 @@ The [file catalog](../reference/file-catalog.md) uses these RDF terms.
 
     Link a source file to the context URIs requested while parsing it.
 
+-   :material-code-braces:{ .lg .middle } **[`jsonld:Context`](http://www.w3.org/ns/json-ld#Context)**
+
+    ---
+
+    Type a resource that registers an absolute context URI.
+
+-   :material-file-link:{ .lg .middle } **[`schema:contentUrl`](https://schema.org/contentUrl)**
+
+    ---
+
+    Point a `jsonld:Context` registration at its local body file.
+
 </div>
