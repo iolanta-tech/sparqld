@@ -22,10 +22,16 @@ relate data to the files and directories from which it came.
 | Nested directory | [`nfo:FileDataObject`](https://www.semanticdesktop.org/ontologies/2007/03/22/nfo/#FileDataObject), [`nfo:Folder`](https://www.semanticdesktop.org/ontologies/2007/03/22/nfo/#Folder) | [`nfo:fileName`](https://www.semanticdesktop.org/ontologies/2007/03/22/nfo/#fileName), [`nfo:belongsToContainer`](https://www.semanticdesktop.org/ontologies/2007/03/22/nfo/#belongsToContainer) |
 | Source file with embedded graphs | [`nfo:FileDataObject`](https://www.semanticdesktop.org/ontologies/2007/03/22/nfo/#FileDataObject), [`sd:Dataset`](http://www.w3.org/ns/sparql-service-description#Dataset) | [`nfo:fileName`](https://www.semanticdesktop.org/ontologies/2007/03/22/nfo/#fileName), [`nfo:belongsToContainer`](https://www.semanticdesktop.org/ontologies/2007/03/22/nfo/#belongsToContainer), [`sd:namedGraph`](http://www.w3.org/ns/sparql-service-description#namedGraph) |
 | Named-graph description | [`sd:NamedGraph`](http://www.w3.org/ns/sparql-service-description#NamedGraph) | [`sd:name`](http://www.w3.org/ns/sparql-service-description#name) |
-| Load error | [`rlog:Entry`](http://persistence.uni-leipzig.org/nlp2rdf/ontologies/rlog#Entry) | [`rlog:resource`](http://persistence.uni-leipzig.org/nlp2rdf/ontologies/rlog#resource) |
+| Load error | [`rlog:Entry`](http://persistence.uni-leipzig.org/nlp2rdf/ontologies/rlog#Entry) | [`rlog:resource`](http://persistence.uni-leipzig.org/nlp2rdf/ontologies/rlog#resource), [`rlog:level`](http://persistence.uni-leipzig.org/nlp2rdf/ontologies/rlog#level), [`rlog:message`](http://persistence.uni-leipzig.org/nlp2rdf/ontologies/rlog#message) |
 
 The source resource IRI is also its named graph IRI. The catalog is updated
 when source files are created, moved, or deleted.
+
+When a remote context cannot be resolved, its error entry also has
+[`sparqld:misses-context`](../misses-context.md), linking to the unresolved URI.
+Its presence identifies this failure without inspecting the message text.
+
+{{ source('docs/queries/missing-contexts.rq') }}
 
 ## :material-graph-outline: Embedded graphs
 
