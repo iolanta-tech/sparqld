@@ -1,0 +1,22 @@
+{
+  "head": {
+    "vars": [
+      "file",
+      "context"
+    ]
+  },
+  "results": {
+    "bindings": [
+      {
+        "file": {
+          "type": "uri",
+          "value": "sparqld:alice.yamlld"
+        },
+        "context": {
+          "type": "uri",
+          "value": "urn:context:second"
+        }
+      }
+    ]
+  }
+}
