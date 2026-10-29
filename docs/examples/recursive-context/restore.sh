@@ -1,1 +1,1 @@
-git restore -- docs/examples/recursive-context/project/context.jsonld
+git restore -- docs/examples/recursive-context/project/remote.jsonld
