@@ -1,0 +1,1 @@
+<urn:registration> { <urn:context:second> a <http://www.w3.org/ns/json-ld#Context> ; <https://schema.org/contentUrl> <sparqld:body.yamlld> . }
