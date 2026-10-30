@@ -24,6 +24,7 @@ COMBINED = 'combined'
 SEPARATE = 'separate'
 LAYOUT_NAME = 'layout'
 LAYOUTS = (COMBINED, SEPARATE)
+VARIANTS = SCENARIO / 'variants'
 YAML_CODEC = YAML()
 PANIC = 'The remote context stack is invalid'
 
@@ -46,6 +47,18 @@ QUERIES = tuple(
 def _write(path: Path, document: dict) -> None:
     with path.open('w') as stream:
         YAML_CODEC.dump(document, stream)
+
+
+def _install(
+    project: Path,
+    template: str,
+    destination: str | None = None,
+    **replacements: str,
+) -> None:
+    text = (VARIANTS / template).read_text()
+    for token, replacement in replacements.items():
+        text = text.replace(f'{{{token}}}', replacement)
+    (project / (destination or template)).write_text(text)
 
 
 def _read(path: Path) -> dict:
@@ -209,15 +222,7 @@ def test_relative_context_uses_requested_uri(
         process,
     ):
         _wait_state(endpoint, process, [], ['alice.yamlld'])
-        _write(
-            project / 'terms-registration.yamlld',
-            {
-                '@id': f'https://example.org/contexts/{layout}/terms.yamlld',
-                'https://sparqld.iolanta.tech/context-file': {
-                    '@id': 'sparqld:contexts/terms.yamlld',
-                },
-            },
-        )
+        _install(project, 'terms-registration.yamlld', layout=layout)
         _wait_state(endpoint, process, ['Alice'], [])
 
 
@@ -251,24 +256,13 @@ def test_http_context_stays_offline(
         listener.bind(('127.0.0.1', 0))
         listener.listen()
         port = listener.getsockname()[1]
-        _write(
-            project / 'alice.yamlld',
-            {
-                '@context': f'http://127.0.0.1:{port}/context',
-                '@id': 'urn:alice',
-                'name': 'Alice',
-            },
-        )
+        _install(project, 'offline-alice.yamlld', 'alice.yamlld', port=str(port))
         if registered:
-            _write(
-                project / 'context.yamlld',
-                {
-                    '@context': {'name': 'https://schema.org/name'},
-                    '@id': f'http://127.0.0.1:{port}/context',
-                    'https://sparqld.iolanta.tech/context-file': {
-                        '@id': 'context.yamlld'
-                    },
-                },
+            _install(
+                project,
+                'offline-context.yamlld',
+                'context.yamlld',
+                port=str(port),
             )
         with _serve(project, sparqld_binary, tmp_path / 'server.log') as (
             endpoint,
