@@ -1,1 +1,0 @@
-<urn:context:second> a <http://www.w3.org/ns/json-ld#Context> .
