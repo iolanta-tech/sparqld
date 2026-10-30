@@ -1,5 +1,4 @@
 "@context":
-  jsonld: http://www.w3.org/ns/json-ld#
-  contentUrl:
-    "@id": https://schema.org/contentUrl
+  context-file:
+    "@id": sparqld:context-file
     "@type": "@id"
