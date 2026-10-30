@@ -66,10 +66,12 @@ def _wait_state(
     while time.monotonic() < deadline:
         assert process.poll() is None
         try:
-            results = [_query(endpoint, query) for _, query in QUERIES]
+            responses = [_query(endpoint, query) for _, query in QUERIES]
             actual = [
-                result.rows() if isinstance(result, SelectResult) else result.boolean
-                for result in results
+                response.rows()
+                if isinstance(response, SelectResult)
+                else response.boolean
+                for response in responses
             ]
             if actual == expected:
                 return
