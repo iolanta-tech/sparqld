@@ -66,6 +66,19 @@ dollar-keyword URL the same way:
 
 {{ example_data('dollar-convenience-context.jsonld') }}
 
+A context body can also carry its own registration. See
+[Self-registering contexts](self-registering-contexts.md) for the optional
+combined layout, bootstrap requirements, and current error-handling limits.
+
+## :material-currency-usd: Dollar-keyword authoring
+
+To use dollar aliases, explicitly obtain a local copy of the
+[dollar-convenience context](https://json-ld.org/contexts/dollar-convenience.jsonld)
+and register its canonical URI. Keep acquisition separate from loading.
+Each source that uses dollar aliases must declare the context, directly or
+through another context. Use `$id` and `$type` in data; keep `@context` and
+the raw `@id`, `@type`, and `@container` keywords in context definitions.
+
 ## :material-shield-lock-outline: Context access
 
 An unregistered absolute URL fails the source that requested it. A relative
