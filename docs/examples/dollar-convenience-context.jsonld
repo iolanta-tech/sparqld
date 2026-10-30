@@ -1,5 +1,6 @@
 {
   "@context": {
+    "sparqld": "https://sparqld.iolanta.tech/",
     "context-file": {
       "@id": "sparqld:context-file",
       "@type": "@id"
