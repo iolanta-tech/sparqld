@@ -6,7 +6,7 @@ import socket
 import subprocess
 import time
 from collections.abc import Generator
-from contextlib import contextmanager
+from contextlib import contextmanager, suppress
 from pathlib import Path
 
 import pytest
@@ -65,7 +65,7 @@ def _wait_state(
     ]
     while time.monotonic() < deadline:
         assert process.poll() is None
-        try:
+        with suppress(OSError):
             responses = [_query(endpoint, query) for _, query in QUERIES]
             actual = [
                 response.rows()
@@ -75,8 +75,6 @@ def _wait_state(
             ]
             if actual == expected:
                 return
-        except OSError:
-            pass
         time.sleep(0.1)
     pytest.fail(f'Expected {expected}; got {actual}')
 
