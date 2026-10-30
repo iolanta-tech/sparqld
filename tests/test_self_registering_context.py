@@ -278,7 +278,7 @@ def test_http_context_stays_offline(
                 [] if registered else ['alice.yamlld'],
                 False,
             )
-            assert select.select([listener], [], [], 0)[0] == []
+            assert not select.select([listener], [], [], 0)[0]
     if not registered:
         assert 'context is not registered' in (tmp_path / 'server.log').read_text()
 
