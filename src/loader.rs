@@ -371,47 +371,63 @@ pub(crate) fn load_directory_with_patterns(
     source_patterns: &SourcePatterns,
 ) -> LoadResult<DirectoryLoad> {
     let root = directory.canonicalize()?;
-    let mut files = directory_files(&root)?;
-    files.sort();
-    let catalog = FileCatalog::new(dataset, &root)?;
+    let files = directory_files(&root)?;
+    let mut sources = BTreeSet::new();
+    for file in &files {
+        let relative = file.strip_prefix(&root).map_err(io::Error::other)?;
+        if source_format(file).is_some() && source_patterns.matches(relative) {
+            sources.insert(relative.to_owned());
+        }
+    }
+    FileCatalog::new(dataset, &root)?;
+    let ignored_files = files.len() - sources.len();
+    let mut load = load_sources(&root, sources, dataset)?;
+    load.ignored_files += ignored_files;
+    for (relative, error) in &load.load_errors {
+        let format = source_format(relative)
+            .ok_or_else(|| io::Error::other("failed source has no recognized format"))?;
+        log::error!(
+            "Could not load {} as {}: {error}",
+            relative.display(),
+            format.name()
+        );
+    }
+    Ok(load)
+}
 
+fn load_sources(
+    root: &Path,
+    sources: impl IntoIterator<Item = PathBuf>,
+    dataset: &Store,
+) -> LoadResult<DirectoryLoad> {
+    let catalog = FileCatalog { dataset };
     let mut loaded_sources = BTreeSet::new();
     let mut load_errors = BTreeMap::new();
     let mut ignored_files = 0;
-    for file in &files {
-        let Some(format) = source_format(file) else {
-            ignored_files += 1;
-            continue;
-        };
-        let relative = file.strip_prefix(&root).map_err(io::Error::other)?;
-        if !source_patterns.matches(relative) {
-            ignored_files += 1;
-            continue;
-        }
+    for relative in sources {
         let mut context_dependencies = BTreeSet::new();
-        let result = load_file(&root, file, dataset, &mut context_dependencies);
-        catalog.describe_contexts(relative, &context_dependencies)?;
+        let result = load_file(
+            root,
+            &root.join(&relative),
+            dataset,
+            &mut context_dependencies,
+        );
+        catalog.describe_contexts(&relative, &context_dependencies)?;
         match result {
             Ok(Some(embedded_graphs)) => {
-                catalog.describe_source(relative, &embedded_graphs)?;
-                loaded_sources.insert(relative.to_owned());
+                catalog.describe_source(&relative, &embedded_graphs)?;
+                loaded_sources.insert(relative);
             }
             Ok(None) => ignored_files += 1,
             Err(error) => {
-                dataset.remove_named_graph(graph_name(relative)?.as_ref())?;
+                dataset.remove_named_graph(graph_name(&relative)?.as_ref())?;
                 let error = error.to_string();
-                log::error!(
-                    "Could not load {} as {}: {error}",
-                    relative.display(),
-                    format.name()
-                );
-                catalog.describe_source(relative, &BTreeSet::new())?;
-                catalog.describe_load_error(relative, &error)?;
-                load_errors.insert(relative.to_owned(), error);
+                catalog.describe_source(&relative, &BTreeSet::new())?;
+                catalog.describe_load_error(&relative, &error)?;
+                load_errors.insert(relative, error);
             }
         }
     }
-
     Ok(DirectoryLoad {
         loaded_sources,
         load_errors,
@@ -472,28 +488,15 @@ pub(crate) fn reload_changed_with_patterns(
     }
 
     let staging = Store::new()?;
-    let mut staged_sources = BTreeSet::new();
-    let mut failed_sources = BTreeMap::new();
-    for relative in &affected {
-        let mut context_dependencies = BTreeSet::new();
-        if current_sources.contains(relative) {
-            match load_file(
-                &root,
-                &root.join(relative),
-                &staging,
-                &mut context_dependencies,
-            ) {
-                Ok(Some(_)) => {
-                    staged_sources.insert(relative.clone());
-                }
-                Ok(None) => {}
-                Err(error) => {
-                    failed_sources.insert(relative.clone(), error.to_string());
-                }
-            }
-        }
-        FileCatalog { dataset: &staging }.describe_contexts(relative, &context_dependencies)?;
-    }
+    let DirectoryLoad {
+        loaded_sources: staged_sources,
+        load_errors: failed_sources,
+        ..
+    } = load_sources(
+        &root,
+        affected.intersection(&current_sources).cloned(),
+        &staging,
+    )?;
 
     let mut next_sources = loaded_sources.clone();
     let mut next_errors = load_errors.clone();
