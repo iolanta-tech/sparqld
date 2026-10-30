@@ -5,9 +5,13 @@ use std::path::Path;
 use globset::{Glob, GlobSet, GlobSetBuilder};
 
 #[derive(Clone, Debug)]
+/// Compiled inclusion and exclusion rules for served-directory-relative source paths.
 pub(crate) struct SourcePatterns {
+    /// Patterns that select candidate sources when explicit inclusions exist.
     includes: GlobSet,
+    /// Patterns that remove sources from the selected set.
     excludes: GlobSet,
+    /// Whether at least one explicit inclusion pattern was provided.
     has_includes: bool,
 }
 
@@ -25,6 +29,7 @@ impl SourcePatterns {
         }
     }
 
+    /// Compile patterns, separating exclusions and expanding literal directory paths.
     pub(crate) fn compile(patterns: &[String]) -> Result<Self, String> {
         let (excludes, includes): (Vec<_>, Vec<_>) = patterns
             .iter()
@@ -44,11 +49,13 @@ impl SourcePatterns {
         })
     }
 
+    /// Check whether a relative path satisfies inclusion rules and avoids exclusions.
     pub(crate) fn matches(&self, path: &Path) -> bool {
         (!self.has_includes || self.includes.is_match(path)) && !self.excludes.is_match(path)
     }
 }
 
+/// Compile a pattern and add descendant matching for literal paths.
 fn glob_variants(pattern: &str) -> Result<Vec<Glob>, String> {
     std::iter::once(pattern.to_owned())
         .chain((!pattern.contains(['*', '?', '[', '{'])).then(|| format!("{pattern}/**")))
@@ -56,6 +63,7 @@ fn glob_variants(pattern: &str) -> Result<Vec<Glob>, String> {
         .collect()
 }
 
+/// Combine compiled glob patterns into one matching set.
 fn build_set(globs: impl IntoIterator<Item = Glob>) -> Result<GlobSet, String> {
     globs
         .into_iter()
@@ -74,6 +82,7 @@ pub fn validate_pattern(pattern: &str) -> Result<String, String> {
     Ok(pattern.to_owned())
 }
 
+/// Separate an optional exclusion prefix and reject an empty pattern.
 fn split_pattern(pattern: &str) -> Result<(&str, bool), String> {
     if pattern.is_empty() {
         return Err("pattern must not be empty".to_owned());
