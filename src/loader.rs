@@ -1,3 +1,5 @@
+//! Load source graphs and maintain file, context, and error metadata.
+
 use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::error::Error;
 use std::fs;
@@ -70,8 +72,10 @@ use crate::patterns::SourcePatterns;
 // blocked-by:
 //   - extractor-contributions
 
+/// A loading result whose errors can cross service thread boundaries.
 type LoadResult<T> = Result<T, Box<dyn Error + Send + Sync>>;
 
+/// Characters escaped when encoding relative file paths as graph IRIs.
 const GRAPH_PATH_ENCODE_SET: &AsciiSet = &CONTROLS
     .add(b' ')
     .add(b'"')
@@ -84,15 +88,20 @@ const GRAPH_PATH_ENCODE_SET: &AsciiSet = &CONTROLS
     .add(b'{')
     .add(b'}');
 
+/// Reserved graph containing source, context, and error metadata.
 const FILE_CATALOG_GRAPH: NamedNodeRef<'_> = NamedNodeRef::new_unchecked("sparqld:");
+/// Context URL resolved from the bundled dollar-keyword definitions.
 const DOLLAR_CONVENIENCE_CONTEXT_URL: &str =
     "https://json-ld.org/contexts/dollar-convenience.jsonld";
+/// Predicate linking a source to each context requested during parsing.
 const JSONLD_CONTEXT: NamedNodeRef<'_> =
     NamedNodeRef::new_unchecked("http://www.w3.org/ns/json-ld#context");
 
+/// File and directory vocabulary terms used in the catalog.
 mod nfo {
     use oxigraph::model::NamedNodeRef;
 
+    /// Construct a constant IRI in the file ontology namespace.
     macro_rules! term {
         ($local_name:literal) => {
             NamedNodeRef::new_unchecked(concat!(
@@ -102,15 +111,21 @@ mod nfo {
         };
     }
 
+    /// Predicate linking a file or directory to its parent directory.
     pub const BELONGS_TO_CONTAINER: NamedNodeRef<'_> = term!("belongsToContainer");
+    /// Class identifying a file-backed resource in the catalog.
     pub const FILE_DATA_OBJECT: NamedNodeRef<'_> = term!("FileDataObject");
+    /// Predicate recording a file or directory basename.
     pub const FILE_NAME: NamedNodeRef<'_> = term!("fileName");
+    /// Class identifying a catalog directory.
     pub const FOLDER: NamedNodeRef<'_> = term!("Folder");
 }
 
+/// Logging vocabulary terms used to describe source loading failures.
 mod rlog {
     use oxigraph::model::NamedNodeRef;
 
+    /// Construct a constant IRI in the RDF logging namespace.
     macro_rules! term {
         ($local_name:literal) => {
             NamedNodeRef::new_unchecked(concat!(
@@ -120,16 +135,23 @@ mod rlog {
         };
     }
 
+    /// Class identifying a recorded loading diagnostic.
     pub const ENTRY: NamedNodeRef<'_> = term!("Entry");
+    /// Severity assigned to source loading failures.
     pub const ERROR: NamedNodeRef<'_> = term!("ERROR");
+    /// Predicate recording a diagnostic's severity.
     pub const LEVEL: NamedNodeRef<'_> = term!("level");
+    /// Predicate recording a diagnostic's human-readable message.
     pub const MESSAGE: NamedNodeRef<'_> = term!("message");
+    /// Predicate linking a diagnostic to its source resource.
     pub const RESOURCE: NamedNodeRef<'_> = term!("resource");
 }
 
+/// SPARQL service description terms for embedded named graphs.
 mod sd {
     use oxigraph::model::NamedNodeRef;
 
+    /// Construct a constant IRI in the SPARQL service description namespace.
     macro_rules! term {
         ($local_name:literal) => {
             NamedNodeRef::new_unchecked(concat!(
@@ -139,62 +161,98 @@ mod sd {
         };
     }
 
+    /// Class assigned to a source containing embedded named graphs.
     pub const DATASET: NamedNodeRef<'_> = term!("Dataset");
+    /// Predicate recording an embedded graph's scoped IRI.
     pub const NAME: NamedNodeRef<'_> = term!("name");
+    /// Predicate linking a source dataset to an embedded graph description.
     pub const NAMED_GRAPH: NamedNodeRef<'_> = term!("namedGraph");
+    /// Class identifying an embedded named graph description.
     pub const NAMED_GRAPH_CLASS: NamedNodeRef<'_> = term!("NamedGraph");
 }
 
 #[derive(Clone, Copy)]
+/// Parsing strategy selected from a source file's extension.
 enum SourceFormat {
+    /// An RDF syntax handled directly by Oxigraph.
     Rdf(RdfFormat),
+    /// A JSON document parsed as JSON-LD.
     JsonLd,
+    /// A YAML document converted to JSON before JSON-LD parsing.
     YamlLd,
+    /// A Markdown document whose YAML front matter supplies linked data.
     Markdown,
 }
 
+/// Writer for file metadata and observed context dependencies in the catalog graph.
 struct FileCatalog<'a> {
+    /// Store receiving catalog quads.
     dataset: &'a Store,
 }
 
+/// Source state and per-path outcomes after an atomic reload.
 pub(crate) struct ReloadReport {
+    /// Successfully loaded sources after the reload.
     pub(crate) loaded_sources: BTreeSet<PathBuf>,
+    /// Latest errors for sources that failed to load.
     pub(crate) load_errors: BTreeMap<PathBuf, String>,
+    /// Successful additions, replacements, and removals.
     pub(crate) updates: Vec<SourceUpdate>,
+    /// Sources that failed during this reload attempt.
     pub(crate) failures: Vec<SourceFailure>,
+    /// Affected sources grouped by the changed path that triggered them.
     pub(crate) impacts: BTreeMap<PathBuf, BTreeSet<PathBuf>>,
 }
 
+/// Source state and ignored-file count from a batch load.
 pub(crate) struct DirectoryLoad {
+    /// Relative paths whose source data loaded successfully.
     pub(crate) loaded_sources: BTreeSet<PathBuf>,
+    /// Loading errors indexed by relative source path.
     pub(crate) load_errors: BTreeMap<PathBuf, String>,
+    /// Number of files skipped by selection or missing Markdown front matter.
     pub(crate) ignored_files: usize,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+/// How a successful reload operation changed a source graph.
 pub(crate) enum SourceUpdateKind {
+    /// A previously unloaded source now contributes data.
     Loaded,
+    /// An existing source's data was replaced.
     Reloaded,
+    /// A source's previous data was removed.
     Removed,
 }
 
 #[derive(Debug)]
+/// Graph identity and size for one successful source update.
 pub(crate) struct SourceUpdate {
+    /// Source path relative to the served directory.
     pub(crate) path: PathBuf,
+    /// IRI of the source's default contribution graph.
     pub(crate) graph: String,
+    /// Number of quads contributed by the source, including embedded graphs.
     pub(crate) triples: usize,
+    /// Whether the source was added, replaced, or removed.
     pub(crate) kind: SourceUpdateKind,
 }
 
 #[derive(Debug)]
+/// Diagnostic for a source that failed during a reload.
 pub(crate) struct SourceFailure {
+    /// Failed source path relative to the served directory.
     pub(crate) path: PathBuf,
+    /// IRI assigned to the failed source's contribution graph.
     pub(crate) graph: String,
+    /// Human-readable name of the attempted source format.
     pub(crate) format: &'static str,
+    /// Human-readable loading error.
     pub(crate) error: String,
 }
 
 impl<'a> FileCatalog<'a> {
+    /// Initialize the root directory's metadata in the reserved catalog graph.
     fn new(dataset: &'a Store, root: &Path) -> LoadResult<Self> {
         let catalog = Self { dataset };
         catalog.insert_type(FILE_CATALOG_GRAPH, nfo::FILE_DATA_OBJECT)?;
@@ -205,6 +263,7 @@ impl<'a> FileCatalog<'a> {
         Ok(catalog)
     }
 
+    /// Describe a source, its parent directories, and its embedded named graphs.
     fn describe_source(
         &self,
         relative: &Path,
@@ -253,6 +312,7 @@ impl<'a> FileCatalog<'a> {
         Ok(())
     }
 
+    /// Record the source's requested contexts as catalog edges, including failed requests.
     fn describe_contexts(&self, relative: &Path, contexts: &BTreeSet<NamedNode>) -> LoadResult<()> {
         let source = graph_name(relative)?;
         for context in contexts {
@@ -266,6 +326,7 @@ impl<'a> FileCatalog<'a> {
         Ok(())
     }
 
+    /// Attach a loading diagnostic to the source through RDF logging terms.
     fn describe_load_error(&self, relative: &Path, error: &str) -> LoadResult<()> {
         let resource = graph_name(relative)?;
         let entry = NamedNode::new(format!("{}#load-error", resource.as_str()))?;
@@ -292,6 +353,7 @@ impl<'a> FileCatalog<'a> {
         Ok(())
     }
 
+    /// Describe each ancestor directory and return the immediate container's IRI.
     fn describe_directories(&self, relative: &Path) -> LoadResult<NamedNode> {
         let mut current = PathBuf::new();
         let mut container = FILE_CATALOG_GRAPH.into_owned();
@@ -321,12 +383,14 @@ impl<'a> FileCatalog<'a> {
         Ok(container)
     }
 
+    /// Insert a resource's RDF class into the file catalog.
     fn insert_type(&self, resource: NamedNodeRef<'_>, class: NamedNodeRef<'_>) -> LoadResult<()> {
         self.dataset
             .insert(QuadRef::new(resource, rdf::TYPE, class, FILE_CATALOG_GRAPH))?;
         Ok(())
     }
 
+    /// Record a resource's basename in the file catalog.
     fn insert_file_name(&self, resource: NamedNodeRef<'_>, name: &str) -> LoadResult<()> {
         self.dataset.insert(QuadRef::new(
             resource,
@@ -337,6 +401,7 @@ impl<'a> FileCatalog<'a> {
         Ok(())
     }
 
+    /// Link a file or directory to its parent in the file catalog.
     fn insert_container(
         &self,
         resource: NamedNodeRef<'_>,
@@ -365,6 +430,7 @@ pub(crate) fn load_directory_with_stats(
     load_directory_with_patterns(directory, dataset, &SourcePatterns::all())
 }
 
+/// Discover selected sources, load their data and catalog entries, and log failures.
 pub(crate) fn load_directory_with_patterns(
     directory: &Path,
     dataset: &Store,
@@ -395,6 +461,7 @@ pub(crate) fn load_directory_with_patterns(
     Ok(load)
 }
 
+/// Load source data and record dependencies and outcomes in the destination store.
 fn load_sources(
     root: &Path,
     sources: impl IntoIterator<Item = PathBuf>,
@@ -453,6 +520,7 @@ pub(crate) fn reload_changed(
     )
 }
 
+/// Stage affected sources and atomically replace their data and catalog metadata.
 pub(crate) fn reload_changed_with_patterns(
     directory: &Path,
     changed_paths: &BTreeSet<PathBuf>,
@@ -614,6 +682,7 @@ pub(crate) fn reload_changed_with_patterns(
     })
 }
 
+/// Count the quads in one named graph.
 fn graph_triple_count(dataset: &Store, graph: NamedNodeRef<'_>) -> LoadResult<usize> {
     dataset
         .quads_for_pattern(None, None, None, Some(graph.into()))
@@ -623,6 +692,7 @@ fn graph_triple_count(dataset: &Store, graph: NamedNodeRef<'_>) -> LoadResult<us
         })
 }
 
+/// Count a source's quads across its default and scoped embedded graphs.
 fn source_triple_count(dataset: &Store, relative: &Path) -> LoadResult<usize> {
     let graph = graph_name(relative)?;
     let embedded_graphs = scoped_graphs_for_source(dataset, relative)?;
@@ -632,6 +702,7 @@ fn source_triple_count(dataset: &Store, relative: &Path) -> LoadResult<usize> {
     )
 }
 
+/// Collect selected source paths relative to the served root.
 fn source_paths(root: &Path, source_patterns: &SourcePatterns) -> LoadResult<BTreeSet<PathBuf>> {
     source_files(root, source_patterns)?
         .into_iter()
@@ -643,6 +714,7 @@ fn source_paths(root: &Path, source_patterns: &SourcePatterns) -> LoadResult<BTr
         .collect()
 }
 
+/// Map filesystem changes to tracked sources using the catalog's context dependencies.
 fn source_impacts(
     root: &Path,
     changed_paths: &BTreeSet<PathBuf>,
@@ -706,6 +778,7 @@ fn source_impacts(
     Ok(impacts)
 }
 
+/// Build source and error descriptions for a replacement catalog.
 fn build_catalog(
     root: &Path,
     sources: &BTreeSet<PathBuf>,
@@ -727,6 +800,7 @@ fn build_catalog(
     Ok(dataset)
 }
 
+/// Find named graphs whose IRIs are scoped beneath the source graph.
 fn scoped_graphs_for_source(dataset: &Store, relative: &Path) -> LoadResult<BTreeSet<NamedNode>> {
     let prefix = format!("{}#", graph_name(relative)?.as_str());
     dataset
@@ -741,6 +815,7 @@ fn scoped_graphs_for_source(dataset: &Store, relative: &Path) -> LoadResult<BTre
         .collect()
 }
 
+/// Read every quad from a store, propagating iteration errors.
 fn collect_quads(dataset: &Store) -> LoadResult<Vec<Quad>> {
     dataset
         .into_iter()
@@ -748,6 +823,7 @@ fn collect_quads(dataset: &Store) -> LoadResult<Vec<Quad>> {
         .map_err(Into::into)
 }
 
+/// Find files with supported formats that match the source selection patterns.
 fn source_files(directory: &Path, source_patterns: &SourcePatterns) -> LoadResult<Vec<PathBuf>> {
     Ok(directory_files(directory)?
         .into_iter()
@@ -760,12 +836,14 @@ fn source_files(directory: &Path, source_patterns: &SourcePatterns) -> LoadResul
         .collect())
 }
 
+/// Collect regular files recursively beneath the directory.
 fn directory_files(directory: &Path) -> LoadResult<Vec<PathBuf>> {
     let mut files = Vec::new();
     collect_directory_files(directory, &mut files)?;
     Ok(files)
 }
 
+/// Append regular files from a directory and its child directories.
 fn collect_directory_files(directory: &Path, files: &mut Vec<PathBuf>) -> LoadResult<()> {
     for entry in fs::read_dir(directory)? {
         let entry = entry?;
@@ -780,6 +858,7 @@ fn collect_directory_files(directory: &Path, files: &mut Vec<PathBuf>) -> LoadRe
     Ok(())
 }
 
+/// Read and parse a source, returning its embedded graphs or absent Markdown front matter.
 fn load_file(
     root: &Path,
     file: &Path,
@@ -833,6 +912,7 @@ fn load_file(
     Ok(Some(embedded_graphs))
 }
 
+/// Select a parser from the file extension, accepting JSON and YAML linked-data forms.
 fn source_format(path: &Path) -> Option<SourceFormat> {
     let extension = path.extension()?.to_str()?;
     match extension {
@@ -849,6 +929,7 @@ fn source_format(path: &Path) -> Option<SourceFormat> {
 }
 
 impl SourceFormat {
+    /// Return the source format's display name for diagnostics.
     fn name(self) -> &'static str {
         match self {
             Self::Rdf(format) => format.name(),
@@ -859,6 +940,7 @@ impl SourceFormat {
     }
 }
 
+/// Parse JSON-LD with local contexts and retain requested URLs even when parsing fails.
 fn load_json_ld(
     root: &Path,
     source: &[u8],
@@ -897,6 +979,7 @@ fn load_json_ld(
     result
 }
 
+/// Scope embedded graph identities to the source and insert the rewritten quads.
 fn load_scoped_quads(
     dataset: &Store,
     mut quads: Vec<Quad>,
@@ -920,6 +1003,7 @@ fn load_scoped_quads(
     Ok(scoped_graphs.into_values().collect())
 }
 
+/// Construct a source-owned IRI for an embedded named or blank-node graph.
 fn scoped_graph_name(source_graph: &NamedNode, graph_name: &GraphName) -> LoadResult<NamedNode> {
     let embedded_name = match graph_name {
         GraphName::NamedNode(node) => node.as_str().to_owned(),
@@ -932,6 +1016,7 @@ fn scoped_graph_name(source_graph: &NamedNode, graph_name: &GraphName) -> LoadRe
     ))?)
 }
 
+/// Rewrite a quad's graph and references to embedded graphs into the source's namespace.
 fn scope_quad(
     quad: Quad,
     source_graph: &NamedNode,
@@ -982,6 +1067,7 @@ fn scope_quad(
     )
 }
 
+/// Load the bundled convenience context or a JSON-LD or YAML-LD context beneath the root.
 fn load_context_document(root: &Path, url: &str) -> LoadResult<LoadedDocument> {
     if url == DOLLAR_CONVENIENCE_CONTEXT_URL {
         return Ok(LoadedDocument {
@@ -1011,12 +1097,14 @@ fn load_context_document(root: &Path, url: &str) -> LoadResult<LoadedDocument> {
     })
 }
 
+/// Select the JSON-LD context profile for document-loader responses.
 fn context_format() -> RdfFormat {
     RdfFormat::JsonLd {
         profile: JsonLdProfile::Context.into(),
     }
 }
 
+/// Decode a sparqld context IRI into a relative path, rejecting traversal components.
 fn local_context_relative(url: &str) -> LoadResult<PathBuf> {
     let Some(relative) = url.strip_prefix("sparqld:") else {
         return Err(io::Error::other(format!("context URL is not supported: {url}")).into());
@@ -1038,6 +1126,7 @@ fn local_context_relative(url: &str) -> LoadResult<PathBuf> {
     Ok(relative.to_owned())
 }
 
+/// Resolve a context file canonically and reject paths outside the served root.
 fn local_context_path(root: &Path, relative: &Path, url: &str) -> LoadResult<PathBuf> {
     let path = root.join(relative).canonicalize()?;
     if !path.starts_with(root) {
@@ -1048,6 +1137,7 @@ fn local_context_path(root: &Path, relative: &Path, url: &str) -> LoadResult<Pat
     Ok(path)
 }
 
+/// Parse YAML using YAML 1.2 scalar rules into a JSON-compatible value.
 fn parse_yaml_ld(source: &[u8]) -> LoadResult<Value> {
     let options = serde_saphyr::options! {
         legacy_octal_numbers: false,
@@ -1056,6 +1146,7 @@ fn parse_yaml_ld(source: &[u8]) -> LoadResult<Value> {
     Ok(serde_saphyr::from_slice_with_options(source, options)?)
 }
 
+/// Extract delimited YAML front matter and report an unterminated header.
 fn markdown_front_matter(source: &[u8]) -> LoadResult<Option<&[u8]>> {
     let source = std::str::from_utf8(source)?;
     let mut lines = source.split_inclusive('\n');
@@ -1078,18 +1169,22 @@ fn markdown_front_matter(source: &[u8]) -> LoadResult<Option<&[u8]>> {
     Err(io::Error::new(io::ErrorKind::InvalidData, "unterminated YAML front matter").into())
 }
 
+/// Remove CR and LF terminators from a line used in delimiter matching.
 fn trim_line_ending(line: &str) -> &str {
     line.trim_end_matches(['\r', '\n'])
 }
 
+/// Construct the graph IRI for a relative source path.
 fn graph_name(relative: &Path) -> LoadResult<NamedNode> {
     Ok(NamedNode::new(path_iri(relative, false)?)?)
 }
 
+/// Construct the base IRI used to resolve references from a source's parent directory.
 fn directory_iri(relative: &Path) -> LoadResult<String> {
     path_iri(relative.parent().unwrap_or_else(|| Path::new("")), true)
 }
 
+/// Encode a relative path as a sparqld IRI, adding a trailing slash for directories.
 fn path_iri(relative: &Path, directory: bool) -> LoadResult<String> {
     let relative = relative.to_str().ok_or_else(|| {
         io::Error::new(
