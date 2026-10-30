@@ -316,7 +316,7 @@ fn reload(
 ) {
     let path_set = changed_paths.keys().cloned().collect::<BTreeSet<_>>();
     let paths = format_changed_paths(directory, &path_set);
-    match loader::reload_changed_with_patterns(
+    match loader::retry::reload_with_retries(
         directory,
         &path_set,
         loaded_sources,

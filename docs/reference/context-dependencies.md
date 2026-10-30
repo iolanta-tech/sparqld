@@ -6,7 +6,7 @@
 "@id": reference/context-dependencies.md
 "@type": schema:TechArticle
 title: Context dependency example
-description: Inspect recursive context requests and recover a source through a local import.
+description: Resolve a remote JSON-LD context from a local body declared in project RDF.
 ---
 
 # :material-link-variant: Context dependency example
@@ -31,9 +31,29 @@ Run this example from a `sparqld` checkout with the `sparqld` executable on
 {{ example_data('recursive-context/project/example.jsonld', indent=4) }}
 
 Alice uses a local context that imports `https://example.org/ctx`.
-The declaration maps that URI to `example.jsonld`, but graph-based context
-resolution is not implemented. Both Alice and the importing context fail to
-load. Their observed context requests remain in the [file catalog](file-catalog.md).
+`remote.jsonld` links that URI to `example.jsonld` through
+[`sparqld:context-file`](https://sparqld.iolanta.tech/context-file).
+`sparqld` loads Alice after it has that declaration, even though Alice sorts
+before `remote.jsonld`.
+
+A YAML-LD project with the same shape, using `https://example.org/yaml-ctx`,
+lives in `docs/examples/registered-context/project`:
+
+=== "alice.yamlld"
+
+{{ example_data('registered-context/project/alice.yamlld', indent=4) }}
+
+=== "z-context.yamlld"
+
+{{ example_data('registered-context/project/z-context.yamlld', indent=4) }}
+
+=== "body.yamlld"
+
+{{ example_data('registered-context/project/body.yamlld', indent=4) }}
+
+{{ example_data('registered-context/queries/alice.rq') }}
+
+{{ source('docs/examples/registered-context/results/alice.json', title='Expected result') }}
 
 ## :material-play-outline: Inspect the initial state
 
@@ -69,32 +89,28 @@ Additional queries check the declaration, failed sources, and Alice's data:
 
 {{ source('docs/examples/recursive-context/results/initial/alice.json', indent=4, title='Expected result') }}
 
-## :material-refresh: Recover through a local import
+## :material-refresh: Remove the declaration
 
-Replace the remote import with a direct local import:
-
-{{ example_data('recursive-context/recovered-context.jsonld') }}
-
-Apply this replacement while the server runs:
+Delete the declaration while the server runs:
 
 {{ example_data('recursive-context/recover.sh') }}
 
-The watcher reloads the importing context and Alice. Repeat the same queries.
-The declaration remains present, both error entries disappear, and Alice's
-name becomes queryable:
+The watcher reloads Alice and the importing context. Repeat the same queries.
+The declaration ASK fails, both sources record load errors, and Alice's name
+is no longer queryable:
 
 === "Dependencies"
 
-{{ source('docs/examples/recursive-context/results/recovered/dependencies.json', indent=4, title='Expected result') }}
+{{ source('docs/examples/recursive-context/results/unregistered/dependencies.json', indent=4, title='Expected result') }}
 
 === "Failed sources"
 
-{{ source('docs/examples/recursive-context/results/recovered/failures.json', indent=4, title='Expected result') }}
+{{ source('docs/examples/recursive-context/results/unregistered/failures.json', indent=4, title='Expected result') }}
 
 === "Alice"
 
-{{ source('docs/examples/recursive-context/results/recovered/alice.json', indent=4, title='Expected result') }}
+{{ source('docs/examples/recursive-context/results/unregistered/alice.json', indent=4, title='Expected result') }}
 
-After the demonstration, restore the original example file:
+After the demonstration, restore the declaration:
 
 {{ example_data('recursive-context/restore.sh') }}

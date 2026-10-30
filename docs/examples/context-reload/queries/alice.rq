@@ -1,0 +1,1 @@
+SELECT ?predicate WHERE { <urn:alice> ?predicate "Alice" } ORDER BY ?predicate

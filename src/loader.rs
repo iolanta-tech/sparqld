@@ -1,5 +1,7 @@
 //! Load source graphs and maintain file, context, and error metadata.
 
+pub(crate) mod retry;
+
 use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::error::Error;
 use std::fs;
@@ -12,6 +14,7 @@ use oxigraph::model::{
     BlankNode, GraphName, LiteralRef, NamedNode, NamedNodeRef, NamedOrBlankNode, Quad, QuadRef,
     Term, vocab::rdf,
 };
+use oxigraph::sparql::{QueryResults, SparqlEvaluator};
 use oxigraph::store::Store;
 use percent_encoding::{AsciiSet, CONTROLS, percent_decode_str, utf8_percent_encode};
 use serde_json::Value;
@@ -90,12 +93,14 @@ const GRAPH_PATH_ENCODE_SET: &AsciiSet = &CONTROLS
 
 /// Reserved graph containing source, context, and error metadata.
 const FILE_CATALOG_GRAPH: NamedNodeRef<'_> = NamedNodeRef::new_unchecked("sparqld:");
-/// Context URL resolved from the bundled dollar-keyword definitions.
-const DOLLAR_CONVENIENCE_CONTEXT_URL: &str =
-    "https://json-ld.org/contexts/dollar-convenience.jsonld";
 /// Predicate linking a source to each context requested during parsing.
 const JSONLD_CONTEXT: NamedNodeRef<'_> =
     NamedNodeRef::new_unchecked("http://www.w3.org/ns/json-ld#context");
+/// Predicate registering a local body for an absolute context IRI.
+const CONTEXT_FILE: NamedNodeRef<'_> =
+    NamedNodeRef::new_unchecked("https://sparqld.iolanta.tech/context-file");
+/// Diagnostic text identifying conflicting context body declarations.
+const AMBIGUOUS_TARGETS: &str = "has multiple context-file targets";
 
 /// File and directory vocabulary terms used in the catalog.
 mod nfo {
@@ -125,7 +130,7 @@ mod nfo {
 mod rlog {
     use oxigraph::model::NamedNodeRef;
 
-    /// Construct a constant IRI in the RDF logging namespace.
+    /// Construct a constant IRI in the file ontology namespace.
     macro_rules! term {
         ($local_name:literal) => {
             NamedNodeRef::new_unchecked(concat!(
@@ -151,7 +156,7 @@ mod rlog {
 mod sd {
     use oxigraph::model::NamedNodeRef;
 
-    /// Construct a constant IRI in the SPARQL service description namespace.
+    /// Construct a constant IRI in the file ontology namespace.
     macro_rules! term {
         ($local_name:literal) => {
             NamedNodeRef::new_unchecked(concat!(
@@ -206,9 +211,9 @@ pub(crate) struct ReloadReport {
 
 /// Source state and ignored-file count from a batch load.
 pub(crate) struct DirectoryLoad {
-    /// Relative paths whose source data loaded successfully.
+    /// Successfully loaded sources after the reload.
     pub(crate) loaded_sources: BTreeSet<PathBuf>,
-    /// Loading errors indexed by relative source path.
+    /// Latest errors for sources that failed to load.
     pub(crate) load_errors: BTreeMap<PathBuf, String>,
     /// Number of files skipped by selection or missing Markdown front matter.
     pub(crate) ignored_files: usize,
@@ -241,9 +246,9 @@ pub(crate) struct SourceUpdate {
 #[derive(Debug)]
 /// Diagnostic for a source that failed during a reload.
 pub(crate) struct SourceFailure {
-    /// Failed source path relative to the served directory.
+    /// Source path relative to the served directory.
     pub(crate) path: PathBuf,
-    /// IRI assigned to the failed source's contribution graph.
+    /// IRI of the source's default contribution graph.
     pub(crate) graph: String,
     /// Human-readable name of the attempted source format.
     pub(crate) format: &'static str,
@@ -329,7 +334,7 @@ impl<'a> FileCatalog<'a> {
     /// Attach a loading diagnostic to the source through RDF logging terms.
     fn describe_load_error(&self, relative: &Path, error: &str) -> LoadResult<()> {
         let resource = graph_name(relative)?;
-        let entry = NamedNode::new(format!("{}#load-error", resource.as_str()))?;
+        let entry = load_error_name(relative)?;
 
         self.insert_type(entry.as_ref(), rlog::ENTRY)?;
         self.dataset.insert(QuadRef::new(
@@ -437,68 +442,21 @@ pub(crate) fn load_directory_with_patterns(
     source_patterns: &SourcePatterns,
 ) -> LoadResult<DirectoryLoad> {
     let root = directory.canonicalize()?;
-    let files = directory_files(&root)?;
-    let mut sources = BTreeSet::new();
-    for file in &files {
-        let relative = file.strip_prefix(&root).map_err(io::Error::other)?;
-        if source_format(file).is_some() && source_patterns.matches(relative) {
-            sources.insert(relative.to_owned());
-        }
-    }
     FileCatalog::new(dataset, &root)?;
-    let ignored_files = files.len() - sources.len();
-    let mut load = load_sources(&root, sources, dataset)?;
-    load.ignored_files += ignored_files;
-    for (relative, error) in &load.load_errors {
-        let format = source_format(relative)
-            .ok_or_else(|| io::Error::other("failed source has no recognized format"))?;
-        log::error!(
-            "Could not load {} as {}: {error}",
-            relative.display(),
-            format.name()
-        );
-    }
-    Ok(load)
-}
-
-/// Load source data and record dependencies and outcomes in the destination store.
-fn load_sources(
-    root: &Path,
-    sources: impl IntoIterator<Item = PathBuf>,
-    dataset: &Store,
-) -> LoadResult<DirectoryLoad> {
-    let catalog = FileCatalog { dataset };
-    let mut loaded_sources = BTreeSet::new();
-    let mut load_errors = BTreeMap::new();
-    let mut ignored_files = 0;
-    for relative in sources {
-        let mut context_dependencies = BTreeSet::new();
-        let result = load_file(
-            root,
-            &root.join(&relative),
-            dataset,
-            &mut context_dependencies,
-        );
-        catalog.describe_contexts(&relative, &context_dependencies)?;
-        match result {
-            Ok(Some(embedded_graphs)) => {
-                catalog.describe_source(&relative, &embedded_graphs)?;
-                loaded_sources.insert(relative);
-            }
-            Ok(None) => ignored_files += 1,
-            Err(error) => {
-                dataset.remove_named_graph(graph_name(&relative)?.as_ref())?;
-                let error = error.to_string();
-                catalog.describe_source(&relative, &BTreeSet::new())?;
-                catalog.describe_load_error(&relative, &error)?;
-                load_errors.insert(relative, error);
-            }
-        }
-    }
+    let files = directory_files(&root)?;
+    let sources = source_paths(&root, source_patterns)?;
+    let report = retry::reload_with_retries(
+        &root,
+        &sources,
+        &BTreeSet::new(),
+        &BTreeMap::new(),
+        dataset,
+        source_patterns,
+    )?;
     Ok(DirectoryLoad {
-        loaded_sources,
-        load_errors,
-        ignored_files,
+        ignored_files: files.len() - report.loaded_sources.len() - report.load_errors.len(),
+        loaded_sources: report.loaded_sources,
+        load_errors: report.load_errors,
     })
 }
 
@@ -520,7 +478,19 @@ pub(crate) fn reload_changed(
     )
 }
 
-/// Stage affected sources and atomically replace their data and catalog metadata.
+/// Build a source diagnostic from a relative path and load error.
+fn source_failure(path: &Path, error: &str) -> LoadResult<SourceFailure> {
+    let format = source_format(path)
+        .ok_or_else(|| io::Error::other("failed source has no recognized format"))?;
+    Ok(SourceFailure {
+        graph: graph_name(path)?.as_str().to_owned(),
+        path: path.to_owned(),
+        format: format.name(),
+        error: error.to_owned(),
+    })
+}
+
+/// Reload changed files and their context dependents in one transaction.
 pub(crate) fn reload_changed_with_patterns(
     directory: &Path,
     changed_paths: &BTreeSet<PathBuf>,
@@ -536,14 +506,14 @@ pub(crate) fn reload_changed_with_patterns(
         .chain(load_errors.keys())
         .cloned()
         .collect::<BTreeSet<_>>();
-    let impacts = source_impacts(
+    let mut impacts = source_impacts(
         &root,
         changed_paths,
         &tracked_sources,
         &current_sources,
         dataset,
     )?;
-    let affected = impacts.values().flatten().cloned().collect::<BTreeSet<_>>();
+    let mut affected = impacts.values().flatten().cloned().collect::<BTreeSet<_>>();
 
     if affected.is_empty() {
         return Ok(ReloadReport {
@@ -556,15 +526,71 @@ pub(crate) fn reload_changed_with_patterns(
     }
 
     let staging = Store::new()?;
-    let DirectoryLoad {
-        loaded_sources: staged_sources,
-        load_errors: failed_sources,
-        ..
-    } = load_sources(
-        &root,
-        affected.intersection(&current_sources).cloned(),
-        &staging,
-    )?;
+    let mut staged_sources = BTreeSet::new();
+    let mut failed_sources = BTreeMap::new();
+    let mut excluded_graphs = BTreeSet::new();
+    for relative in &affected {
+        excluded_graphs.insert(graph_name(relative)?);
+        excluded_graphs.extend(scoped_graphs_for_source(dataset, relative)?);
+    }
+    let registrations = context_bodies(&lookup_store(dataset, &staging, &excluded_graphs)?)?;
+    let staging_catalog = FileCatalog { dataset: &staging };
+    let yaml_json = Arc::new(Mutex::new(BTreeMap::new()));
+    for relative in affected.intersection(&current_sources) {
+        let mut state = ContextLoadState {
+            dependencies: BTreeSet::new(),
+            yaml_json: Arc::clone(&yaml_json),
+        };
+        match load_file(
+            &root,
+            &root.join(relative),
+            &staging,
+            &registrations,
+            &mut state,
+        ) {
+            Ok(Some(_)) => {
+                staged_sources.insert(relative.clone());
+            }
+            Ok(None) => {}
+            Err(error) => {
+                staging.remove_named_graph(graph_name(relative)?.as_ref())?;
+                failed_sources.insert(relative.clone(), error.to_string());
+            }
+        }
+        staging_catalog.describe_contexts(relative, &state.dependencies)?;
+    }
+    let visible = lookup_store(dataset, &staging, &excluded_graphs)?;
+    for (declaration, error) in ambiguous_declarations(&visible, &current_sources)? {
+        let invalidated = source_impacts(
+            &root,
+            &BTreeSet::from([declaration]),
+            &tracked_sources,
+            &current_sources,
+            &visible,
+        )?;
+        for (changed, sources) in invalidated {
+            for source in &sources {
+                let graph = graph_name(source)?;
+                if affected.insert(source.clone()) {
+                    for dependency in dataset.quads_for_pattern(
+                        Some(graph.as_ref().into()),
+                        Some(JSONLD_CONTEXT),
+                        None,
+                        Some(FILE_CATALOG_GRAPH.into()),
+                    ) {
+                        staging.insert(dependency?.as_ref())?;
+                    }
+                }
+                staging.remove_named_graph(graph.as_ref())?;
+                for graph in scoped_graphs_for_source(&staging, source)? {
+                    staging.remove_named_graph(graph.as_ref())?;
+                }
+                staged_sources.remove(source);
+                failed_sources.insert(source.clone(), error.clone());
+            }
+            impacts.entry(changed).or_default().extend(sources);
+        }
+    }
 
     let mut next_sources = loaded_sources.clone();
     let mut next_errors = load_errors.clone();
@@ -578,40 +604,14 @@ pub(crate) fn reload_changed_with_patterns(
         }
     }
 
-    let catalog = build_catalog(&root, &next_sources, &next_errors, |source| {
-        if affected.contains(source) {
-            scoped_graphs_for_source(&staging, source)
-        } else {
-            scoped_graphs_for_source(dataset, source)
-        }
-    })?;
-    let affected_graphs = affected
-        .iter()
-        .map(|source| graph_name(source))
-        .collect::<LoadResult<BTreeSet<_>>>()?;
-    for previous in dataset.quads_for_pattern(
-        None,
-        Some(JSONLD_CONTEXT),
-        None,
-        Some(FILE_CATALOG_GRAPH.into()),
-    ) {
-        let previous = previous?;
-        let replaced = match &previous.subject {
-            NamedOrBlankNode::NamedNode(source) => affected_graphs.contains(source),
-            NamedOrBlankNode::BlankNode(_) => false,
-        };
-        if !replaced {
-            catalog.insert(previous.as_ref())?;
-        }
-    }
-    for dependency in staging.quads_for_pattern(
-        None,
-        Some(JSONLD_CONTEXT),
-        None,
-        Some(FILE_CATALOG_GRAPH.into()),
-    ) {
-        catalog.insert(dependency?.as_ref())?;
-    }
+    let catalog = reload_catalog(
+        dataset,
+        &staging,
+        &root,
+        &next_sources,
+        &next_errors,
+        &affected,
+    )?;
     let staged_quads = collect_quads(&staging)?
         .into_iter()
         .filter(|quad| quad.graph_name != FILE_CATALOG_GRAPH.into())
@@ -660,17 +660,8 @@ pub(crate) fn reload_changed_with_patterns(
     }
 
     let failures = failed_sources
-        .into_iter()
-        .map(|(path, error)| {
-            let format = source_format(&path)
-                .ok_or_else(|| io::Error::other("failed source has no recognized format"))?;
-            Ok(SourceFailure {
-                graph: graph_name(&path)?.as_str().to_owned(),
-                path,
-                format: format.name(),
-                error: error.to_string(),
-            })
-        })
+        .iter()
+        .map(|(path, error)| source_failure(path, error))
         .collect::<LoadResult<Vec<_>>>()?;
 
     Ok(ReloadReport {
@@ -722,6 +713,8 @@ fn source_impacts(
     current_sources: &BTreeSet<PathBuf>,
     dataset: &Store,
 ) -> LoadResult<BTreeMap<PathBuf, BTreeSet<PathBuf>>> {
+    let request_sources = context_request_sources(dataset)?;
+    let bodies = context_bodies(dataset)?;
     let mut impacts = BTreeMap::new();
     for changed in changed_paths {
         let changed = if changed.is_absolute() {
@@ -756,6 +749,24 @@ fn source_impacts(
                 affected.insert(source);
             }
         }
+        for (context, body_iris) in &bodies {
+            for body_iri in body_iris {
+                let Ok(body_path) = local_context_relative(body_iri) else {
+                    continue;
+                };
+                if !body_path.starts_with(changed) {
+                    continue;
+                }
+                if let Some(sources) = request_sources.get(context) {
+                    affected.extend(
+                        sources
+                            .iter()
+                            .filter(|source| loaded_sources.contains(*source))
+                            .cloned(),
+                    );
+                }
+            }
+        }
         if loaded_sources.contains(changed) || current_sources.contains(changed) {
             affected.insert(changed.to_owned());
         } else if root.join(changed).is_dir()
@@ -773,31 +784,136 @@ fn source_impacts(
                     .cloned(),
             );
         }
+        loop {
+            let mut extra = BTreeSet::new();
+            for source in &affected {
+                for context in declared_context_iris(dataset, source)? {
+                    if let Some(sources) = request_sources.get(&context) {
+                        extra.extend(
+                            sources
+                                .iter()
+                                .filter(|dependent| loaded_sources.contains(*dependent))
+                                .cloned(),
+                        );
+                    }
+                }
+            }
+            let new: BTreeSet<_> = extra.difference(&affected).cloned().collect();
+            if new.is_empty() {
+                break;
+            }
+            affected.extend(new);
+        }
         impacts.insert(changed.to_owned(), affected);
     }
     Ok(impacts)
 }
 
-/// Build source and error descriptions for a replacement catalog.
-fn build_catalog(
+/// Index catalog context requests by context IRI.
+fn context_request_sources(dataset: &Store) -> LoadResult<BTreeMap<String, BTreeSet<PathBuf>>> {
+    let mut requests: BTreeMap<String, BTreeSet<PathBuf>> = BTreeMap::new();
+    for dependency in dataset.quads_for_pattern(
+        None,
+        Some(JSONLD_CONTEXT),
+        None,
+        Some(FILE_CATALOG_GRAPH.into()),
+    ) {
+        let dependency = dependency?;
+        let (NamedOrBlankNode::NamedNode(source), Term::NamedNode(context)) =
+            (dependency.subject, dependency.object)
+        else {
+            continue;
+        };
+        let Ok(source) = local_context_relative(source.as_str()) else {
+            continue;
+        };
+        requests
+            .entry(context.as_str().to_owned())
+            .or_default()
+            .insert(source);
+    }
+    Ok(requests)
+}
+
+/// Find context declarations contributed by a source and its embedded graphs.
+fn declared_context_iris(dataset: &Store, source: &Path) -> LoadResult<BTreeSet<String>> {
+    let mut graphs = scoped_graphs_for_source(dataset, source)?;
+    graphs.insert(graph_name(source)?);
+    let graph_values = graphs
+        .iter()
+        .map(ToString::to_string)
+        .collect::<Vec<_>>()
+        .join(" ");
+    let query = format!(
+        "SELECT DISTINCT ?context WHERE {{
+          VALUES ?graph {{ {graph_values} }}
+          GRAPH ?graph {{ ?context {CONTEXT_FILE} ?body . }}
+          FILTER(isIRI(?context))
+        }}"
+    );
+    let QueryResults::Solutions(solutions) = evaluate_union(dataset, &query)? else {
+        return Err(io::Error::other("context declaration query did not return solutions").into());
+    };
+    let mut iris = BTreeSet::new();
+    for solution in solutions {
+        let solution = solution?;
+        if let Some(Term::NamedNode(context)) = solution.get("context") {
+            iris.insert(context.as_str().to_owned());
+        }
+    }
+    Ok(iris)
+}
+
+/// Build replacement metadata from staged and unaffected source contributions.
+fn reload_catalog(
+    published: &Store,
+    staging: &Store,
     root: &Path,
     sources: &BTreeSet<PathBuf>,
     load_errors: &BTreeMap<PathBuf, String>,
-    mut embedded_graphs: impl FnMut(&Path) -> LoadResult<BTreeSet<NamedNode>>,
+    affected: &BTreeSet<PathBuf>,
 ) -> LoadResult<Store> {
-    let dataset = Store::new()?;
-    let catalog = FileCatalog::new(&dataset, root)?;
-    for source in sources
-        .iter()
-        .chain(load_errors.keys())
-        .collect::<BTreeSet<_>>()
-    {
-        catalog.describe_source(source, &embedded_graphs(source)?)?;
+    let catalog = Store::new()?;
+    let file_catalog = FileCatalog::new(&catalog, root)?;
+    for source in sources.iter().chain(load_errors.keys()) {
+        let embedded = if affected.contains(source) {
+            scoped_graphs_for_source(staging, source)?
+        } else {
+            scoped_graphs_for_source(published, source)?
+        };
+        file_catalog.describe_source(source, &embedded)?;
     }
     for (source, error) in load_errors {
-        catalog.describe_load_error(source, error)?;
+        file_catalog.describe_load_error(source, error)?;
     }
-    Ok(dataset)
+    let affected_graphs = affected
+        .iter()
+        .map(|source| graph_name(source))
+        .collect::<LoadResult<BTreeSet<_>>>()?;
+    for previous in published.quads_for_pattern(
+        None,
+        Some(JSONLD_CONTEXT),
+        None,
+        Some(FILE_CATALOG_GRAPH.into()),
+    ) {
+        let previous = previous?;
+        let replaced = match &previous.subject {
+            NamedOrBlankNode::NamedNode(source) => affected_graphs.contains(source),
+            NamedOrBlankNode::BlankNode(_) => false,
+        };
+        if !replaced {
+            catalog.insert(previous.as_ref())?;
+        }
+    }
+    for dependency in staging.quads_for_pattern(
+        None,
+        Some(JSONLD_CONTEXT),
+        None,
+        Some(FILE_CATALOG_GRAPH.into()),
+    ) {
+        catalog.insert(dependency?.as_ref())?;
+    }
+    Ok(catalog)
 }
 
 /// Find named graphs whose IRIs are scoped beneath the source graph.
@@ -858,12 +974,21 @@ fn collect_directory_files(directory: &Path, files: &mut Vec<PathBuf>) -> LoadRe
     Ok(())
 }
 
+/// Context dependencies and shared YAML conversion cache for a source load.
+struct ContextLoadState {
+    /// Context IRIs requested while parsing the source.
+    dependencies: BTreeSet<NamedNode>,
+    /// Converted YAML context bodies shared within one reload.
+    yaml_json: Arc<Mutex<BTreeMap<PathBuf, Vec<u8>>>>,
+}
+
 /// Read and parse a source, returning its embedded graphs or absent Markdown front matter.
 fn load_file(
     root: &Path,
     file: &Path,
     dataset: &Store,
-    context_dependencies: &mut BTreeSet<NamedNode>,
+    registrations: &BTreeMap<String, BTreeSet<String>>,
+    state: &mut ContextLoadState,
 ) -> LoadResult<Option<BTreeSet<NamedNode>>> {
     let format = source_format(file).ok_or_else(|| io::Error::other("unknown RDF format"))?;
     let relative = file.strip_prefix(root).map_err(io::Error::other)?;
@@ -885,15 +1010,17 @@ fn load_file(
             &base_iri,
             graph,
             dataset,
-            context_dependencies,
+            registrations,
+            state,
         )?,
         SourceFormat::YamlLd => load_json_ld(
             root,
-            &serde_json::to_vec(&parse_yaml_ld(&source)?)?,
+            &cached_yaml_json(file, &state.yaml_json)?,
             &base_iri,
             graph,
             dataset,
-            context_dependencies,
+            registrations,
+            state,
         )?,
         SourceFormat::Markdown => {
             let Some(front_matter) = markdown_front_matter(&source)? else {
@@ -905,7 +1032,8 @@ fn load_file(
                 &base_iri,
                 graph,
                 dataset,
-                context_dependencies,
+                registrations,
+                state,
             )?
         }
     };
@@ -930,7 +1058,7 @@ fn source_format(path: &Path) -> Option<SourceFormat> {
 
 impl SourceFormat {
     /// Return the source format's display name for diagnostics.
-    fn name(self) -> &'static str {
+    fn name(&self) -> &'static str {
         match self {
             Self::Rdf(format) => format.name(),
             Self::JsonLd => "JSON-LD",
@@ -947,9 +1075,12 @@ fn load_json_ld(
     base_iri: &str,
     graph: NamedNode,
     dataset: &Store,
-    dependencies: &mut BTreeSet<NamedNode>,
+    registrations: &BTreeMap<String, BTreeSet<String>>,
+    state: &mut ContextLoadState,
 ) -> LoadResult<BTreeSet<NamedNode>> {
     let root = root.to_owned();
+    let registrations = registrations.clone();
+    let yaml_json = Arc::clone(&state.yaml_json);
     let loaded_contexts = Arc::new(Mutex::new(BTreeSet::new()));
     let context_dependencies = Arc::clone(&loaded_contexts);
     let parser = RdfParser::from_format(RdfFormat::JsonLd {
@@ -964,12 +1095,12 @@ fn load_json_ld(
                     .lock()
                     .map_err(|error| io::Error::other(error.to_string()))?
                     .insert(NamedNode::new(url)?);
-                load_context_document(&root, url)
+                load_context_document(&root, url, &registrations, &yaml_json)
             })
             .collect::<Result<Vec<_>, _>>()?;
         load_scoped_quads(dataset, quads, graph)
     })();
-    dependencies.extend(
+    state.dependencies.extend(
         loaded_contexts
             .lock()
             .map_err(|error| io::Error::other(error.to_string()))?
@@ -1068,21 +1199,39 @@ fn scope_quad(
 }
 
 /// Load the bundled convenience context or a JSON-LD or YAML-LD context beneath the root.
-fn load_context_document(root: &Path, url: &str) -> LoadResult<LoadedDocument> {
-    if url == DOLLAR_CONVENIENCE_CONTEXT_URL {
-        return Ok(LoadedDocument {
-            url: url.into(),
-            content: include_bytes!("loader/contexts/dollar-convenience.jsonld").to_vec(),
-            format: context_format(),
-        });
-    }
-
-    let relative = local_context_relative(url)?;
+fn load_context_document(
+    root: &Path,
+    url: &str,
+    registrations: &BTreeMap<String, BTreeSet<String>>,
+    yaml_json: &Arc<Mutex<BTreeMap<PathBuf, Vec<u8>>>>,
+) -> LoadResult<LoadedDocument> {
+    let relative = match local_context_relative(url) {
+        Ok(relative) => relative,
+        Err(_) => {
+            let body = registered_context_body(registrations, url)?;
+            match local_context_relative(body.as_str()) {
+                Ok(relative) => relative,
+                Err(error) if body.as_str().starts_with("sparqld:") => return Err(error),
+                Err(_) => {
+                    return Err(io::Error::other(format!(
+                        "context-file is not a local file: {}",
+                        body.as_str()
+                    ))
+                    .into());
+                }
+            }
+        }
+    };
     let path = local_context_path(root, &relative, url)?;
     let content = match path.extension().and_then(|extension| extension.to_str()) {
-        Some(extension) if extension.eq_ignore_ascii_case("jsonld") => fs::read(&path)?,
+        Some(extension)
+            if extension.eq_ignore_ascii_case("jsonld")
+                || extension.eq_ignore_ascii_case("json") =>
+        {
+            fs::read(&path)?
+        }
         Some(extension) if extension.eq_ignore_ascii_case("yamlld") => {
-            serde_json::to_vec(&parse_yaml_ld(&fs::read(&path)?)?)?
+            cached_yaml_json(&path, yaml_json)?
         }
         _ => {
             return Err(
@@ -1095,6 +1244,23 @@ fn load_context_document(root: &Path, url: &str) -> LoadResult<LoadedDocument> {
         content,
         format: context_format(),
     })
+}
+
+/// Convert a YAML context once and reuse its JSON representation.
+fn cached_yaml_json(
+    path: &Path,
+    cache: &Arc<Mutex<BTreeMap<PathBuf, Vec<u8>>>>,
+) -> LoadResult<Vec<u8>> {
+    let path = path.canonicalize()?;
+    let mut cache = cache
+        .lock()
+        .map_err(|error| io::Error::other(error.to_string()))?;
+    if let Some(json) = cache.get(&path) {
+        return Ok(json.clone());
+    }
+    let json = serde_json::to_vec(&parse_yaml_ld(&fs::read(&path)?)?)?;
+    cache.insert(path, json.clone());
+    Ok(json)
 }
 
 /// Select the JSON-LD context profile for document-loader responses.
@@ -1184,6 +1350,123 @@ fn directory_iri(relative: &Path) -> LoadResult<String> {
     path_iri(relative.parent().unwrap_or_else(|| Path::new("")), true)
 }
 
+/// Combine unaffected published graphs with staged contributions for context lookup.
+fn lookup_store(
+    dataset: &Store,
+    staging: &Store,
+    excluded: &BTreeSet<NamedNode>,
+) -> LoadResult<Store> {
+    let lookup = Store::new()?;
+    for quad in dataset.quads_for_pattern(None, None, None, None) {
+        let quad = quad?;
+        if let GraphName::NamedNode(graph) = &quad.graph_name
+            && excluded.contains(graph)
+        {
+            continue;
+        }
+        lookup.insert(quad.as_ref())?;
+    }
+    for quad in staging.quads_for_pattern(None, None, None, None) {
+        lookup.insert(quad?.as_ref())?;
+    }
+    Ok(lookup)
+}
+
+/// Evaluate a SPARQL query over the union of source graphs.
+fn evaluate_union<'a>(dataset: &'a Store, query: &str) -> LoadResult<QueryResults<'a>> {
+    let mut prepared = SparqlEvaluator::new().parse_query(query)?;
+    prepared.dataset_mut().set_default_graph_as_union();
+    Ok(prepared.on_store(dataset).execute()?)
+}
+
+/// Read context registrations and their body targets from the dataset.
+fn context_bodies(dataset: &Store) -> LoadResult<BTreeMap<String, BTreeSet<String>>> {
+    let query = "
+        PREFIX sparqld: <https://sparqld.iolanta.tech/>
+        SELECT DISTINCT ?context ?body WHERE {
+          ?context sparqld:context-file ?body .
+        }
+    ";
+    let mut bodies: BTreeMap<String, BTreeSet<String>> = BTreeMap::new();
+    let QueryResults::Solutions(solutions) = evaluate_union(dataset, query)? else {
+        return Err(io::Error::other("context registration query did not return solutions").into());
+    };
+    for solution in solutions {
+        let solution = solution?;
+        let Some(Term::NamedNode(context)) = solution.get("context").cloned() else {
+            continue;
+        };
+        let Some(Term::NamedNode(body)) = solution.get("body").cloned() else {
+            continue;
+        };
+        bodies
+            .entry(context.as_str().to_owned())
+            .or_default()
+            .insert(body.as_str().to_owned());
+    }
+    Ok(bodies)
+}
+
+/// Resolve a context registration with exactly one body target.
+fn registered_context_body(
+    registrations: &BTreeMap<String, BTreeSet<String>>,
+    url: &str,
+) -> LoadResult<NamedNode> {
+    let bodies = registrations.get(url).cloned().unwrap_or_default();
+    match bodies.len() {
+        0 => Err(io::Error::other(format!("context is not registered: {url}")).into()),
+        1 => Ok(NamedNode::new(
+            bodies.into_iter().next().expect("one body"),
+        )?),
+        _ => Err(io::Error::other(format!("context {url} {AMBIGUOUS_TARGETS}")).into()),
+    }
+}
+
+/// Find source contributions declaring conflicting context body targets.
+fn ambiguous_declarations(
+    visible: &Store,
+    sources: &BTreeSet<PathBuf>,
+) -> LoadResult<BTreeMap<PathBuf, String>> {
+    let mut errors = BTreeMap::new();
+    for (context, bodies) in context_bodies(visible)? {
+        if bodies.len() < 2 {
+            continue;
+        }
+        let context = NamedNode::new(context)?;
+        let graphs = visible
+            .quads_for_pattern(
+                Some(context.as_ref().into()),
+                Some(CONTEXT_FILE),
+                None,
+                None,
+            )
+            .map(|quad| quad.map(|quad| quad.graph_name))
+            .collect::<Result<Vec<_>, _>>()?;
+        let message = format!("context {context} {AMBIGUOUS_TARGETS}");
+        for relative in sources {
+            let graph = graph_name(relative)?;
+            let mut owned = scoped_graphs_for_source(visible, relative)?;
+            owned.insert(graph.clone());
+            if !owned
+                .iter()
+                .any(|graph| graphs.contains(&graph.as_ref().into()))
+            {
+                continue;
+            }
+            errors.insert(relative.clone(), message.clone());
+        }
+    }
+    Ok(errors)
+}
+
+/// Construct the catalog IRI for a source load error.
+fn load_error_name(relative: &Path) -> LoadResult<NamedNode> {
+    Ok(NamedNode::new(format!(
+        "{}#load-error",
+        graph_name(relative)?.as_str()
+    ))?)
+}
+
 /// Encode a relative path as a sparqld IRI, adding a trailing slash for directories.
 fn path_iri(relative: &Path, directory: bool) -> LoadResult<String> {
     let relative = relative.to_str().ok_or_else(|| {
@@ -1208,6 +1491,26 @@ mod tests {
     use super::*;
     use oxigraph::model::{LiteralRef, NamedNodeRef, QuadRef};
     use oxigraph::sparql::{QueryResults, SparqlEvaluator};
+
+    fn write_context_declaration(directory: &Path, url: &str, body_file: &str, body: &[u8]) {
+        fs::write(directory.join(body_file), body).unwrap();
+        fs::write(
+            directory.join("z-declaration.jsonld"),
+            serde_json::to_vec(&serde_json::json!({
+                "@context": {
+                    "sparqld": "https://sparqld.iolanta.tech/",
+                    "context-file": {
+                        "@id": "sparqld:context-file",
+                        "@type": "@id"
+                    }
+                },
+                "@id": url,
+                "context-file": body_file
+            }))
+            .unwrap(),
+        )
+        .unwrap();
+    }
 
     fn context_dependencies(dataset: &Store) -> Vec<(String, String)> {
         let mut dependencies = dataset
@@ -1234,6 +1537,12 @@ mod tests {
             r#"{"@context":{"name":"urn:name"}}"#,
         )
         .unwrap();
+        write_context_declaration(
+            directory.path(),
+            "https://example.org/ctx",
+            "body.jsonld",
+            br#"{"@context":{"name":"urn:name"}}"#,
+        );
         for (filename, content) in [
             (
                 "success.jsonld",
@@ -1248,8 +1557,8 @@ mod tests {
                 serde_json::json!({"@context": ["terms.jsonld", {"bad": {"@id": 42}}]}),
             ),
             (
-                "bundled.jsonld",
-                serde_json::json!({"@context": [DOLLAR_CONVENIENCE_CONTEXT_URL, DOLLAR_CONVENIENCE_CONTEXT_URL]}),
+                "registered.jsonld",
+                serde_json::json!({"@context": ["https://example.org/ctx", "https://example.org/ctx"]}),
             ),
             (
                 "inline.jsonld",
@@ -1270,12 +1579,12 @@ mod tests {
             context_dependencies(&dataset),
             vec![
                 (
-                    "<sparqld:bundled.jsonld>".into(),
-                    format!("<{DOLLAR_CONVENIENCE_CONTEXT_URL}>")
-                ),
-                (
                     "<sparqld:ordinary.jsonld>".into(),
                     "<sparqld:terms.jsonld>".into()
+                ),
+                (
+                    "<sparqld:registered.jsonld>".into(),
+                    "<https://example.org/ctx>".into()
                 ),
                 (
                     "<sparqld:remote.jsonld>".into(),
@@ -1694,6 +2003,607 @@ mod tests {
     }
 
     #[test]
+    fn resolves_a_remote_context_from_a_later_declaration() {
+        let directory = tempfile::tempdir().unwrap();
+        fs::write(
+            directory.path().join("alice.jsonld"),
+            r#"{"@context":"https://example.org/ctx","@id":"urn:alice","name":"Alice"}"#,
+        )
+        .unwrap();
+        fs::write(
+            directory.path().join("body.jsonld"),
+            r#"{"@context":{"name":"urn:name"}}"#,
+        )
+        .unwrap();
+        fs::write(
+            directory.path().join("z-declaration.jsonld"),
+            serde_json::to_vec(&serde_json::json!({
+                "@context": {
+                    "sparqld": "https://sparqld.iolanta.tech/",
+                    "context-file": {
+                        "@id": "sparqld:context-file",
+                        "@type": "@id"
+                    }
+                },
+                "@id": "https://example.org/ctx",
+                "context-file": "body.jsonld"
+            }))
+            .unwrap(),
+        )
+        .unwrap();
+        let dataset = Store::new().unwrap();
+
+        let load = load_directory_with_stats(directory.path(), &dataset).unwrap();
+
+        assert!(
+            load.load_errors.is_empty(),
+            "load errors: {:?}",
+            load.load_errors
+        );
+        assert!(load.loaded_sources.contains(Path::new("alice.jsonld")));
+        assert!(
+            dataset
+                .contains(QuadRef::new(
+                    NamedNodeRef::new("urn:alice").unwrap(),
+                    NamedNodeRef::new("urn:name").unwrap(),
+                    LiteralRef::new_simple_literal("Alice"),
+                    NamedNodeRef::new("sparqld:alice.jsonld").unwrap(),
+                ))
+                .unwrap()
+        );
+    }
+
+    #[test]
+    fn resolves_a_yaml_ld_context_body() {
+        let directory = tempfile::tempdir().unwrap();
+        fs::write(
+            directory.path().join("alice.jsonld"),
+            r#"{"@context":"https://example.org/ctx","@id":"urn:alice","name":"Alice"}"#,
+        )
+        .unwrap();
+        write_context_declaration(
+            directory.path(),
+            "https://example.org/ctx",
+            "body.yamlld",
+            b"'@context':\n  name: urn:name\n",
+        );
+        let dataset = Store::new().unwrap();
+        let load = load_directory_with_stats(directory.path(), &dataset).unwrap();
+        assert!(
+            load.load_errors.is_empty(),
+            "load errors: {:?}",
+            load.load_errors
+        );
+        assert!(
+            dataset
+                .contains(QuadRef::new(
+                    NamedNodeRef::new("urn:alice").unwrap(),
+                    NamedNodeRef::new("urn:name").unwrap(),
+                    LiteralRef::new_simple_literal("Alice"),
+                    NamedNodeRef::new("sparqld:alice.jsonld").unwrap(),
+                ))
+                .unwrap()
+        );
+    }
+
+    #[test]
+    fn resolves_a_body_excluded_from_source_patterns() {
+        let directory = tempfile::tempdir().unwrap();
+        fs::write(
+            directory.path().join("alice.jsonld"),
+            r#"{"@context":"https://example.org/ctx","@id":"urn:alice","name":"Alice"}"#,
+        )
+        .unwrap();
+        write_context_declaration(
+            directory.path(),
+            "https://example.org/ctx",
+            "body.jsonld",
+            br#"{"@context":{"name":"urn:name"}}"#,
+        );
+        let patterns =
+            SourcePatterns::compile(&["*.jsonld".into(), "!body.jsonld".into()]).unwrap();
+        let dataset = Store::new().unwrap();
+        let load = load_directory_with_patterns(directory.path(), &dataset, &patterns).unwrap();
+        assert!(
+            load.load_errors.is_empty(),
+            "load errors: {:?}",
+            load.load_errors
+        );
+        assert!(!load.loaded_sources.contains(Path::new("body.jsonld")));
+        assert!(
+            dataset
+                .contains(QuadRef::new(
+                    NamedNodeRef::new("urn:alice").unwrap(),
+                    NamedNodeRef::new("urn:name").unwrap(),
+                    LiteralRef::new_simple_literal("Alice"),
+                    NamedNodeRef::new("sparqld:alice.jsonld").unwrap(),
+                ))
+                .unwrap()
+        );
+    }
+
+    #[test]
+    fn rejects_ambiguous_context_file_targets() {
+        let directory = tempfile::tempdir().unwrap();
+        fs::write(
+            directory.path().join("keep.ttl"),
+            "<urn:keep> <urn:value> \"kept\" .",
+        )
+        .unwrap();
+        write_context_declaration(
+            directory.path(),
+            "https://example.org/ctx",
+            "one.jsonld",
+            br#"{"@context":{"name":"urn:name"}}"#,
+        );
+        fs::write(
+            directory.path().join("two.jsonld"),
+            br#"{"@context":{"name":"urn:other"}}"#,
+        )
+        .unwrap();
+        fs::write(
+            directory.path().join("a-declaration.jsonld"),
+            serde_json::to_vec(&serde_json::json!({
+                "@context": {
+                    "sparqld": "https://sparqld.iolanta.tech/",
+                    "context-file": {
+                        "@id": "sparqld:context-file",
+                        "@type": "@id"
+                    }
+                },
+                "@id": "https://example.org/ctx",
+                "context-file": "two.jsonld"
+            }))
+            .unwrap(),
+        )
+        .unwrap();
+        let dataset = Store::new().unwrap();
+        let load = load_directory_with_stats(directory.path(), &dataset).unwrap();
+        for declaration in ["a-declaration.jsonld", "z-declaration.jsonld"] {
+            let error = &load.load_errors[Path::new(declaration)];
+            assert!(
+                error.contains("multiple context-file targets"),
+                "{declaration}: {error}"
+            );
+            assert!(!load.loaded_sources.contains(Path::new(declaration)));
+        }
+        assert!(load.loaded_sources.contains(Path::new("keep.ttl")));
+        assert!(
+            dataset
+                .contains(QuadRef::new(
+                    NamedNodeRef::new("urn:keep").unwrap(),
+                    NamedNodeRef::new("urn:value").unwrap(),
+                    LiteralRef::new_simple_literal("kept"),
+                    NamedNodeRef::new("sparqld:keep.ttl").unwrap(),
+                ))
+                .unwrap()
+        );
+    }
+
+    #[test]
+    fn records_a_requested_context_url_without_a_registration() {
+        let directory = tempfile::tempdir().unwrap();
+        fs::write(
+            directory.path().join("a.jsonld"),
+            r#"{"@context":"https://example.org/b","@id":"https://example.org/a"}"#,
+        )
+        .unwrap();
+        fs::write(
+            directory.path().join("b.jsonld"),
+            r#"{"@context":"https://example.org/a","@id":"https://example.org/b"}"#,
+        )
+        .unwrap();
+        let dataset = Store::new().unwrap();
+        let load = load_directory_with_stats(directory.path(), &dataset).unwrap();
+        assert_eq!(load.load_errors.len(), 2);
+        assert!(
+            load.load_errors
+                .values()
+                .all(|error| error.contains("context is not registered")),
+            "{:?}",
+            load.load_errors
+        );
+        for url in ["https://example.org/a", "https://example.org/b"] {
+            assert!(
+                dataset
+                    .contains(QuadRef::new(
+                        NamedNodeRef::new(if url.ends_with("/a") {
+                            "sparqld:b.jsonld"
+                        } else {
+                            "sparqld:a.jsonld"
+                        })
+                        .unwrap(),
+                        JSONLD_CONTEXT,
+                        NamedNodeRef::new(url).unwrap(),
+                        FILE_CATALOG_GRAPH,
+                    ))
+                    .unwrap()
+            );
+            assert_eq!(
+                dataset
+                    .quads_for_pattern(
+                        Some(NamedNodeRef::new(url).unwrap().into()),
+                        None,
+                        None,
+                        Some(FILE_CATALOG_GRAPH.into()),
+                    )
+                    .count(),
+                0
+            );
+            assert_eq!(context_bodies(&dataset).unwrap().get(url), None);
+        }
+    }
+
+    #[test]
+    fn resolves_a_json_context_body() {
+        let directory = tempfile::tempdir().unwrap();
+        fs::write(
+            directory.path().join("alice.jsonld"),
+            r#"{"@context":"https://example.org/ctx","@id":"urn:alice","name":"Alice"}"#,
+        )
+        .unwrap();
+        write_context_declaration(
+            directory.path(),
+            "https://example.org/ctx",
+            "body.json",
+            br#"{"@context":{"name":"urn:name"}}"#,
+        );
+        let dataset = Store::new().unwrap();
+        let load = load_directory_with_stats(directory.path(), &dataset).unwrap();
+        assert!(
+            load.load_errors.is_empty(),
+            "load errors: {:?}",
+            load.load_errors
+        );
+        assert!(
+            dataset
+                .contains(QuadRef::new(
+                    NamedNodeRef::new("urn:alice").unwrap(),
+                    NamedNodeRef::new("urn:name").unwrap(),
+                    LiteralRef::new_simple_literal("Alice"),
+                    NamedNodeRef::new("sparqld:alice.jsonld").unwrap(),
+                ))
+                .unwrap()
+        );
+    }
+
+    #[test]
+    fn records_a_malformed_registered_body() {
+        let directory = tempfile::tempdir().unwrap();
+        fs::write(
+            directory.path().join("alice.jsonld"),
+            r#"{"@context":"https://example.org/ctx","@id":"urn:alice","name":"Alice"}"#,
+        )
+        .unwrap();
+        write_context_declaration(
+            directory.path(),
+            "https://example.org/ctx",
+            "body.jsonld",
+            b"{",
+        );
+        let dataset = Store::new().unwrap();
+        let load = load_directory_with_stats(directory.path(), &dataset).unwrap();
+        let error = &load.load_errors[Path::new("alice.jsonld")];
+        assert!(!error.contains("context is not registered"), "{error}");
+        assert!(error.contains("https://example.org/ctx"), "{error}");
+    }
+
+    #[test]
+    fn accepts_identical_context_file_declarations() {
+        let directory = tempfile::tempdir().unwrap();
+        fs::write(
+            directory.path().join("alice.jsonld"),
+            r#"{"@context":"https://example.org/ctx","@id":"urn:alice","name":"Alice"}"#,
+        )
+        .unwrap();
+        fs::write(
+            directory.path().join("body.jsonld"),
+            r#"{"@context":{"name":"urn:name"}}"#,
+        )
+        .unwrap();
+        let declaration = serde_json::json!({
+            "@context": {
+                "sparqld": "https://sparqld.iolanta.tech/",
+                "context-file": {
+                    "@id": "sparqld:context-file",
+                    "@type": "@id"
+                }
+            },
+            "@id": "https://example.org/ctx",
+            "context-file": "body.jsonld"
+        });
+        fs::write(
+            directory.path().join("a-declaration.jsonld"),
+            serde_json::to_vec(&declaration).unwrap(),
+        )
+        .unwrap();
+        fs::write(
+            directory.path().join("b-declaration.jsonld"),
+            serde_json::to_vec(&declaration).unwrap(),
+        )
+        .unwrap();
+        let dataset = Store::new().unwrap();
+        let load = load_directory_with_stats(directory.path(), &dataset).unwrap();
+        assert!(
+            load.load_errors.is_empty(),
+            "load errors: {:?}",
+            load.load_errors
+        );
+        assert!(
+            dataset
+                .contains(QuadRef::new(
+                    NamedNodeRef::new("urn:alice").unwrap(),
+                    NamedNodeRef::new("urn:name").unwrap(),
+                    LiteralRef::new_simple_literal("Alice"),
+                    NamedNodeRef::new("sparqld:alice.jsonld").unwrap(),
+                ))
+                .unwrap()
+        );
+    }
+
+    #[test]
+    fn registers_a_context_from_a_separate_source() {
+        let directory = tempfile::tempdir().unwrap();
+        fs::write(
+            directory.path().join("alice.jsonld"),
+            r#"{"@context":"https://example.org/ctx","@id":"urn:alice","name":"Alice"}"#,
+        )
+        .unwrap();
+        fs::write(
+            directory.path().join("body.jsonld"),
+            r#"{"@context":{"name":"urn:name"}}"#,
+        )
+        .unwrap();
+        fs::write(
+            directory.path().join("z-url.jsonld"),
+            serde_json::to_vec(&serde_json::json!({
+                "@context": {
+                    "sparqld": "https://sparqld.iolanta.tech/",
+                    "context-file": {
+                        "@id": "sparqld:context-file",
+                        "@type": "@id"
+                    }
+                },
+                "@id": "https://example.org/ctx",
+                "context-file": "body.jsonld"
+            }))
+            .unwrap(),
+        )
+        .unwrap();
+        let dataset = Store::new().unwrap();
+        let load = load_directory_with_stats(directory.path(), &dataset).unwrap();
+        assert!(
+            load.load_errors.is_empty(),
+            "load errors: {:?}",
+            load.load_errors
+        );
+        assert!(
+            dataset
+                .contains(QuadRef::new(
+                    NamedNodeRef::new("urn:alice").unwrap(),
+                    NamedNodeRef::new("urn:name").unwrap(),
+                    LiteralRef::new_simple_literal("Alice"),
+                    NamedNodeRef::new("sparqld:alice.jsonld").unwrap(),
+                ))
+                .unwrap()
+        );
+    }
+
+    #[test]
+    fn resolves_an_arbitrary_scheme_from_a_registration() {
+        let directory = tempfile::tempdir().unwrap();
+        fs::write(
+            directory.path().join("alice.jsonld"),
+            r#"{"@context":"ipfs://bafyexample/context","@id":"urn:alice","name":"Alice"}"#,
+        )
+        .unwrap();
+        write_context_declaration(
+            directory.path(),
+            "ipfs://bafyexample/context",
+            "body.jsonld",
+            br#"{"@context":{"name":"urn:name"}}"#,
+        );
+        let dataset = Store::new().unwrap();
+        let load = load_directory_with_stats(directory.path(), &dataset).unwrap();
+        assert!(
+            load.load_errors.is_empty(),
+            "load errors: {:?}",
+            load.load_errors
+        );
+        assert!(
+            dataset
+                .contains(QuadRef::new(
+                    NamedNodeRef::new("urn:alice").unwrap(),
+                    NamedNodeRef::new("urn:name").unwrap(),
+                    LiteralRef::new_simple_literal("Alice"),
+                    NamedNodeRef::new("sparqld:alice.jsonld").unwrap(),
+                ))
+                .unwrap()
+        );
+    }
+
+    #[test]
+    fn rejects_a_registered_body_outside_the_served_directory() {
+        let directory = tempfile::tempdir().unwrap();
+        fs::write(
+            directory.path().join("alice.jsonld"),
+            r#"{"@context":"https://example.org/ctx","@id":"urn:alice","name":"Alice"}"#,
+        )
+        .unwrap();
+        fs::write(
+            directory.path().join("z-declaration.jsonld"),
+            serde_json::to_vec(&serde_json::json!({
+                "@context": {
+                    "context-file": {
+                        "@id": "https://sparqld.iolanta.tech/context-file",
+                        "@type": "@id"
+                    }
+                },
+                "@id": "https://example.org/ctx",
+                "context-file": "sparqld:../outside.jsonld"
+            }))
+            .unwrap(),
+        )
+        .unwrap();
+        let dataset = Store::new().unwrap();
+        let load = load_directory_with_stats(directory.path(), &dataset).unwrap();
+        let error = &load.load_errors[Path::new("alice.jsonld")];
+        assert!(error.contains("outside the served directory"), "{error}");
+    }
+
+    #[test]
+    fn resolves_nested_imports_against_the_requested_context_uri() {
+        let directory = tempfile::tempdir().unwrap();
+        fs::write(
+            directory.path().join("alice.jsonld"),
+            r#"{"@context":"https://example.org/parent","@id":"urn:alice","name":"Alice"}"#,
+        )
+        .unwrap();
+        fs::write(
+            directory.path().join("parent.jsonld"),
+            r#"{"@context":{"@import":"https://example.org/child"}}"#,
+        )
+        .unwrap();
+        fs::write(
+            directory.path().join("child.jsonld"),
+            r#"{"@context":{"name":"urn:name"}}"#,
+        )
+        .unwrap();
+        fs::write(
+            directory.path().join("parent-declaration.jsonld"),
+            serde_json::to_vec(&serde_json::json!({
+                "@context": {
+                    "sparqld": "https://sparqld.iolanta.tech/",
+                    "context-file": {
+                        "@id": "sparqld:context-file",
+                        "@type": "@id"
+                    }
+                },
+                "@id": "https://example.org/parent",
+
+                "context-file": "parent.jsonld"
+            }))
+            .unwrap(),
+        )
+        .unwrap();
+        fs::write(
+            directory.path().join("z-child-declaration.jsonld"),
+            serde_json::to_vec(&serde_json::json!({
+                "@context": {
+                    "sparqld": "https://sparqld.iolanta.tech/",
+                    "context-file": {
+                        "@id": "sparqld:context-file",
+                        "@type": "@id"
+                    }
+                },
+                "@id": "https://example.org/child",
+
+                "context-file": "child.jsonld"
+            }))
+            .unwrap(),
+        )
+        .unwrap();
+        let dataset = Store::new().unwrap();
+        let load = load_directory_with_stats(directory.path(), &dataset).unwrap();
+        assert!(
+            load.load_errors.is_empty(),
+            "load errors: {:?}",
+            load.load_errors
+        );
+        assert!(
+            dataset
+                .contains(QuadRef::new(
+                    NamedNodeRef::new("urn:alice").unwrap(),
+                    NamedNodeRef::new("urn:name").unwrap(),
+                    LiteralRef::new_simple_literal("Alice"),
+                    NamedNodeRef::new("sparqld:alice.jsonld").unwrap(),
+                ))
+                .unwrap()
+        );
+    }
+
+    #[test]
+    fn reloads_dependents_when_a_registered_body_changes() {
+        let directory = tempfile::tempdir().unwrap();
+        fs::write(
+            directory.path().join("alice.jsonld"),
+            r#"{"@context":"https://example.org/ctx","@id":"urn:alice","name":"Alice"}"#,
+        )
+        .unwrap();
+        write_context_declaration(
+            directory.path(),
+            "https://example.org/ctx",
+            "body.jsonld",
+            br#"{"@context":{"name":"urn:old"}}"#,
+        );
+        let dataset = Store::new().unwrap();
+        let load = load_directory_with_stats(directory.path(), &dataset).unwrap();
+        fs::write(
+            directory.path().join("body.jsonld"),
+            br#"{"@context":{"name":"urn:new"}}"#,
+        )
+        .unwrap();
+        let report = reload_changed(
+            directory.path(),
+            &BTreeSet::from([directory.path().join("body.jsonld")]),
+            &load.loaded_sources,
+            &load.load_errors,
+            &dataset,
+        )
+        .unwrap();
+        assert!(report.loaded_sources.contains(Path::new("alice.jsonld")));
+        assert!(
+            dataset
+                .contains(QuadRef::new(
+                    NamedNodeRef::new("urn:alice").unwrap(),
+                    NamedNodeRef::new("urn:new").unwrap(),
+                    LiteralRef::new_simple_literal("Alice"),
+                    NamedNodeRef::new("sparqld:alice.jsonld").unwrap(),
+                ))
+                .unwrap()
+        );
+    }
+
+    #[test]
+    fn reloads_dependents_when_a_declaration_is_deleted() {
+        let directory = tempfile::tempdir().unwrap();
+        fs::write(
+            directory.path().join("alice.jsonld"),
+            r#"{"@context":"https://example.org/ctx","@id":"urn:alice","name":"Alice"}"#,
+        )
+        .unwrap();
+        write_context_declaration(
+            directory.path(),
+            "https://example.org/ctx",
+            "body.jsonld",
+            br#"{"@context":{"name":"urn:name"}}"#,
+        );
+        let dataset = Store::new().unwrap();
+        let load = load_directory_with_stats(directory.path(), &dataset).unwrap();
+        fs::remove_file(directory.path().join("z-declaration.jsonld")).unwrap();
+        let report = reload_changed(
+            directory.path(),
+            &BTreeSet::from([directory.path().join("z-declaration.jsonld")]),
+            &load.loaded_sources,
+            &load.load_errors,
+            &dataset,
+        )
+        .unwrap();
+        let error = &report.load_errors[Path::new("alice.jsonld")];
+        assert!(error.contains("context is not registered"), "{error}");
+        assert!(
+            !dataset
+                .contains(QuadRef::new(
+                    NamedNodeRef::new("urn:alice").unwrap(),
+                    NamedNodeRef::new("urn:name").unwrap(),
+                    LiteralRef::new_simple_literal("Alice"),
+                    NamedNodeRef::new("sparqld:alice.jsonld").unwrap(),
+                ))
+                .unwrap()
+        );
+    }
+
+    #[test]
     fn rejects_unregistered_context_urls() {
         let directory = tempfile::tempdir().unwrap();
         fs::write(
@@ -1708,7 +2618,7 @@ mod tests {
         assert!(load.loaded_sources.is_empty());
         let error = &load.load_errors[Path::new("source.jsonld")];
         assert!(
-            error.contains("context URL is not supported"),
+            error.contains("context is not registered"),
             "unexpected error: {error}"
         );
         assert_eq!(
@@ -1718,6 +2628,62 @@ mod tests {
                 "<https://example.org/context.jsonld>".into()
             )]
         );
+    }
+
+    #[test]
+    fn selects_all_catalogued_failures_for_retry() {
+        let directory = tempfile::tempdir().unwrap();
+        let dataset = Store::new().unwrap();
+        let catalog = FileCatalog::new(&dataset, directory.path()).unwrap();
+        for source in ["missing-context.jsonld", "invalid.ttl"] {
+            catalog
+                .describe_load_error(Path::new(source), "load failed")
+                .unwrap();
+        }
+        assert_eq!(
+            retry::failed_files(&dataset).unwrap(),
+            BTreeSet::from([
+                PathBuf::from("missing-context.jsonld"),
+                PathBuf::from("invalid.ttl"),
+            ])
+        );
+    }
+
+    #[test]
+    fn separates_one_reload_from_failure_recovery() {
+        let directory = Path::new("docs/examples/context-reload/chain");
+        let dataset = Store::new().unwrap();
+        let patterns = SourcePatterns::all();
+        let sources = source_paths(directory, &patterns).unwrap();
+        let first = reload_changed_with_patterns(
+            directory,
+            &sources,
+            &BTreeSet::new(),
+            &BTreeMap::new(),
+            &dataset,
+            &patterns,
+        )
+        .unwrap();
+        assert_eq!(
+            first.load_errors.keys().cloned().collect::<BTreeSet<_>>(),
+            BTreeSet::from([
+                PathBuf::from("alice.yamlld"),
+                PathBuf::from("second.yamlld"),
+            ])
+        );
+
+        let recovered = retry::reload_with_retries(
+            directory,
+            &retry::failed_files(&dataset).unwrap(),
+            &first.loaded_sources,
+            &first.load_errors,
+            &dataset,
+            &patterns,
+        )
+        .unwrap();
+        assert_eq!(recovered.loaded_sources, sources);
+        assert!(recovered.load_errors.is_empty());
+        assert!(retry::failed_files(&dataset).unwrap().is_empty());
     }
 
     #[test]
@@ -2543,22 +3509,24 @@ mod tests {
     }
 
     #[test]
-    fn only_enables_dollar_keywords_with_the_explicit_context_url() {
+    fn expands_keyword_aliases_from_a_registered_context() {
         let directory = tempfile::tempdir().unwrap();
         fs::write(
             directory.path().join("source.yamlld"),
-            format!(
-                "'@context': {DOLLAR_CONVENIENCE_CONTEXT_URL}\n$id: urn:yaml-subject\n$type: urn:Type\nurn:value: YAML-LD\n"
-            ),
+            "'@context': https://example.org/aliases\n$id: urn:yaml-subject\n$type: urn:Type\n",
         )
         .unwrap();
         fs::write(
             directory.path().join("source.jsonld"),
-            format!(
-                r#"{{"@context":"{DOLLAR_CONVENIENCE_CONTEXT_URL}","$id":"urn:json-subject","$type":"urn:Type","urn:value":"JSON-LD"}}"#
-            ),
+            r#"{"@context":"https://example.org/aliases","$id":"urn:json-subject","$type":"urn:Type"}"#,
         )
         .unwrap();
+        write_context_declaration(
+            directory.path(),
+            "https://example.org/aliases",
+            "aliases.jsonld",
+            br#"{"@context":{"$id":"@id","$type":"@type"}}"#,
+        );
         let dataset = Store::new().unwrap();
 
         let loaded = load_directory(directory.path(), &dataset).unwrap();
@@ -2566,8 +3534,10 @@ mod tests {
         assert_eq!(
             loaded,
             BTreeSet::from([
+                PathBuf::from("aliases.jsonld"),
                 PathBuf::from("source.jsonld"),
-                PathBuf::from("source.yamlld")
+                PathBuf::from("source.yamlld"),
+                PathBuf::from("z-declaration.jsonld"),
             ])
         );
         for (subject, graph) in [

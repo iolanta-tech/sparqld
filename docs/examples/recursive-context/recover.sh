@@ -1,2 +1,1 @@
-cp docs/examples/recursive-context/recovered-context.jsonld \
-  docs/examples/recursive-context/project/context.jsonld
+rm docs/examples/recursive-context/project/remote.jsonld

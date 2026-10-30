@@ -9,12 +9,13 @@ icon: material/book-alphabet
 hide:
   - toc
 title: Vocabulary
-description: RDF terms used by sparqld in the file catalog.
+description: RDF terms used for context registration and file catalog metadata.
 ---
 
 # :material-book-alphabet: Vocabulary
 
-The [file catalog](../reference/file-catalog.md) uses these RDF terms.
+These RDF terms describe context registrations and
+[file catalog](../reference/file-catalog.md) metadata.
 
 <div class="grid cards" markdown>
 
@@ -23,5 +24,11 @@ The [file catalog](../reference/file-catalog.md) uses these RDF terms.
     ---
 
     Link a source file to the context URIs requested while parsing it.
+
+-   :material-file-link:{ .lg .middle } **[`sparqld:context-file`](https://sparqld.iolanta.tech/context-file)**
+
+    ---
+
+    Link an absolute context URI to its local body file in project RDF.
 
 </div>

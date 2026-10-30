@@ -14,7 +14,7 @@
         },
         "context": {
           "type": "uri",
-          "value": "sparqld:context.jsonld"
+          "value": "https://example.org/ctx"
         }
       },
       {
@@ -24,7 +24,7 @@
         },
         "context": {
           "type": "uri",
-          "value": "sparqld:example.jsonld"
+          "value": "sparqld:context.jsonld"
         }
       },
       {
@@ -34,7 +34,7 @@
         },
         "context": {
           "type": "uri",
-          "value": "sparqld:example.jsonld"
+          "value": "https://example.org/ctx"
         }
       }
     ]
