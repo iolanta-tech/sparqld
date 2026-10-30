@@ -96,11 +96,11 @@ const FILE_CATALOG_GRAPH: NamedNodeRef<'_> = NamedNodeRef::new_unchecked("sparql
 /// Predicate linking a source to each context requested during parsing.
 const JSONLD_CONTEXT: NamedNodeRef<'_> =
     NamedNodeRef::new_unchecked("http://www.w3.org/ns/json-ld#context");
-/// Class identifying registered JSON-LD contexts.
-const JSONLD_CONTEXT_CLASS: NamedNodeRef<'_> =
-    NamedNodeRef::new_unchecked("http://www.w3.org/ns/json-ld#Context");
+/// Predicate registering a local body for an absolute context IRI.
+const CONTEXT_FILE: NamedNodeRef<'_> =
+    NamedNodeRef::new_unchecked("https://sparqld.iolanta.tech/context-file");
 /// Diagnostic text identifying conflicting context body declarations.
-const AMBIGUOUS_TARGETS: &str = "has multiple contentUrl targets";
+const AMBIGUOUS_TARGETS: &str = "has multiple context-file targets";
 
 /// File and directory vocabulary terms used in the catalog.
 mod nfo {
@@ -839,17 +839,26 @@ fn context_request_sources(dataset: &Store) -> LoadResult<BTreeMap<String, BTree
 fn declared_context_iris(dataset: &Store, source: &Path) -> LoadResult<BTreeSet<String>> {
     let mut graphs = scoped_graphs_for_source(dataset, source)?;
     graphs.insert(graph_name(source)?);
-    let content_url = NamedNodeRef::new_unchecked("https://schema.org/contentUrl");
+    let graph_values = graphs
+        .iter()
+        .map(ToString::to_string)
+        .collect::<Vec<_>>()
+        .join(" ");
+    let query = format!(
+        "SELECT DISTINCT ?context WHERE {{
+          VALUES ?graph {{ {graph_values} }}
+          GRAPH ?graph {{ ?context {CONTEXT_FILE} ?body . }}
+          FILTER(isIRI(?context))
+        }}"
+    );
+    let QueryResults::Solutions(solutions) = evaluate_union(dataset, &query)? else {
+        return Err(io::Error::other("context declaration query did not return solutions").into());
+    };
     let mut iris = BTreeSet::new();
-    for graph in graphs {
-        for quad in dataset.quads_for_pattern(None, None, None, Some(graph.as_ref().into())) {
-            let quad = quad?;
-            if ((quad.predicate == rdf::TYPE && quad.object == JSONLD_CONTEXT_CLASS.into())
-                || quad.predicate == content_url)
-                && let NamedOrBlankNode::NamedNode(subject) = quad.subject
-            {
-                iris.insert(subject.as_str().to_owned());
-            }
+    for solution in solutions {
+        let solution = solution?;
+        if let Some(Term::NamedNode(context)) = solution.get("context") {
+            iris.insert(context.as_str().to_owned());
         }
     }
     Ok(iris)
@@ -904,35 +913,7 @@ fn reload_catalog(
     ) {
         catalog.insert(dependency?.as_ref())?;
     }
-    record_requested_context_types(&catalog)?;
     Ok(catalog)
-}
-
-/// Describe requested remote contexts in the catalog.
-fn record_requested_context_types(catalog: &Store) -> LoadResult<()> {
-    let edges = catalog
-        .quads_for_pattern(
-            None,
-            Some(JSONLD_CONTEXT),
-            None,
-            Some(FILE_CATALOG_GRAPH.into()),
-        )
-        .collect::<Result<Vec<_>, _>>()?;
-    for edge in edges {
-        let Term::NamedNode(url) = &edge.object else {
-            continue;
-        };
-        if local_context_relative(url.as_str()).is_ok() {
-            continue;
-        }
-        catalog.insert(QuadRef::new(
-            url.as_ref(),
-            rdf::TYPE,
-            JSONLD_CONTEXT_CLASS,
-            FILE_CATALOG_GRAPH,
-        ))?;
-    }
-    Ok(())
 }
 
 /// Find named graphs whose IRIs are scoped beneath the source graph.
@@ -1126,24 +1107,7 @@ fn load_json_ld(
             .iter()
             .cloned(),
     );
-    note_requested_contexts(dataset, &state.dependencies)?;
     result
-}
-
-/// Add catalog types for remote contexts requested during parsing.
-fn note_requested_contexts(dataset: &Store, requested: &BTreeSet<NamedNode>) -> LoadResult<()> {
-    for url in requested {
-        if local_context_relative(url.as_str()).is_ok() {
-            continue;
-        }
-        dataset.insert(QuadRef::new(
-            url.as_ref(),
-            rdf::TYPE,
-            JSONLD_CONTEXT_CLASS,
-            FILE_CATALOG_GRAPH,
-        ))?;
-    }
-    Ok(())
 }
 
 /// Scope embedded graph identities to the source and insert the rewritten quads.
@@ -1250,7 +1214,7 @@ fn load_context_document(
                 Err(error) if body.as_str().starts_with("sparqld:") => return Err(error),
                 Err(_) => {
                     return Err(io::Error::other(format!(
-                        "contentUrl is not a local file: {}",
+                        "context-file is not a local file: {}",
                         body.as_str()
                     ))
                     .into());
@@ -1418,11 +1382,9 @@ fn evaluate_union<'a>(dataset: &'a Store, query: &str) -> LoadResult<QueryResult
 /// Read context registrations and their body targets from the dataset.
 fn context_bodies(dataset: &Store) -> LoadResult<BTreeMap<String, BTreeSet<String>>> {
     let query = "
-        PREFIX jsonld: <http://www.w3.org/ns/json-ld#>
-        PREFIX schema: <https://schema.org/>
+        PREFIX sparqld: <https://sparqld.iolanta.tech/>
         SELECT DISTINCT ?context ?body WHERE {
-          ?context a jsonld:Context ;
-                   schema:contentUrl ?body .
+          ?context sparqld:context-file ?body .
         }
     ";
     let mut bodies: BTreeMap<String, BTreeSet<String>> = BTreeMap::new();
@@ -1465,7 +1427,6 @@ fn ambiguous_declarations(
     visible: &Store,
     sources: &BTreeSet<PathBuf>,
 ) -> LoadResult<BTreeMap<PathBuf, String>> {
-    let content_url = NamedNodeRef::new_unchecked("https://schema.org/contentUrl");
     let mut errors = BTreeMap::new();
     for (context, bodies) in context_bodies(visible)? {
         if bodies.len() < 2 {
@@ -1473,7 +1434,12 @@ fn ambiguous_declarations(
         }
         let context = NamedNode::new(context)?;
         let graphs = visible
-            .quads_for_pattern(Some(context.as_ref().into()), Some(content_url), None, None)
+            .quads_for_pattern(
+                Some(context.as_ref().into()),
+                Some(CONTEXT_FILE),
+                None,
+                None,
+            )
             .map(|quad| quad.map(|quad| quad.graph_name))
             .collect::<Result<Vec<_>, _>>()?;
         let message = format!("context {context} {AMBIGUOUS_TARGETS}");
@@ -1532,15 +1498,14 @@ mod tests {
             directory.join("z-declaration.jsonld"),
             serde_json::to_vec(&serde_json::json!({
                 "@context": {
-                    "jsonld": "http://www.w3.org/ns/json-ld#",
-                    "contentUrl": {
-                        "@id": "https://schema.org/contentUrl",
+                    "sparqld": "https://sparqld.iolanta.tech/",
+                    "context-file": {
+                        "@id": "sparqld:context-file",
                         "@type": "@id"
                     }
                 },
                 "@id": url,
-                "@type": "jsonld:Context",
-                "contentUrl": body_file
+                "context-file": body_file
             }))
             .unwrap(),
         )
@@ -2054,15 +2019,14 @@ mod tests {
             directory.path().join("z-declaration.jsonld"),
             serde_json::to_vec(&serde_json::json!({
                 "@context": {
-                    "jsonld": "http://www.w3.org/ns/json-ld#",
-                    "contentUrl": {
-                        "@id": "https://schema.org/contentUrl",
+                    "sparqld": "https://sparqld.iolanta.tech/",
+                    "context-file": {
+                        "@id": "sparqld:context-file",
                         "@type": "@id"
                     }
                 },
                 "@id": "https://example.org/ctx",
-                "@type": "jsonld:Context",
-                "contentUrl": "body.jsonld"
+                "context-file": "body.jsonld"
             }))
             .unwrap(),
         )
@@ -2159,7 +2123,7 @@ mod tests {
     }
 
     #[test]
-    fn rejects_ambiguous_content_url_targets() {
+    fn rejects_ambiguous_context_file_targets() {
         let directory = tempfile::tempdir().unwrap();
         fs::write(
             directory.path().join("keep.ttl"),
@@ -2181,15 +2145,14 @@ mod tests {
             directory.path().join("a-declaration.jsonld"),
             serde_json::to_vec(&serde_json::json!({
                 "@context": {
-                    "jsonld": "http://www.w3.org/ns/json-ld#",
-                    "contentUrl": {
-                        "@id": "https://schema.org/contentUrl",
+                    "sparqld": "https://sparqld.iolanta.tech/",
+                    "context-file": {
+                        "@id": "sparqld:context-file",
                         "@type": "@id"
                     }
                 },
                 "@id": "https://example.org/ctx",
-                "@type": "jsonld:Context",
-                "contentUrl": "two.jsonld"
+                "context-file": "two.jsonld"
             }))
             .unwrap(),
         )
@@ -2199,7 +2162,7 @@ mod tests {
         for declaration in ["a-declaration.jsonld", "z-declaration.jsonld"] {
             let error = &load.load_errors[Path::new(declaration)];
             assert!(
-                error.contains("multiple contentUrl targets"),
+                error.contains("multiple context-file targets"),
                 "{declaration}: {error}"
             );
             assert!(!load.loaded_sources.contains(Path::new(declaration)));
@@ -2222,12 +2185,12 @@ mod tests {
         let directory = tempfile::tempdir().unwrap();
         fs::write(
             directory.path().join("a.jsonld"),
-            r#"{"@context":"https://example.org/b","@id":"https://example.org/a","@type":"http://www.w3.org/ns/json-ld#Context"}"#,
+            r#"{"@context":"https://example.org/b","@id":"https://example.org/a"}"#,
         )
         .unwrap();
         fs::write(
             directory.path().join("b.jsonld"),
-            r#"{"@context":"https://example.org/a","@id":"https://example.org/b","@type":"http://www.w3.org/ns/json-ld#Context"}"#,
+            r#"{"@context":"https://example.org/a","@id":"https://example.org/b"}"#,
         )
         .unwrap();
         let dataset = Store::new().unwrap();
@@ -2244,12 +2207,28 @@ mod tests {
             assert!(
                 dataset
                     .contains(QuadRef::new(
+                        NamedNodeRef::new(if url.ends_with("/a") {
+                            "sparqld:b.jsonld"
+                        } else {
+                            "sparqld:a.jsonld"
+                        })
+                        .unwrap(),
+                        JSONLD_CONTEXT,
                         NamedNodeRef::new(url).unwrap(),
-                        rdf::TYPE,
-                        JSONLD_CONTEXT_CLASS,
                         FILE_CATALOG_GRAPH,
                     ))
                     .unwrap()
+            );
+            assert_eq!(
+                dataset
+                    .quads_for_pattern(
+                        Some(NamedNodeRef::new(url).unwrap().into()),
+                        None,
+                        None,
+                        Some(FILE_CATALOG_GRAPH.into()),
+                    )
+                    .count(),
+                0
             );
             assert_eq!(context_bodies(&dataset).unwrap().get(url), None);
         }
@@ -2310,7 +2289,7 @@ mod tests {
     }
 
     #[test]
-    fn accepts_identical_content_url_declarations() {
+    fn accepts_identical_context_file_declarations() {
         let directory = tempfile::tempdir().unwrap();
         fs::write(
             directory.path().join("alice.jsonld"),
@@ -2324,15 +2303,14 @@ mod tests {
         .unwrap();
         let declaration = serde_json::json!({
             "@context": {
-                "jsonld": "http://www.w3.org/ns/json-ld#",
-                "contentUrl": {
-                    "@id": "https://schema.org/contentUrl",
+                "sparqld": "https://sparqld.iolanta.tech/",
+                "context-file": {
+                    "@id": "sparqld:context-file",
                     "@type": "@id"
                 }
             },
             "@id": "https://example.org/ctx",
-            "@type": "jsonld:Context",
-            "contentUrl": "body.jsonld"
+            "context-file": "body.jsonld"
         });
         fs::write(
             directory.path().join("a-declaration.jsonld"),
@@ -2364,7 +2342,7 @@ mod tests {
     }
 
     #[test]
-    fn joins_a_declaration_split_across_graphs() {
+    fn registers_a_context_from_a_separate_source() {
         let directory = tempfile::tempdir().unwrap();
         fs::write(
             directory.path().join("alice.jsonld"),
@@ -2377,21 +2355,17 @@ mod tests {
         )
         .unwrap();
         fs::write(
-            directory.path().join("type.jsonld"),
-            r#"{"@id":"https://example.org/ctx","@type":"http://www.w3.org/ns/json-ld#Context"}"#,
-        )
-        .unwrap();
-        fs::write(
             directory.path().join("z-url.jsonld"),
             serde_json::to_vec(&serde_json::json!({
                 "@context": {
-                    "contentUrl": {
-                        "@id": "https://schema.org/contentUrl",
+                    "sparqld": "https://sparqld.iolanta.tech/",
+                    "context-file": {
+                        "@id": "sparqld:context-file",
                         "@type": "@id"
                     }
                 },
                 "@id": "https://example.org/ctx",
-                "contentUrl": "body.jsonld"
+                "context-file": "body.jsonld"
             }))
             .unwrap(),
         )
@@ -2460,15 +2434,13 @@ mod tests {
             directory.path().join("z-declaration.jsonld"),
             serde_json::to_vec(&serde_json::json!({
                 "@context": {
-                    "jsonld": "http://www.w3.org/ns/json-ld#",
-                    "contentUrl": {
-                        "@id": "https://schema.org/contentUrl",
+                    "context-file": {
+                        "@id": "https://sparqld.iolanta.tech/context-file",
                         "@type": "@id"
                     }
                 },
                 "@id": "https://example.org/ctx",
-                "@type": "jsonld:Context",
-                "contentUrl": "sparqld:../outside.jsonld"
+                "context-file": "sparqld:../outside.jsonld"
             }))
             .unwrap(),
         )
@@ -2501,15 +2473,15 @@ mod tests {
             directory.path().join("parent-declaration.jsonld"),
             serde_json::to_vec(&serde_json::json!({
                 "@context": {
-                    "jsonld": "http://www.w3.org/ns/json-ld#",
-                    "contentUrl": {
-                        "@id": "https://schema.org/contentUrl",
+                    "sparqld": "https://sparqld.iolanta.tech/",
+                    "context-file": {
+                        "@id": "sparqld:context-file",
                         "@type": "@id"
                     }
                 },
                 "@id": "https://example.org/parent",
-                "@type": "jsonld:Context",
-                "contentUrl": "parent.jsonld"
+
+                "context-file": "parent.jsonld"
             }))
             .unwrap(),
         )
@@ -2518,15 +2490,15 @@ mod tests {
             directory.path().join("z-child-declaration.jsonld"),
             serde_json::to_vec(&serde_json::json!({
                 "@context": {
-                    "jsonld": "http://www.w3.org/ns/json-ld#",
-                    "contentUrl": {
-                        "@id": "https://schema.org/contentUrl",
+                    "sparqld": "https://sparqld.iolanta.tech/",
+                    "context-file": {
+                        "@id": "sparqld:context-file",
                         "@type": "@id"
                     }
                 },
                 "@id": "https://example.org/child",
-                "@type": "jsonld:Context",
-                "contentUrl": "child.jsonld"
+
+                "context-file": "child.jsonld"
             }))
             .unwrap(),
         )
