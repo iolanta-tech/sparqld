@@ -22,6 +22,7 @@ DOLLAR_BODY = 'contexts/z-dollar.yamlld'
 REGISTRATION = 'contexts/z-registration.yamlld'
 COMBINED = 'combined'
 SEPARATE = 'separate'
+LAYOUT_NAME = 'layout'
 LAYOUTS = (COMBINED, SEPARATE)
 YAML_CODEC = YAML()
 PANIC = 'The remote context stack is invalid'
@@ -91,7 +92,7 @@ def _recognize_panic(log: Path) -> Generator[None]:
         raise
 
 
-@pytest.mark.parametrize('layout', LAYOUTS)
+@pytest.mark.parametrize(LAYOUT_NAME, LAYOUTS)
 def test_bootstrap(sparqld_binary: Path, tmp_path: Path, layout: str) -> None:
     """Late dollar registration and late person registration resolve on startup."""
     with _serve(SCENARIO / layout, sparqld_binary, tmp_path / 'server.log') as (
@@ -102,7 +103,7 @@ def test_bootstrap(sparqld_binary: Path, tmp_path: Path, layout: str) -> None:
 
 
 @pytest.mark.parametrize(
-    ('layout', 'change'),
+    (LAYOUT_NAME, 'change'),
     [
         pytest.param(layout, change, marks=KNOWN_PANIC)
         if (layout, change) == (SEPARATE, 'dollar')
@@ -190,7 +191,7 @@ def test_cycles_fail_without_hanging(
         _wait_state(endpoint, process, [], failures, False)
 
 
-@pytest.mark.parametrize('layout', LAYOUTS)
+@pytest.mark.parametrize(LAYOUT_NAME, LAYOUTS)
 def test_relative_context_uses_requested_uri(
     sparqld_binary: Path,
     tmp_path: Path,
@@ -300,7 +301,7 @@ def test_missing_nested_dependency_on_startup(
         _wait_state(endpoint, process, [], ['alice.yamlld', BODY])
 
 
-@pytest.mark.parametrize('layout', LAYOUTS)
+@pytest.mark.parametrize(LAYOUT_NAME, LAYOUTS)
 def test_explicit_base_changes_registration_target(
     sparqld_binary: Path,
     tmp_path: Path,
@@ -323,7 +324,7 @@ def test_explicit_base_changes_registration_target(
     assert 'context-file is not a local file' in (tmp_path / 'server.log').read_text()
 
 
-@pytest.mark.parametrize('layout', LAYOUTS)
+@pytest.mark.parametrize(LAYOUT_NAME, LAYOUTS)
 def test_registration_must_be_selected(
     sparqld_binary: Path,
     tmp_path: Path,
