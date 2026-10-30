@@ -1,3 +1,5 @@
+//! Expose live read-only queries and investigation prompts through stdio MCP.
+
 use std::path::PathBuf;
 
 use oxigraph::{
@@ -27,6 +29,7 @@ use crate::{
     watcher::DirectoryWatcher,
 };
 
+/// Serve stdio MCP requests while initializing and watching the selected directory.
 pub(crate) fn serve(
     dataset: Store,
     directory: PathBuf,
@@ -70,12 +73,17 @@ pub(crate) fn serve(
 }
 
 #[derive(Clone)]
+/// MCP handlers sharing the live dataset, startup gate, and query policy.
 struct McpServer {
+    /// Live dataset queried by MCP requests.
     dataset: Store,
+    /// Gate delaying queries until directory initialization finishes.
     startup: crate::server::StartupGate,
+    /// Timeout policy applied to each incoming query.
     policy: QueryPolicy,
 }
 
+/// Cancel an engine query when its request handler is dropped.
 struct CancelEngineOnDrop(oxigraph::sparql::CancellationToken);
 
 impl Drop for CancelEngineOnDrop {
@@ -85,12 +93,14 @@ impl Drop for CancelEngineOnDrop {
 }
 
 #[derive(Debug, Deserialize, JsonSchema)]
+/// Arguments accepted by the MCP query tool.
 struct QueryParameters {
     /// A read-only SPARQL query to run against the current dataset.
     query: String,
 }
 
 #[derive(Debug, Deserialize, JsonSchema)]
+/// Arguments accepted by the knowledge-base investigation prompt.
 struct InvestigationParameters {
     /// A question to answer from the watched knowledge base.
     question: String,
@@ -98,6 +108,7 @@ struct InvestigationParameters {
 
 #[tool_router]
 impl McpServer {
+    /// Wait for startup, evaluate a query, and propagate client cancellation to the engine.
     #[tool(
         description = "Run one read-only SPARQL query against the live file-backed dataset. SELECT and ASK return SPARQL Results JSON. CONSTRUCT and DESCRIBE return {triples: [{subject, predicate, object}]}, using SPARQL Results JSON RDF terms (type, value, optional datatype or xml:lang). Results are structured content with a matching JSON text fallback.",
         annotations(
@@ -143,6 +154,7 @@ impl McpServer {
 
 #[prompt_router]
 impl McpServer {
+    /// Fill the bundled investigation prompt with the user's knowledge-base question.
     #[prompt(
         name = "investigate",
         title = "Investigate the knowledge base",
@@ -169,6 +181,7 @@ impl McpServer {
 #[prompt_handler]
 impl ServerHandler for McpServer {}
 
+/// Evaluate a query and package its results as MCP structured content.
 fn query_dataset(
     dataset: &Store,
     query: &str,
@@ -198,6 +211,7 @@ fn query_dataset(
     Ok(CallToolResult::structured(output))
 }
 
+/// Convert a query worker's result or join failure into an MCP response.
 fn tool_result(
     response: Result<Result<CallToolResult, QueryError>, tokio::task::JoinError>,
 ) -> CallToolResult {
@@ -208,6 +222,7 @@ fn tool_result(
     }
 }
 
+/// Encode an RDF term using SPARQL Results JSON term conventions.
 fn term_json(term: Term) -> Value {
     match term {
         Term::NamedNode(node) => json!({"type": "uri", "value": node.as_str()}),
@@ -224,6 +239,7 @@ fn term_json(term: Term) -> Value {
     }
 }
 
+/// Build an MCP error result from a displayable diagnostic.
 fn error_result(error: impl std::fmt::Display) -> CallToolResult {
     CallToolResult::error(vec![ContentBlock::text(error.to_string())])
 }
