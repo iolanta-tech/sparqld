@@ -25,7 +25,7 @@ These RDF terms describe context registrations and
 
     Link a source file to the context URIs requested while parsing it.
 
--   :material-file-link:{ .lg .middle } **[`sparqld:context-file`](sparqld:context-file)**
+-   :material-file-link:{ .lg .middle } **[`sparqld:context-file`](https://sparqld.iolanta.tech/context-file)**
 
     ---
 
