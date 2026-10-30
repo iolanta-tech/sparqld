@@ -1,0 +1,6 @@
+'@context':
+  context-file:
+    '@id': https://sparqld.iolanta.tech/context-file
+    '@type': '@id'
+'@id': https://example.org/contexts/separate/person
+context-file: person.yamlld
