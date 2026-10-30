@@ -1,3 +1,5 @@
+//! Watch directory changes and publish debounced source reloads.
+
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::{Path, PathBuf};
 use std::sync::mpsc::{self, Receiver, RecvTimeoutError, Sender};
@@ -12,28 +14,41 @@ use oxigraph::store::Store;
 use crate::patterns::SourcePatterns;
 use crate::{DatasetStats, SparqldResult, load_dataset, loader};
 
+/// Quiet interval used to combine filesystem events into one reload batch.
 const RELOAD_DEBOUNCE: Duration = Duration::from_millis(500);
 
+/// Input delivered to the filesystem worker's control channel.
 enum Message {
+    /// A filesystem event or watcher backend error.
     Event(notify::Result<Event>),
+    /// Request to stop the worker.
     Stop,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+/// Observed change applied to a filesystem path.
 enum FileChange {
+    /// A path was created.
     Created,
+    /// An existing path was modified.
     Changed,
+    /// A path was removed.
     Deleted,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+/// Filesystem entry classification used in change diagnostics.
 enum EntryKind {
+    /// A regular file was observed.
     File,
+    /// A directory was observed.
     Directory,
+    /// The entry type could not be determined from events or filesystem state.
     Unknown,
 }
 
 impl EntryKind {
+    /// Return the entry label used at the start of a log message.
     fn noun(self) -> &'static str {
         match self {
             Self::File => "File",
@@ -44,12 +59,16 @@ impl EntryKind {
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+/// Coalesced change and entry type for one filesystem path.
 struct PathChange {
+    /// Change after merging all observed events for the path.
     change: FileChange,
+    /// Best available classification of the changed entry.
     entry_kind: EntryKind,
 }
 
 impl PathChange {
+    /// Combine changes while preserving known entry types when the next type is unknown.
     fn merge(self, next: Self) -> Self {
         Self {
             change: self.change.merge(next.change),
@@ -62,6 +81,7 @@ impl PathChange {
 }
 
 impl FileChange {
+    /// Combine consecutive events, treating deletion followed by creation as modification.
     fn merge(self, next: Self) -> Self {
         match (self, next) {
             (Self::Created, Self::Changed) => Self::Created,
@@ -70,6 +90,7 @@ impl FileChange {
         }
     }
 
+    /// Return the past-tense action used in change diagnostics.
     fn verb(self) -> &'static str {
         match self {
             Self::Created => "created",
@@ -79,9 +100,13 @@ impl FileChange {
     }
 }
 
+/// Own the filesystem subscription and reload worker for one served directory.
 pub(crate) struct DirectoryWatcher {
+    /// Backend watcher kept alive for the lifetime of the subscription.
     watcher: Option<RecommendedWatcher>,
+    /// Channel used to deliver events and request worker shutdown.
     control: Sender<Message>,
+    /// Worker joined when the directory watcher is dropped.
     worker: Option<JoinHandle<()>>,
 }
 
@@ -91,6 +116,7 @@ impl DirectoryWatcher {
         Self::start_with_patterns(directory, dataset, SourcePatterns::all())
     }
 
+    /// Start watching before the initial load, then process queued changes with source patterns.
     pub(crate) fn start_with_patterns(
         directory: PathBuf,
         dataset: Store,
@@ -143,6 +169,7 @@ impl Drop for DirectoryWatcher {
     }
 }
 
+/// Coalesce filesystem events and reload changed paths after the debounce interval.
 fn watch(
     events: Receiver<Message>,
     directory: PathBuf,
@@ -210,6 +237,7 @@ fn watch(
     }
 }
 
+/// Format a set of changed paths relative to the served directory.
 fn format_changed_paths(directory: &Path, paths: &BTreeSet<PathBuf>) -> String {
     if paths.is_empty() {
         return "filesystem changes".to_owned();
@@ -228,6 +256,7 @@ fn format_changed_paths(directory: &Path, paths: &BTreeSet<PathBuf>) -> String {
         .join(", ")
 }
 
+/// Format one changed path, representing the served directory itself as a dot.
 fn format_changed_path(directory: &Path, path: &Path) -> String {
     let relative = path.strip_prefix(directory).unwrap_or(path);
     if relative.as_os_str().is_empty() {
@@ -237,6 +266,7 @@ fn format_changed_path(directory: &Path, path: &Path) -> String {
     }
 }
 
+/// Classify filesystem events that can change the dataset's source content.
 fn file_change(event: &Event) -> Option<FileChange> {
     match event.kind {
         EventKind::Any | EventKind::Modify(_) => Some(FileChange::Changed),
@@ -246,10 +276,12 @@ fn file_change(event: &Event) -> Option<FileChange> {
     }
 }
 
+/// Read a file or directory classification explicitly carried by an event.
 fn explicit_entry_kind(event: &Event) -> Option<EntryKind> {
     explicit_entry_kind_from_kind(event.kind)
 }
 
+/// Extract a file or directory classification from a create or remove event kind.
 fn explicit_entry_kind_from_kind(kind: EventKind) -> Option<EntryKind> {
     match kind {
         EventKind::Create(CreateKind::File) | EventKind::Remove(RemoveKind::File) => {
@@ -262,6 +294,7 @@ fn explicit_entry_kind_from_kind(kind: EventKind) -> Option<EntryKind> {
     }
 }
 
+/// Classify a path from its current filesystem state.
 fn existing_entry_kind(path: &Path) -> Option<EntryKind> {
     if path.is_dir() {
         Some(EntryKind::Directory)
@@ -272,6 +305,7 @@ fn existing_entry_kind(path: &Path) -> Option<EntryKind> {
     }
 }
 
+/// Reload a batch, update source tracking, and log each observed path's outcome.
 fn reload(
     directory: &Path,
     changed_paths: &BTreeMap<PathBuf, PathChange>,
@@ -303,6 +337,7 @@ fn reload(
     }
 }
 
+/// Format per-path reload outcomes, including dependent sources and loading failures.
 fn reload_messages(
     directory: &Path,
     changed_paths: &BTreeMap<PathBuf, PathChange>,
@@ -387,6 +422,7 @@ fn reload_messages(
         .collect()
 }
 
+/// Format the attempted format, target graph, and diagnostic for a failed source.
 fn failure_message(failure: &loader::SourceFailure) -> String {
     format!(
         "failed to load as {} into {}: {}",
@@ -394,6 +430,7 @@ fn failure_message(failure: &loader::SourceFailure) -> String {
     )
 }
 
+/// Describe a directly changed source's graph update and quad count.
 fn direct_update_message(update: &loader::SourceUpdate) -> String {
     let action = match update.kind {
         loader::SourceUpdateKind::Loaded => "loaded as",
@@ -407,6 +444,7 @@ fn direct_update_message(update: &loader::SourceUpdate) -> String {
     )
 }
 
+/// Describe a dependent source's graph update and quad count.
 fn dependent_update_message(update: &loader::SourceUpdate) -> String {
     let action = match update.kind {
         loader::SourceUpdateKind::Loaded => "loaded",
@@ -420,6 +458,7 @@ fn dependent_update_message(update: &loader::SourceUpdate) -> String {
     )
 }
 
+/// Format a quad count with the appropriate plural suffix for log messages.
 fn triple_count(count: usize) -> String {
     let suffix = if count == 1 { "" } else { "s" };
     format!("{count} triple{suffix}")
