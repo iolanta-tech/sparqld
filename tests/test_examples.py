@@ -20,7 +20,7 @@ SERVER_LOG_NAME = 'server.log'
 CONTEXT_RELOAD = ROOT / 'docs/examples/context-reload'
 DECLARATIONS = CONTEXT_RELOAD / 'declarations'
 OLD_CONTEXT_RESULTS = CONTEXT_RELOAD / 'results/old'
-SPLIT_LAYOUT = 'split'
+STANDALONE_LAYOUT = 'standalone'
 CONTEXT_RELOAD_QUERIES = tuple(
     (name, CONTEXT_RELOAD / 'queries' / f'{name}.rq') for name in ('alice', 'failures')
 )
@@ -175,15 +175,15 @@ def test_registered_yaml_context_example(
         )
 
 
-@pytest.mark.parametrize('layout', [SPLIT_LAYOUT, 'embedded'])
+@pytest.mark.parametrize('layout', [STANDALONE_LAYOUT, 'embedded'])
 def test_context_registration_recovery_and_change(
     sparqld_binary: Path,
     tmp_path: Path,
     layout: str,
 ) -> None:
-    """Recover a failed source, then replace its registered context target."""
+    """Register, retarget, and unregister a context while generic metadata remains."""
     project = shutil.copytree(CONTEXT_RELOAD / PROJECT_DIR, tmp_path / PROJECT_DIR)
-    extension = 'ttl' if layout == SPLIT_LAYOUT else 'trig'
+    extension = 'ttl' if layout == STANDALONE_LAYOUT else 'trig'
     declaration = project / f'declaration.{extension}'
     with _serve(project, sparqld_binary, tmp_path / SERVER_LOG_NAME) as (
         endpoint,
@@ -195,10 +195,6 @@ def test_context_registration_recovery_and_change(
             CONTEXT_RELOAD_QUERIES,
             CONTEXT_RELOAD / 'results/unregistered',
         )
-        if layout == SPLIT_LAYOUT:
-            shutil.copyfile(
-                CONTEXT_RELOAD / 'declarations/type.ttl', project / 'type.ttl'
-            )
         shutil.copyfile(
             DECLARATIONS / f'{layout}.{extension}',
             declaration,
@@ -212,6 +208,13 @@ def test_context_registration_recovery_and_change(
         )
         _wait_for_queries(
             endpoint, process, CONTEXT_RELOAD_QUERIES, CONTEXT_RELOAD / 'results/new'
+        )
+        shutil.copyfile(project / 'metadata.ttl', declaration)
+        _wait_for_queries(
+            endpoint,
+            process,
+            CONTEXT_RELOAD_QUERIES,
+            CONTEXT_RELOAD / 'results/unregistered',
         )
 
 
@@ -228,7 +231,7 @@ def test_context_registration_chain(sparqld_binary: Path, tmp_path: Path) -> Non
         )
 
 
-@pytest.mark.parametrize('layout', [SPLIT_LAYOUT, 'embedded'])
+@pytest.mark.parametrize('layout', [STANDALONE_LAYOUT, 'embedded'])
 def test_conflicting_registration_matches_restart(
     sparqld_binary: Path,
     tmp_path: Path,
@@ -236,9 +239,7 @@ def test_conflicting_registration_matches_restart(
 ) -> None:
     """Invalidate both declarations and their consumer, then recover on deletion."""
     project = shutil.copytree(CONTEXT_RELOAD / PROJECT_DIR, tmp_path / PROJECT_DIR)
-    extension = 'ttl' if layout == SPLIT_LAYOUT else 'trig'
-    if layout == SPLIT_LAYOUT:
-        shutil.copyfile(CONTEXT_RELOAD / 'declarations/type.ttl', project / 'type.ttl')
+    extension = 'ttl' if layout == STANDALONE_LAYOUT else 'trig'
     shutil.copyfile(
         DECLARATIONS / f'{layout}.{extension}',
         project / f'declaration.{extension}',
