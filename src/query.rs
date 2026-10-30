@@ -41,7 +41,9 @@ pub(crate) enum Interruption {
 /// A cloneable timeout policy shared by every query of one interface.
 #[derive(Clone)]
 pub(crate) struct QueryPolicy {
+    /// Maximum elapsed time for one query, or unlimited execution.
     timeout: Option<Duration>,
+    /// Registry responsible for cancelling query tokens at their deadlines.
     deadlines: QueryDeadlines,
 }
 
@@ -75,15 +77,21 @@ impl QueryPolicy {
 }
 
 #[derive(Clone, Copy)]
+/// Absolute expiry and original timeout used to classify and report interruptions.
 struct Budget {
+    /// Instant at which the query must stop.
     deadline: Instant,
+    /// Original duration used in timeout diagnostics.
     timeout: Duration,
 }
 
 /// Tracks one running query's deadline and cancellation token.
 pub(crate) struct QueryExecution {
+    /// Engine token cancelled by a deadline or client request.
     token: CancellationToken,
+    /// Deadline and diagnostic duration when a timeout is configured.
     budget: Option<Budget>,
+    /// Guard removing this query from the deadline registry when dropped.
     _registration: Option<Registration>,
 }
 
@@ -128,21 +136,30 @@ impl QueryExecution {
 /// A lazily started registry that cancels query tokens at their deadlines.
 #[derive(Clone)]
 struct QueryDeadlines {
+    /// Registry state and wakeup signal shared with the timer thread.
     shared: Arc<Shared>,
 }
 
+/// Synchronization shared by deadline registration and the timer worker.
 struct Shared {
+    /// Registered deadlines and timer-thread lifecycle state.
     state: Mutex<State>,
+    /// Signal waking the timer when the registry changes.
     signal: Condvar,
 }
 
+/// Mutable deadline entries and registration identity allocation.
 struct State {
+    /// Cancellation tokens ordered by deadline and unique registration ID.
     entries: BTreeMap<(Instant, u64), CancellationToken>,
+    /// Identity assigned to the next query registration.
     next_id: u64,
+    /// Whether the timer worker has been started.
     thread_started: bool,
 }
 
 impl QueryDeadlines {
+    /// Create an empty registry whose timer starts on the first registration.
     fn new() -> Self {
         Self {
             shared: Arc::new(Shared {
@@ -193,6 +210,7 @@ impl QueryDeadlines {
     }
 }
 
+/// Wait for the nearest deadline and cancel all tokens whose deadlines have passed.
 fn run_timer(shared: &Arc<Shared>) {
     let mut state = shared.state.lock().expect("query deadline lock poisoned");
     loop {
@@ -230,7 +248,9 @@ fn run_timer(shared: &Arc<Shared>) {
 
 /// Removes one query's deadline entry when the query stops.
 struct Registration {
+    /// Registry from which the entry is removed when this guard is dropped.
     shared: Arc<Shared>,
+    /// Deadline and unique ID identifying this query's registry entry.
     key: (Instant, u64),
 }
 
