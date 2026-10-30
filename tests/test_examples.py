@@ -80,6 +80,7 @@ def _serve(
     directory: Path,
     binary: Path,
     output_path: Path,
+    arguments: tuple[str, ...] = (),
 ) -> Generator[tuple[str, subprocess.Popen]]:
     with socket.socket() as listener:
         listener.bind(('127.0.0.1', 0))
@@ -92,6 +93,7 @@ def _serve(
                 str(directory),
                 '--port',
                 str(port),
+                *arguments,
             ],
             stdout=output,
             stderr=output,
