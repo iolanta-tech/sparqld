@@ -8,6 +8,7 @@ nav:
   - File catalog: file-catalog.md
   - Contexts: contexts.md
   - Context dependency example: context-dependencies.md
+  - Self-registering contexts: self-registering-contexts.md
   - Libraries: libraries
   - clients
   - Agents: agents

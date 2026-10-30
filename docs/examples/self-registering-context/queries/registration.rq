@@ -1,0 +1,1 @@
+ASK { ?context <https://sparqld.iolanta.tech/context-file> <sparqld:contexts/person.yamlld> }

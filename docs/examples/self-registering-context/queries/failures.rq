@@ -1,0 +1,2 @@
+PREFIX rlog: <http://persistence.uni-leipzig.org/nlp2rdf/ontologies/rlog#>
+SELECT ?file WHERE { GRAPH <sparqld:> { ?entry a rlog:Entry; rlog:resource ?file } } ORDER BY ?file

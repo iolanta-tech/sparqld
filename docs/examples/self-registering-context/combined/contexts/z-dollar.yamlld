@@ -1,0 +1,7 @@
+'@context':
+  $id: '@id'
+  context-file:
+    '@id': https://sparqld.iolanta.tech/context-file
+    '@type': '@id'
+$id: https://example.org/contexts/combined/dollar
+context-file: z-dollar.yamlld
