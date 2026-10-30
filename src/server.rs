@@ -1,3 +1,5 @@
+//! Handle read-only HTTP SPARQL requests and serialize shared query results.
+
 use std::io::{self, Read};
 use std::mem;
 use std::net::SocketAddr;
@@ -14,23 +16,36 @@ use oxigraph::store::Store;
 
 use crate::query::{QueryExecution, QueryPolicy};
 
+/// Maximum accepted query text or request body size in bytes.
 pub(crate) const MAX_QUERY_SIZE: usize = 1024 * 1024;
+/// Media type used for serialized SELECT and ASK results.
 pub(crate) const QUERY_RESULTS_MEDIA_TYPE: &str = "application/sparql-results+json";
+/// Media type used for serialized CONSTRUCT and DESCRIBE results.
 const RDF_MEDIA_TYPE: &str = "text/turtle";
 
+/// HTTP status and human-readable diagnostic for a failed request.
 type HttpError = (StatusCode, String);
+/// An HTTP response or a status-and-message failure.
 type HttpResult = Result<Response<Body>, HttpError>;
 
 #[derive(Debug)]
+/// Serialized query output shared by HTTP and MCP result handling.
 pub(crate) struct QueryResponse {
+    /// Media type describing the serialized body.
     pub(crate) content_type: &'static str,
+    /// Serialized query result bytes.
     pub(crate) body: Vec<u8>,
 }
 
+/// Query failures classified for transport-specific responses.
 pub(crate) enum QueryError {
+    /// Invalid query syntax or parameters supplied by the client.
     BadRequest(String),
+    /// A query evaluation or serialization failure.
     Internal(String),
+    /// The query exceeded its configured elapsed-time budget.
     Timeout(Duration),
+    /// The query was cancelled before completing.
     Cancelled,
 }
 
@@ -53,37 +68,48 @@ impl From<crate::query::Interruption> for QueryError {
     }
 }
 
+/// Format a timeout duration as a client-visible diagnostic.
 pub(crate) fn timeout_message(timeout: Duration) -> String {
     format!("Query exceeded the {} s timeout", timeout.as_secs())
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+/// Outcome of the initial directory load used to gate incoming queries.
 enum StartupState {
+    /// The initial directory load is still running.
     Loading,
+    /// The dataset is ready to accept queries.
     Ready,
+    /// Directory initialization failed and queries cannot proceed.
     Failed,
 }
 
 #[derive(Clone)]
+/// Shared startup state that blocks queries until initialization finishes.
 pub(crate) struct StartupGate {
+    /// Startup outcome and condition variable notifying waiting requests.
     state: Arc<(Mutex<StartupState>, Condvar)>,
 }
 
 impl StartupGate {
+    /// Create a gate in the loading state.
     pub(crate) fn new() -> Self {
         Self {
             state: Arc::new((Mutex::new(StartupState::Loading), Condvar::new())),
         }
     }
 
+    /// Release waiting requests after successful initialization.
     pub(crate) fn mark_ready(&self) {
         self.set(StartupState::Ready);
     }
 
+    /// Release waiting requests with an initialization failure.
     pub(crate) fn mark_failed(&self) {
         self.set(StartupState::Failed);
     }
 
+    /// Wait for initialization and return an error when it failed.
     pub(crate) fn wait_until_ready(&self) -> Result<(), String> {
         match self.wait()? {
             StartupState::Ready => Ok(()),
@@ -92,12 +118,14 @@ impl StartupGate {
         }
     }
 
+    /// Set the startup outcome and wake every waiting request.
     fn set(&self, state: StartupState) {
         let (current, changed) = &*self.state;
         *current.lock().expect("startup state lock poisoned") = state;
         changed.notify_all();
     }
 
+    /// Block until initialization has a ready or failed outcome.
     fn wait(&self) -> Result<StartupState, String> {
         let (state, changed) = &*self.state;
         let mut state = state.lock().map_err(|error| error.to_string())?;
@@ -108,6 +136,7 @@ impl StartupGate {
     }
 }
 
+/// Bind an HTTP server serving the shared dataset on the supplied addresses.
 pub(crate) fn start(
     dataset: Store,
     startup: StartupGate,
@@ -126,6 +155,7 @@ pub(crate) fn start(
     server.spawn()
 }
 
+/// Reject unknown paths and wait for initialization before handling a query request.
 fn handle_shared_request(
     request: &mut Request<Body>,
     dataset: &Store,
@@ -151,6 +181,7 @@ fn handle_shared_request(
     handle_request(request, dataset, policy)
 }
 
+/// Handle one HTTP request and convert protocol errors into text responses.
 fn handle_request(
     request: &mut Request<Body>,
     dataset: &Store,
@@ -160,6 +191,7 @@ fn handle_request(
         .unwrap_or_else(|(status, message)| text_response(status, message))
 }
 
+/// Dispatch supported HTTP query forms and return protocol errors for invalid requests.
 fn try_handle_request(
     request: &mut Request<Body>,
     dataset: &Store,
@@ -208,6 +240,7 @@ fn try_handle_request(
     }
 }
 
+/// Decode a query parameter while rejecting repeated query values.
 fn query_parameter(encoded: &str) -> Result<Option<String>, HttpError> {
     let mut queries = form_urlencoded::parse(encoded.as_bytes())
         .filter(|(name, _)| name == "query")
@@ -222,6 +255,7 @@ fn query_parameter(encoded: &str) -> Result<Option<String>, HttpError> {
     Ok(query)
 }
 
+/// Read a bounded UTF-8 request body, rejecting oversized or invalid input.
 fn read_body(request: &mut Request<Body>) -> Result<String, HttpError> {
     if request
         .body()
@@ -242,6 +276,7 @@ fn read_body(request: &mut Request<Body>) -> Result<String, HttpError> {
     String::from_utf8(bytes).map_err(|error| (StatusCode::BAD_REQUEST, error.to_string()))
 }
 
+/// Run a query under the timeout policy and map failures into HTTP statuses.
 fn evaluate_query(dataset: &Store, query: &str, policy: &QueryPolicy) -> HttpResult {
     let execution = policy.begin();
     execute_query(dataset, query, &execution)
@@ -256,6 +291,7 @@ fn evaluate_query(dataset: &Store, query: &str, policy: &QueryPolicy) -> HttpRes
         .and_then(|response| binary_response(response.content_type, response.body))
 }
 
+/// Evaluate and serialize a query with the supplied cancellation and deadline state.
 pub(crate) fn execute_query(
     dataset: &Store,
     query: &str,
@@ -264,6 +300,7 @@ pub(crate) fn execute_query(
     serialize_query_results(evaluate_sparql(dataset, query, execution)?, execution)
 }
 
+/// Parse and evaluate SPARQL with the union of named graphs as the default graph.
 pub(crate) fn evaluate_sparql<'a>(
     dataset: &'a Store,
     query: &str,
@@ -302,6 +339,7 @@ pub(crate) fn check_execution(execution: &QueryExecution) -> Result<(), QueryErr
     }
 }
 
+/// Serialize results as JSON or Turtle while checking cancellation and deadlines.
 pub(crate) fn serialize_query_results(
     results: QueryResults<'_>,
     execution: &QueryExecution,
@@ -359,6 +397,7 @@ pub(crate) fn serialize_query_results(
     }
 }
 
+/// Build a successful HTTP response containing serialized query results.
 fn binary_response(content_type: &'static str, body: Vec<u8>) -> HttpResult {
     Response::builder()
         .status(StatusCode::OK)
@@ -367,6 +406,7 @@ fn binary_response(content_type: &'static str, body: Vec<u8>) -> HttpResult {
         .map_err(internal_server_error)
 }
 
+/// Build a UTF-8 text response and advertise allowed methods for method errors.
 fn text_response(status: StatusCode, body: impl Into<String>) -> Response<Body> {
     let mut response = Response::builder()
         .status(status)
@@ -377,6 +417,7 @@ fn text_response(status: StatusCode, body: impl Into<String>) -> Response<Body> 
     response.body(body.into().into()).unwrap()
 }
 
+/// Create the protocol error used to reject mutations and unsupported methods.
 fn read_only_error() -> HttpError {
     (
         StatusCode::METHOD_NOT_ALLOWED,
@@ -384,6 +425,7 @@ fn read_only_error() -> HttpError {
     )
 }
 
+/// Convert a displayable failure into an internal-server-error response.
 fn internal_server_error(error: impl std::fmt::Display) -> HttpError {
     (StatusCode::INTERNAL_SERVER_ERROR, error.to_string())
 }

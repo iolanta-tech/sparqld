@@ -1,3 +1,5 @@
+//! Serve directory-backed RDF datasets through HTTP and stdio MCP.
+
 mod loader;
 mod mcp;
 pub mod patterns;
@@ -17,23 +19,36 @@ use std::time::Duration;
 
 use oxigraph::store::{StorageError, Store};
 
+/// Default loopback address for the HTTP endpoint.
 const DEFAULT_HOST: &str = "127.0.0.1";
+/// Default port for the HTTP endpoint.
 const DEFAULT_PORT: u16 = 7737;
 
+/// A service result that can carry errors across worker threads.
 type SparqldResult<T> = Result<T, Box<dyn Error + Send + Sync>>;
 
+/// Source tracking and triple counts from the initial directory load.
 struct DatasetLoad {
+    /// Relative paths of successfully loaded sources.
     loaded_sources: BTreeSet<PathBuf>,
+    /// Latest loading error for each failed source path.
     load_errors: BTreeMap<PathBuf, String>,
+    /// Number of files excluded by format, patterns, or missing front matter.
     ignored_files: usize,
+    /// Number of quads in the dataset, including catalog entries.
     triples: usize,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+/// Counts used to report the current dataset at startup.
 pub(crate) struct DatasetStats {
+    /// Number of successfully loaded source files.
     loaded_files: usize,
+    /// Number of source files with loading errors.
     failed_files: usize,
+    /// Number of files skipped during source discovery and loading.
     ignored_files: usize,
+    /// Number of quads across source graphs and the catalog.
     triples: usize,
 }
 
@@ -125,6 +140,7 @@ pub fn serve_mcp(
 }
 
 #[allow(clippy::too_many_arguments)]
+/// Load the directory in a worker, release waiting requests, and keep its watcher alive.
 fn start_initialization(
     directory: PathBuf,
     requested_directory: PathBuf,
@@ -169,6 +185,7 @@ fn start_initialization(
 }
 
 impl DatasetLoad {
+    /// Summarize the tracked sources and dataset size for startup logging.
     fn stats(&self) -> DatasetStats {
         DatasetStats {
             loaded_files: self.loaded_sources.len(),
@@ -179,6 +196,7 @@ impl DatasetLoad {
     }
 }
 
+/// Load selected directory sources and count the resulting dataset quads.
 fn load_dataset(
     directory: &Path,
     dataset: &Store,
@@ -194,14 +212,17 @@ fn load_dataset(
     })
 }
 
+/// Create an empty in-memory dataset for one server instance.
 fn new_dataset() -> Result<Store, StorageError> {
     Store::new()
 }
 
+/// Log the served directory and listening address.
 fn log_serving(directory: &Path, host: &str, port: u16) {
     log::info!("Serving {} at {host}:{port}", directory.display());
 }
 
+/// Format source counts and dataset size for the startup log.
 fn dataset_summary(stats: DatasetStats) -> String {
     format!(
         "Dataset: {} source file{} loaded; {} source file{} failed; {} file{} ignored; {} triple{} total",
@@ -216,6 +237,7 @@ fn dataset_summary(stats: DatasetStats) -> String {
     )
 }
 
+/// Return the plural suffix for a count in a log message.
 fn plural_suffix(count: usize) -> &'static str {
     if count == 1 { "" } else { "s" }
 }

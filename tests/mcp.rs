@@ -1,3 +1,5 @@
+//! Exercise live stdio MCP queries, reloads, and timeout recovery.
+
 use std::{
     fs,
     future::Future,

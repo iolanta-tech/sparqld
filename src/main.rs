@@ -1,3 +1,5 @@
+//! Parse command-line options and start the HTTP or stdio MCP service.
+
 use std::path::PathBuf;
 use std::time::Duration;
 
@@ -20,6 +22,7 @@ use clap::{Args, Parser, Subcommand, ValueHint};
 //     validation, and every declared startup rejection.
 // blocked-by:
 //   - riddles-cli
+/// Command-line settings for the HTTP service and its subcommands.
 #[derive(Debug, Parser)]
 #[command(
     version,
@@ -61,16 +64,19 @@ struct Cli {
     )]
     query_timeout: Option<Duration>,
 
+    /// Optional stdio MCP service command.
     #[command(subcommand)]
     command: Option<Command>,
 }
 
+/// Alternate service interfaces selected from the command line.
 #[derive(Debug, Subcommand)]
 enum Command {
     /// Expose a directory to MCP clients over standard input and output
     Mcp(McpCli),
 }
 
+/// Directory selection and query limits for the stdio MCP service.
 #[derive(Args, Debug)]
 #[command(about = "Expose a directory to MCP clients over standard input and output")]
 struct McpCli {
@@ -96,6 +102,7 @@ struct McpCli {
     query_timeout: Option<Duration>,
 }
 
+/// Initialize logging and run the service selected by the command-line arguments.
 fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     env_logger::builder()
         .filter_level(log::LevelFilter::Info)
