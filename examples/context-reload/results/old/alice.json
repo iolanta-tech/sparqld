@@ -1,0 +1,17 @@
+{
+  "head": {
+    "vars": [
+      "predicate"
+    ]
+  },
+  "results": {
+    "bindings": [
+      {
+        "predicate": {
+          "type": "uri",
+          "value": "urn:old"
+        }
+      }
+    ]
+  }
+}

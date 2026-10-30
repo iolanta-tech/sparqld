@@ -1,0 +1,29 @@
+{
+  "head": {
+    "vars": [
+      "file"
+    ]
+  },
+  "results": {
+    "bindings": [
+      {
+        "file": {
+          "type": "uri",
+          "value": "sparqld:alice.yamlld"
+        }
+      },
+      {
+        "file": {
+          "type": "uri",
+          "value": "sparqld:conflict.trig"
+        }
+      },
+      {
+        "file": {
+          "type": "uri",
+          "value": "sparqld:declaration.trig"
+        }
+      }
+    ]
+  }
+}
