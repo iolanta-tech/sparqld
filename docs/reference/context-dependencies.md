@@ -32,7 +32,7 @@ Run this example from a `sparqld` checkout with the `sparqld` executable on
 
 Alice uses a local context that imports `https://example.org/ctx`.
 `remote.jsonld` links that URI to `example.jsonld` through
-[`sparqld:context-file`](sparqld:context-file).
+[`sparqld:context-file`](https://sparqld.iolanta.tech/context-file).
 `sparqld` loads Alice after it has that declaration, even though Alice sorts
 before `remote.jsonld`.
 
