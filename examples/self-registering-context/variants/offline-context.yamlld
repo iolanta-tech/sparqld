@@ -1,0 +1,5 @@
+"@context":
+  name: https://schema.org/name
+"@id": "http://127.0.0.1:{port}/context"
+"https://sparqld.iolanta.tech/context-file":
+  "@id": context.yamlld

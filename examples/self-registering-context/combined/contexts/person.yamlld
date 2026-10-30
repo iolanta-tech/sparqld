@@ -1,0 +1,8 @@
+'@context':
+- https://example.org/contexts/combined/dollar
+- name: https://schema.org/name
+  context-file:
+    '@id': https://sparqld.iolanta.tech/context-file
+    '@type': '@id'
+$id: https://example.org/contexts/combined/person
+context-file: person.yamlld
