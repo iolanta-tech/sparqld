@@ -136,7 +136,7 @@ def test_reload_and_restart(
             registered = True
         elif change == 'unregister':
             document = _read(target)
-            del document['context-file']
+            document.pop('context-file')
             _write(target, document)
             failures = ['alice.yamlld']
             registered = False
