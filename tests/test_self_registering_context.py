@@ -20,7 +20,9 @@ CANONICAL = 'https://example.org/contexts/combined/person'
 BODY = 'contexts/person.yamlld'
 DOLLAR_BODY = 'contexts/z-dollar.yamlld'
 REGISTRATION = 'contexts/z-registration.yamlld'
-LAYOUTS = ('combined', 'separate')
+COMBINED = 'combined'
+SEPARATE = 'separate'
+LAYOUTS = (COMBINED, SEPARATE)
 YAML_CODEC = YAML()
 PANIC = 'The remote context stack is invalid'
 
@@ -103,7 +105,7 @@ def test_bootstrap(sparqld_binary: Path, tmp_path: Path, layout: str) -> None:
     ('layout', 'change'),
     [
         pytest.param(layout, change, marks=KNOWN_PANIC)
-        if (layout, change) == ('separate', 'dollar')
+        if (layout, change) == (SEPARATE, 'dollar')
         else (layout, change)
         for layout in LAYOUTS
         for change in ('edit', 'delete', 'invalid', 'unregister', 'dollar')
@@ -117,14 +119,14 @@ def test_reload_and_restart(
 ) -> None:
     """Live changes and cold starts reach the same state; restoring files recovers."""
     project = shutil.copytree(SCENARIO / layout, tmp_path / 'project')
-    declaration = BODY if layout == 'combined' else REGISTRATION
+    declaration = BODY if layout == COMBINED else REGISTRATION
     target = project / (DOLLAR_BODY if change == 'dollar' else BODY)
     if change == 'unregister':
         target = project / declaration
     original = target.read_text()
     failures = []
     names = []
-    registered = layout == 'separate'
+    registered = layout == SEPARATE
     with _serve(project, sparqld_binary, tmp_path / 'live.log') as (endpoint, process):
         _wait_state(endpoint, process, ['Alice'], [])
         if change == 'edit':
@@ -167,7 +169,7 @@ def test_cycles_fail_without_hanging(
     cycle: str,
 ) -> None:
     """Registration bootstrap cycles and context-reference recursion fail finitely."""
-    project = shutil.copytree(SCENARIO / 'combined', tmp_path / 'project')
+    project = shutil.copytree(SCENARIO / COMBINED, tmp_path / 'project')
     document = _read(project / BODY)
     if cycle == 'self':
         document['@context'][0] = CANONICAL
@@ -223,7 +225,7 @@ def test_aliases_inside_term_definitions_fail(
     tmp_path: Path,
 ) -> None:
     """The imported dollar aliases do not replace term-definition keywords."""
-    project = shutil.copytree(SCENARIO / 'combined', tmp_path / 'project')
+    project = shutil.copytree(SCENARIO / COMBINED, tmp_path / 'project')
     document = _read(project / BODY)
     definition = document['@context'][1]['context-file']
     definition['$id'] = definition.pop('@id')
@@ -289,7 +291,7 @@ def test_missing_nested_dependency_on_startup(
     tmp_path: Path,
 ) -> None:
     """A missing nested context should produce catalog errors during a cold start."""
-    project = shutil.copytree(SCENARIO / 'separate', tmp_path / 'project')
+    project = shutil.copytree(SCENARIO / SEPARATE, tmp_path / 'project')
     (project / DOLLAR_BODY).unlink()
     with (
         _serve(project, sparqld_binary, tmp_path / 'server.log') as (endpoint, process),
@@ -329,7 +331,7 @@ def test_registration_must_be_selected(
 ) -> None:
     """Excluded bodies remain readable as contexts, but contribute no registration."""
     project = shutil.copytree(SCENARIO / layout, tmp_path / 'project')
-    declaration = BODY if layout == 'combined' else REGISTRATION
+    declaration = BODY if layout == COMBINED else REGISTRATION
     with _serve(
         project,
         sparqld_binary,
