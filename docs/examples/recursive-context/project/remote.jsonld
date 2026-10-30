@@ -1,12 +1,10 @@
 {
   "@context": {
-    "jsonld": "http://www.w3.org/ns/json-ld#",
-    "contentUrl": {
-      "@id": "https://schema.org/contentUrl",
+    "context-file": {
+      "@id": "sparqld:context-file",
       "@type": "@id"
     }
   },
   "@id": "https://example.org/ctx",
-  "@type": "jsonld:Context",
-  "contentUrl": "example.jsonld"
+  "context-file": "example.jsonld"
 }
