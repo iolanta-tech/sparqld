@@ -1,0 +1,1 @@
+<urn:context:second> <sparqld:context-file> <sparqld:body.yamlld> .
