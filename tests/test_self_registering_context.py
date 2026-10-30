@@ -23,6 +23,7 @@ REGISTRATION = 'contexts/z-registration.yamlld'
 COMBINED = 'combined'
 SEPARATE = 'separate'
 LAYOUT_NAME = 'layout'
+ALICE = 'Alice'
 LAYOUTS = (COMBINED, SEPARATE)
 VARIANTS = SCENARIO / 'variants'
 YAML_CODEC = YAML()
@@ -142,7 +143,7 @@ def test_reload_and_restart(
     names = []
     registered = layout == SEPARATE
     with _serve(project, sparqld_binary, tmp_path / 'live.log') as (endpoint, process):
-        _wait_state(endpoint, process, ['Alice'], [])
+        _wait_state(endpoint, process, [ALICE], [])
         if change == 'edit':
             document = _read(target)
             document['@context'][1]['name'] = 'https://schema.org/alternateName'
@@ -171,7 +172,7 @@ def test_reload_and_restart(
     ):
         _wait_state(endpoint, process, names, failures, registered)
         target.write_text(original)
-        _wait_state(endpoint, process, ['Alice'], [])
+        _wait_state(endpoint, process, [ALICE], [])
 
 
 @pytest.mark.parametrize(
@@ -223,7 +224,7 @@ def test_relative_context_uses_requested_uri(
     ):
         _wait_state(endpoint, process, [], ['alice.yamlld'])
         _install(project, 'terms-registration.yamlld', layout=layout)
-        _wait_state(endpoint, process, ['Alice'], [])
+        _wait_state(endpoint, process, [ALICE], [])
 
 
 def test_aliases_inside_term_definitions_fail(
@@ -271,7 +272,7 @@ def test_http_context_stays_offline(
             _wait_state(
                 endpoint,
                 process,
-                ['Alice'] if registered else [],
+                [ALICE] if registered else [],
                 [] if registered else ['alice.yamlld'],
                 False,
             )
@@ -337,4 +338,4 @@ def test_registration_must_be_selected(
         document = _read(project / 'alice.yamlld')
         document['@context'] = BODY
         _write(project / 'alice.yamlld', document)
-        _wait_state(endpoint, process, ['Alice'], [], False)
+        _wait_state(endpoint, process, [ALICE], [], False)
