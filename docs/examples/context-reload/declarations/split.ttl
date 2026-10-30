@@ -1,1 +1,0 @@
-<urn:context:second> <https://schema.org/contentUrl> <sparqld:body.yamlld> .
