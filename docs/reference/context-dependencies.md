@@ -31,8 +31,9 @@ Run this example from a `sparqld` checkout with the `sparqld` executable on
 {{ example_data('recursive-context/project/example.jsonld', indent=4) }}
 
 Alice uses a local context that imports `https://example.org/ctx`.
-`remote.jsonld` links that URI to `example.jsonld` through
-[`sparqld:context-file`](https://sparqld.iolanta.tech/context-file).
+`remote.jsonld` states that `example.jsonld`
+[`sparqld:defines-context`](https://sparqld.iolanta.tech/defines-context)
+`https://example.org/ctx`.
 `sparqld` loads Alice after it has that declaration, even though Alice sorts
 before `remote.jsonld`.
 
