@@ -1,0 +1,3 @@
+"@context": urn:sparqld:context:v1
+"@id": person.yamlld
+defines-context: https://example.org/contexts/person
