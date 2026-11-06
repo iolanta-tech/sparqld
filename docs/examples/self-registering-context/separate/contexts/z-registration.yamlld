@@ -1,6 +1,6 @@
 '@context':
-  context-file:
-    '@id': https://sparqld.iolanta.tech/context-file
+  defines-context:
+    '@id': https://sparqld.iolanta.tech/defines-context
     '@type': '@id'
-'@id': https://example.org/contexts/separate/person
-context-file: person.yamlld
+'@id': person.yamlld
+defines-context: https://example.org/contexts/separate/person
