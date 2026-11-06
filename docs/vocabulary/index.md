@@ -25,10 +25,10 @@ These RDF terms describe context registrations and
 
     Link a source file to the context URIs requested while parsing it.
 
--   :material-file-link:{ .lg .middle } **[`sparqld:context-file`](https://sparqld.iolanta.tech/context-file)**
+-   :material-file-link:{ .lg .middle } **[`sparqld:defines-context`](https://sparqld.iolanta.tech/defines-context)**
 
     ---
 
-    Link an absolute context URI to its local body file in project RDF.
+    Link a local body file to the absolute context URI it defines in project RDF.
 
 </div>
