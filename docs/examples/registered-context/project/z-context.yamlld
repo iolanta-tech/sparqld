@@ -1,7 +1,7 @@
 "@context":
   sparqld: https://sparqld.iolanta.tech/
-  context-file:
-    "@id": sparqld:context-file
+  defines-context:
+    "@id": sparqld:defines-context
     "@type": "@id"
-"@id": https://example.org/yaml-ctx
-context-file: body.yamlld
+"@id": body.yamlld
+defines-context: https://example.org/yaml-ctx
