@@ -22,7 +22,7 @@ context, so the same file keeps its meaning in another JSON-LD tool.
 | Context | Use |
 | --- | --- |
 | A relative `.jsonld` or `.yamlld` path | A context file under the served directory |
-| An absolute context URI with a project registration | A local body linked through [`sparqld:context-file`](https://sparqld.iolanta.tech/context-file) |
+| An absolute context URI with a project registration | A local body that [`sparqld:defines-context`](https://sparqld.iolanta.tech/defines-context) the URI |
 
 Relative contexts resolve from the source's directory. They may also use
 `@import` to reference another relative context. Every referenced file must
@@ -55,10 +55,11 @@ that context explicitly:
 ## :material-link-variant: Remote context URIs
 
 `sparqld` does not download context URLs. A source that names an absolute
-context URI loads when project RDF links that URI through
-[`sparqld:context-file`](https://sparqld.iolanta.tech/context-file) to a local `.json`, `.jsonld`,
-or `.yamlld` body. Multiple declarations may name the same body. Distinct
-body targets for one context URI produce a load error.
+context URI loads when project RDF links a local `.json`, `.jsonld`, or
+`.yamlld` body to that URI through
+[`sparqld:defines-context`](https://sparqld.iolanta.tech/defines-context).
+Multiple declarations may name the same body. Distinct bodies for one context
+URI produce a load error.
 
 The [context dependency example](context-dependencies.md) shows a declaration
 that sorts after its consumer. The served `docs/examples` tree registers the
