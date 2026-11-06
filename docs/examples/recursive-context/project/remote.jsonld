@@ -1,11 +1,11 @@
 {
   "@context": {
     "sparqld": "https://sparqld.iolanta.tech/",
-    "context-file": {
-      "@id": "sparqld:context-file",
+    "defines-context": {
+      "@id": "sparqld:defines-context",
       "@type": "@id"
     }
   },
-  "@id": "https://example.org/ctx",
-  "context-file": "example.jsonld"
+  "@id": "example.jsonld",
+  "defines-context": "https://example.org/ctx"
 }
