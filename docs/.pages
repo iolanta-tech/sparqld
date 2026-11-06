@@ -5,5 +5,5 @@ nav:
   - reference
   - Vocabulary:
       - vocabulary
-      - context-file.md
+      - defines-context.md
   - project
