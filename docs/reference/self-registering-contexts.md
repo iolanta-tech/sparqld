@@ -42,10 +42,11 @@ example URI to keep it separate from the complete context.
 For broader dollar-keyword authoring, use an explicitly acquired copy of the
 [complete context](https://json-ld.org/contexts/dollar-convenience.jsonld).
 
-The top-level `$id` identifies the context URI. The IRI-valued `context-file`
-points to the same file. As source data, this produces the registration triple.
-As a requested context, only its `@context` member supplies definitions;
-the top-level registration metadata does not become consumer data.
+The top-level `defines-context` member gives the context URI. It has no `@id`,
+so `sparqld` takes the containing file as the subject. As source data, this
+produces the registration triple. As a requested context, only its `@context`
+member supplies definitions; the top-level registration metadata does not
+become consumer data.
 This follows the [JSON-LD context-processing algorithm](https://www.w3.org/TR/json-ld11-api/#context-processing-algorithm).
 
 In another terminal, from the checkout root, run the query:
@@ -58,17 +59,19 @@ In another terminal, from the checkout root, run the query:
 
 ## :material-source-branch: Bootstrap and paths
 
-- Define the registration terms inline, or through independently bootstrappable
+- Define the registration terms inline, request the embedded context
+  `urn:sparqld:context:v1`, or use other independently bootstrappable
   contexts. `sparqld` retries failed sources as registrations become available;
   filename order does not need to put declarations first.
 - Keep registration dependencies acyclic. A file that needs its own canonical
   URI to interpret its registration cannot establish that registration.
 - Include registration sources in the selected source patterns. Reading a body
   as a context does not load its registration metadata into the dataset.
-- With the default document base, `context-file` resolves from the source
-  directory: `person.yamlld` above becomes `sparqld:contexts/person.yamlld`.
-  An explicit `@base` changes this resolution. Keep the resulting target local
-  and inside the served directory.
+- With the default document base, the `@id` of a registration in a separate
+  file resolves from the source directory: `person.yamlld` in the separate
+  layout becomes `sparqld:contexts/person.yamlld`. An explicit `@base` changes
+  this resolution. Keep the resulting subject local and inside the served
+  directory. A statement inside the body has no `@id` and ignores `@base`.
 - Relative references **inside a requested context** resolve from its requested
   URI. For `https://example.org/contexts/combined/person`, `terms.yamlld` becomes
   `https://example.org/contexts/combined/terms.yamlld`, which needs its own registration.
