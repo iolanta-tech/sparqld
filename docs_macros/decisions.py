@@ -28,9 +28,19 @@ def decisions(body: str) -> list[Decision]:
     return [Decision.model_validate(binding) for binding in selected.solutions.bindings]
 
 
+_DECISIONS_PREFIX = 'sparqld:project/decisions/'
+
+
+def decision_page(graph: str) -> str:
+    """Return the link from the decisions index to one decision graph."""
+    if graph.startswith(_DECISIONS_PREFIX):
+        return graph.removeprefix(_DECISIONS_PREFIX)
+    return graph.rsplit('/', 1)[-1]
+
+
 def decision_heading(decision: Decision) -> str:
     title = decision.title.lexical_form
-    page = decision.graph.lexical_form.rsplit('/', 1)[-1]
+    page = decision_page(decision.graph.lexical_form)
     return f'-   __[{title}]({page})__'
 
 
