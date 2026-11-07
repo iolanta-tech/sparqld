@@ -1,5 +1,6 @@
 """Run documented scenarios through the public SPARQL endpoint."""
 
+import json
 import shutil
 from pathlib import Path
 
@@ -45,11 +46,14 @@ def test_declaration_removal_unregisters_context(
     sparqld_binary: Path,
     tmp_path: Path,
 ) -> None:
-    """Delete the declaration in a temporary project and wait for the error state."""
+    """Remove the registration in a temporary project and wait for the error state."""
     project = shutil.copytree(SCENARIO / PROJECT_DIR, tmp_path / PROJECT_DIR)
+    body = project / 'example.jsonld'
     with _serve(project, sparqld_binary, tmp_path / SERVER_LOG_NAME) as server:
         _wait_for_queries(server, QUERIES, SCENARIO / 'results/initial')
-        (project / 'remote.jsonld').unlink()
+        document = json.loads(body.read_text())
+        document.pop('defines-context')
+        body.write_text(json.dumps(document))
         _wait_for_queries(server, QUERIES, SCENARIO / 'results/unregistered')
 
 
