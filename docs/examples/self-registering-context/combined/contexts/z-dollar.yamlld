@@ -1,6 +1,4 @@
 '@context':
-  $id: '@id'
-  defines-context:
-    '@id': https://sparqld.iolanta.tech/defines-context
-    '@type': '@id'
+- https://sparqld.iolanta.tech/contexts/v1.jsonld
+- $id: '@id'
 defines-context: https://example.org/contexts/combined/dollar
