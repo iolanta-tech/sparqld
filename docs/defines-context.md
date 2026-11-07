@@ -19,7 +19,6 @@ subject is the body file. The object is the context URI. The file must remain
 inside the served directory and use a `.json`, `.jsonld`, or `.yamlld`
 extension.
 
-The `sparqld:` vocabulary prefix expands to `https://sparqld.iolanta.tech/`.
 In this YAML-LD registration, the subject path resolves relative to the
 declaration file:
 
@@ -36,14 +35,16 @@ A body can define its own context URI. Omit `@id` in that statement.
 
 {{ example_data('self-registering-context/combined/contexts/person.yamlld') }}
 
-The embedded context `urn:sparqld:context:v1` defines the `sparqld:` prefix
-and the `defines-context` term. A file can request it instead of defining the
-term inline. `sparqld` serves it from memory and needs no registration.
+The [built-in context](reference/contexts/built-in-context.md)
+`https://sparqld.iolanta.tech/contexts/v1.jsonld`
+defines the `sparqld:` prefix and the `defines-context` term. Request it in
+every file that states `defines-context`. `sparqld` embeds this context and does
+not download it.
 
 Several declarations may name the same context URI and the same body.
 Distinct bodies for one context URI produce a load error. Changing or
 removing the registration reloads dependent sources.
 
-See [Contexts](reference/contexts.md) for resolution rules and the
-[context dependency example](reference/context-dependencies.md) for a
+See [Contexts](reference/contexts/index.md) for resolution rules and the
+[context dependency example](reference/contexts/context-dependencies.md) for a
 complete registration and removal workflow.
