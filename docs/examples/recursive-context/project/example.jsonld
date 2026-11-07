@@ -1,5 +1,9 @@
 {
-  "@context": {
-    "name": "https://schema.org/name"
-  }
+  "@context": [
+    "https://sparqld.iolanta.tech/contexts/v1.jsonld",
+    {
+      "name": "https://schema.org/name"
+    }
+  ],
+  "defines-context": "https://example.org/ctx"
 }
