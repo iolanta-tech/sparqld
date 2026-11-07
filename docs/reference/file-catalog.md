@@ -59,7 +59,7 @@ Query the catalog to find the context requests:
 
 {{ stored_sparql('docs/queries/context-dependencies.rq') | sparql_table }}
 
-The [context dependency example](context-dependencies.md) shows a remote
+The [context dependency example](contexts/context-dependencies.md) shows a remote
 context registration, catalog errors after that declaration is removed, and
 restore.
 
