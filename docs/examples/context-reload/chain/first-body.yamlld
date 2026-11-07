@@ -1,5 +1,2 @@
 "@context":
-  sparqld: https://sparqld.iolanta.tech/
-  defines-context:
-    "@id": sparqld:defines-context
-    "@type": "@id"
+  id: "@id"
