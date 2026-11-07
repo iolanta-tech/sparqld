@@ -1,8 +1,8 @@
 PREFIX sparqld: <https://sparqld.iolanta.tech/>
 
 ASK {
-  GRAPH <sparqld:remote.jsonld> {
-    <https://example.org/ctx>
-      sparqld:context-file <sparqld:example.jsonld> .
+  GRAPH <sparqld:example.jsonld> {
+    <sparqld:example.jsonld>
+      sparqld:defines-context <https://example.org/ctx> .
   }
 }

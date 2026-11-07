@@ -101,5 +101,5 @@ error-reporting behavior. Dataset formats load their declared named graphs; see
 ## :material-code-braces-box: Contexts
 
 JSON-LD, YAML-LD, and Markdown-LD use the contexts their documents declare.
-See [Contexts](contexts.md) for the supported dollar-keyword context and local
+See [Contexts](contexts/index.md) for the supported dollar-keyword context and local
 context files.

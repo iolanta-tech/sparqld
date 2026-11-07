@@ -89,13 +89,13 @@ class ReloadExpectation:
         """Perform the edit and record the catalog state it should reach."""
         if self.change == 'edit':
             document = YamlDocument(self.target)
-            document.context()[1]['name'] = 'https://schema.org/alternateName'
+            document.context()[-1]['name'] = 'https://schema.org/alternateName'
             document.save()
             self.registered = True
             return
         if self.change == 'unregister':
             document = YamlDocument(self.target)
-            document.body.pop('context-file')
+            document.body.pop('defines-context')
             document.save()
             self.failures = [ALICE_FILE]
             self.registered = False

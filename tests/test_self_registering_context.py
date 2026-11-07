@@ -78,7 +78,7 @@ def test_cycles_fail_without_hanging(
         body.context()[0] = registering.CANONICAL
     elif cycle == 'mutual':
         dollar = registering.YamlDocument(project / registering.DOLLAR_BODY)
-        dollar.set_context([registering.CANONICAL, dollar.context()])
+        dollar.set_context([registering.CANONICAL, *dollar.context()])
         dollar.save()
     else:
         body.context().insert(0, 'person.yamlld')

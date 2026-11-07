@@ -1,1 +1,1 @@
-ASK { ?context <https://sparqld.iolanta.tech/context-file> <sparqld:contexts/person.yamlld> }
+ASK { <sparqld:contexts/person.yamlld> <https://sparqld.iolanta.tech/defines-context> ?context }

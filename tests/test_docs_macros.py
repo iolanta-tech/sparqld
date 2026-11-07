@@ -29,3 +29,17 @@ def test_decision_model_from_local_module(monkeypatch: pytest.MonkeyPatch) -> No
 
     assert decision.title.lexical_form == 'Load decision models'
     assert decision.graph.term_type == 'uri'
+
+
+def test_decision_page_keeps_a_directory_index() -> None:
+    """Link a nested decision to its directory, and a flat decision to its file."""
+    from docs_macros.decisions import decision_page
+
+    nested = 'sparqld:project/decisions/register-a-same-file-context-body-as/index.md'
+    flat = 'sparqld:project/decisions/implement-sparqld-in.md'
+
+    assert decision_page(nested) == (
+        'register-a-same-file-context-body-as/index.md'
+    )
+    assert decision_page(flat) == 'implement-sparqld-in.md'
+    assert decision_page('https://example.org/decision') == 'decision'

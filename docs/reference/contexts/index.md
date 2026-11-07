@@ -4,7 +4,7 @@
   name: schema:name
   title: schema:headline
   description: schema:description
-"@id": reference/contexts.md
+"@id": reference/contexts/index.md
 "@type": schema:TechArticle
 hide: [toc]
 name: JSON-LD contexts
@@ -22,7 +22,7 @@ context, so the same file keeps its meaning in another JSON-LD tool.
 | Context | Use |
 | --- | --- |
 | A relative `.jsonld` or `.yamlld` path | A context file under the served directory |
-| An absolute context URI with a project registration | A local body linked through [`sparqld:context-file`](https://sparqld.iolanta.tech/context-file) |
+| An absolute context URI with a project registration | A local body that [`sparqld:defines-context`](https://sparqld.iolanta.tech/defines-context) the URI |
 
 Relative contexts resolve from the source's directory. They may also use
 `@import` to reference another relative context. Every referenced file must
@@ -54,15 +54,17 @@ that context explicitly:
 
 ## :material-link-variant: Remote context URIs
 
-`sparqld` does not download context URLs. A source that names an absolute
-context URI loads when project RDF links that URI through
-[`sparqld:context-file`](https://sparqld.iolanta.tech/context-file) to a local `.json`, `.jsonld`,
-or `.yamlld` body. Multiple declarations may name the same body. Distinct
-body targets for one context URI produce a load error.
+`sparqld` does not download context URLs. The one exception is the
+[built-in context](built-in-context.md), which `sparqld` embeds. A source that
+names any other absolute context URI loads when project RDF links a local
+`.json`, `.jsonld`, or `.yamlld` body to that URI through
+[`sparqld:defines-context`](https://sparqld.iolanta.tech/defines-context).
+Multiple declarations may name the same body. Distinct bodies for one context
+URI produce a load error.
 
 The [context dependency example](context-dependencies.md) shows a declaration
-that sorts after its consumer. The served `docs/examples` tree registers the
-dollar-keyword URL the same way:
+that sorts after its consumer. A project that already requests the
+dollar-convenience URL can register it the same way:
 
 {{ example_data('dollar-convenience-context.jsonld') }}
 
@@ -70,14 +72,8 @@ A context body can also carry its own registration. See
 [Self-registering contexts](self-registering-contexts.md) for the optional
 combined layout, bootstrap requirements, and current error-handling limits.
 
-## :material-currency-usd: Dollar-keyword authoring
-
-To use dollar aliases, explicitly obtain a local copy of the
-[dollar-convenience context](https://json-ld.org/contexts/dollar-convenience.jsonld)
-and register its canonical URI. Keep acquisition separate from loading.
-Each source that uses dollar aliases must declare the context, directly or
-through another context. Use `$id` and `$type` in data; keep `@context` and
-the raw `@id`, `@type`, and `@container` keywords in context definitions.
+The [built-in context](built-in-context.md) `https://sparqld.iolanta.tech/contexts/v1.jsonld`
+needs no registration. It defines `defines-context` and the dollar aliases.
 
 ## :material-shield-lock-outline: Context access
 

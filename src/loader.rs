@@ -96,11 +96,15 @@ const FILE_CATALOG_GRAPH: NamedNodeRef<'_> = NamedNodeRef::new_unchecked("sparql
 /// Predicate linking a source to each context requested during parsing.
 const JSONLD_CONTEXT: NamedNodeRef<'_> =
     NamedNodeRef::new_unchecked("http://www.w3.org/ns/json-ld#context");
-/// Predicate registering a local body for an absolute context IRI.
-const CONTEXT_FILE: NamedNodeRef<'_> =
-    NamedNodeRef::new_unchecked("https://sparqld.iolanta.tech/context-file");
+/// Predicate linking a local body file to the absolute context IRI it defines.
+const DEFINES_CONTEXT: NamedNodeRef<'_> =
+    NamedNodeRef::new_unchecked("https://sparqld.iolanta.tech/defines-context");
 /// Diagnostic text identifying conflicting context body declarations.
-const AMBIGUOUS_TARGETS: &str = "has multiple context-file targets";
+const AMBIGUOUS_TARGETS: &str = "has multiple defining files";
+/// URL of the sparqld context that sparqld serves from memory instead of downloading.
+const SPARQLD_CONTEXT_V1: &str = "https://sparqld.iolanta.tech/contexts/v1.jsonld";
+/// Version 1 of the sparqld context, embedded from the file the documentation site publishes.
+const SPARQLD_CONTEXT_V1_BODY: &str = include_str!("../docs/contexts/v1.jsonld");
 
 /// File and directory vocabulary terms used in the catalog.
 mod nfo {
@@ -847,7 +851,7 @@ fn declared_context_iris(dataset: &Store, source: &Path) -> LoadResult<BTreeSet<
     let query = format!(
         "SELECT DISTINCT ?context WHERE {{
           VALUES ?graph {{ {graph_values} }}
-          GRAPH ?graph {{ ?context {CONTEXT_FILE} ?body . }}
+          GRAPH ?graph {{ ?body {DEFINES_CONTEXT} ?context . }}
           FILTER(isIRI(?context))
         }}"
     );
@@ -1128,6 +1132,11 @@ fn load_scoped_quads(
 
     for quad in &mut quads {
         *quad = scope_quad(quad.clone(), &source_graph, &scoped_graphs);
+        if quad.predicate.as_ref() == DEFINES_CONTEXT
+            && matches!(quad.subject, NamedOrBlankNode::BlankNode(_))
+        {
+            quad.subject = source_graph.clone().into();
+        }
         dataset.insert(quad.as_ref())?;
     }
 
@@ -1205,6 +1214,13 @@ fn load_context_document(
     registrations: &BTreeMap<String, BTreeSet<String>>,
     yaml_json: &Arc<Mutex<BTreeMap<PathBuf, Vec<u8>>>>,
 ) -> LoadResult<LoadedDocument> {
+    if url == SPARQLD_CONTEXT_V1 {
+        return Ok(LoadedDocument {
+            url: url.into(),
+            content: SPARQLD_CONTEXT_V1_BODY.as_bytes().to_vec(),
+            format: context_format(),
+        });
+    }
     let relative = match local_context_relative(url) {
         Ok(relative) => relative,
         Err(_) => {
@@ -1214,7 +1230,7 @@ fn load_context_document(
                 Err(error) if body.as_str().starts_with("sparqld:") => return Err(error),
                 Err(_) => {
                     return Err(io::Error::other(format!(
-                        "context-file is not a local file: {}",
+                        "defining file is not a local file: {}",
                         body.as_str()
                     ))
                     .into());
@@ -1384,7 +1400,7 @@ fn context_bodies(dataset: &Store) -> LoadResult<BTreeMap<String, BTreeSet<Strin
     let query = "
         PREFIX sparqld: <https://sparqld.iolanta.tech/>
         SELECT DISTINCT ?context ?body WHERE {
-          ?context sparqld:context-file ?body .
+          ?body sparqld:defines-context ?context .
         }
     ";
     let mut bodies: BTreeMap<String, BTreeSet<String>> = BTreeMap::new();
@@ -1435,9 +1451,9 @@ fn ambiguous_declarations(
         let context = NamedNode::new(context)?;
         let graphs = visible
             .quads_for_pattern(
-                Some(context.as_ref().into()),
-                Some(CONTEXT_FILE),
                 None,
+                Some(DEFINES_CONTEXT),
+                Some(context.as_ref().into()),
                 None,
             )
             .map(|quad| quad.map(|quad| quad.graph_name))
@@ -1497,15 +1513,9 @@ mod tests {
         fs::write(
             directory.join("z-declaration.jsonld"),
             serde_json::to_vec(&serde_json::json!({
-                "@context": {
-                    "sparqld": "https://sparqld.iolanta.tech/",
-                    "context-file": {
-                        "@id": "sparqld:context-file",
-                        "@type": "@id"
-                    }
-                },
-                "@id": url,
-                "context-file": body_file
+                "@context": SPARQLD_CONTEXT_V1,
+                "@id": body_file,
+                "defines-context": url
             }))
             .unwrap(),
         )
@@ -1593,6 +1603,10 @@ mod tests {
                 (
                     "<sparqld:success.jsonld>".into(),
                     "<sparqld:terms.jsonld>".into()
+                ),
+                (
+                    "<sparqld:z-declaration.jsonld>".into(),
+                    "<https://sparqld.iolanta.tech/contexts/v1.jsonld>".into()
                 ),
             ]
         );
@@ -2020,13 +2034,13 @@ mod tests {
             serde_json::to_vec(&serde_json::json!({
                 "@context": {
                     "sparqld": "https://sparqld.iolanta.tech/",
-                    "context-file": {
-                        "@id": "sparqld:context-file",
+                    "defines-context": {
+                        "@id": "sparqld:defines-context",
                         "@type": "@id"
                     }
                 },
-                "@id": "https://example.org/ctx",
-                "context-file": "body.jsonld"
+                "@id": "body.jsonld",
+                "defines-context": "https://example.org/ctx"
             }))
             .unwrap(),
         )
@@ -2123,7 +2137,7 @@ mod tests {
     }
 
     #[test]
-    fn rejects_ambiguous_context_file_targets() {
+    fn rejects_ambiguous_defining_files() {
         let directory = tempfile::tempdir().unwrap();
         fs::write(
             directory.path().join("keep.ttl"),
@@ -2144,15 +2158,9 @@ mod tests {
         fs::write(
             directory.path().join("a-declaration.jsonld"),
             serde_json::to_vec(&serde_json::json!({
-                "@context": {
-                    "sparqld": "https://sparqld.iolanta.tech/",
-                    "context-file": {
-                        "@id": "sparqld:context-file",
-                        "@type": "@id"
-                    }
-                },
-                "@id": "https://example.org/ctx",
-                "context-file": "two.jsonld"
+                "@context": SPARQLD_CONTEXT_V1,
+                "@id": "two.jsonld",
+                "defines-context": "https://example.org/ctx"
             }))
             .unwrap(),
         )
@@ -2162,7 +2170,7 @@ mod tests {
         for declaration in ["a-declaration.jsonld", "z-declaration.jsonld"] {
             let error = &load.load_errors[Path::new(declaration)];
             assert!(
-                error.contains("multiple context-file targets"),
+                error.contains("multiple defining files"),
                 "{declaration}: {error}"
             );
             assert!(!load.loaded_sources.contains(Path::new(declaration)));
@@ -2289,7 +2297,7 @@ mod tests {
     }
 
     #[test]
-    fn accepts_identical_context_file_declarations() {
+    fn accepts_identical_defines_context_declarations() {
         let directory = tempfile::tempdir().unwrap();
         fs::write(
             directory.path().join("alice.jsonld"),
@@ -2302,15 +2310,9 @@ mod tests {
         )
         .unwrap();
         let declaration = serde_json::json!({
-            "@context": {
-                "sparqld": "https://sparqld.iolanta.tech/",
-                "context-file": {
-                    "@id": "sparqld:context-file",
-                    "@type": "@id"
-                }
-            },
-            "@id": "https://example.org/ctx",
-            "context-file": "body.jsonld"
+            "@context": SPARQLD_CONTEXT_V1,
+            "@id": "body.jsonld",
+            "defines-context": "https://example.org/ctx"
         });
         fs::write(
             directory.path().join("a-declaration.jsonld"),
@@ -2359,13 +2361,13 @@ mod tests {
             serde_json::to_vec(&serde_json::json!({
                 "@context": {
                     "sparqld": "https://sparqld.iolanta.tech/",
-                    "context-file": {
-                        "@id": "sparqld:context-file",
+                    "defines-context": {
+                        "@id": "sparqld:defines-context",
                         "@type": "@id"
                     }
                 },
-                "@id": "https://example.org/ctx",
-                "context-file": "body.jsonld"
+                "@id": "body.jsonld",
+                "defines-context": "https://example.org/ctx"
             }))
             .unwrap(),
         )
@@ -2383,6 +2385,128 @@ mod tests {
                     NamedNodeRef::new("urn:alice").unwrap(),
                     NamedNodeRef::new("urn:name").unwrap(),
                     LiteralRef::new_simple_literal("Alice"),
+                    NamedNodeRef::new("sparqld:alice.jsonld").unwrap(),
+                ))
+                .unwrap()
+        );
+    }
+
+    #[test]
+    fn registers_a_context_from_its_own_body_file() {
+        let directory = tempfile::tempdir().unwrap();
+        fs::write(
+            directory.path().join("alice.jsonld"),
+            r#"{"@context":"https://example.org/ctx","@id":"urn:alice","name":"Alice"}"#,
+        )
+        .unwrap();
+        fs::write(
+            directory.path().join("z-body.jsonld"),
+            serde_json::to_vec(&serde_json::json!({
+                "@context": [SPARQLD_CONTEXT_V1, {"name": "urn:name"}],
+                "defines-context": "https://example.org/ctx"
+            }))
+            .unwrap(),
+        )
+        .unwrap();
+        let dataset = Store::new().unwrap();
+
+        let load = load_directory_with_stats(directory.path(), &dataset).unwrap();
+
+        assert!(
+            load.load_errors.is_empty(),
+            "load errors: {:?}",
+            load.load_errors
+        );
+        assert!(
+            dataset
+                .contains(QuadRef::new(
+                    NamedNodeRef::new("urn:alice").unwrap(),
+                    NamedNodeRef::new("urn:name").unwrap(),
+                    LiteralRef::new_simple_literal("Alice"),
+                    NamedNodeRef::new("sparqld:alice.jsonld").unwrap(),
+                ))
+                .unwrap()
+        );
+        assert!(
+            dataset
+                .contains(QuadRef::new(
+                    NamedNodeRef::new("sparqld:z-body.jsonld").unwrap(),
+                    DEFINES_CONTEXT,
+                    NamedNodeRef::new("https://example.org/ctx").unwrap(),
+                    NamedNodeRef::new("sparqld:z-body.jsonld").unwrap(),
+                ))
+                .unwrap()
+        );
+    }
+
+    #[test]
+    fn serves_the_embedded_sparqld_context_without_a_file() {
+        let directory = tempfile::tempdir().unwrap();
+        fs::write(
+            directory.path().join("declaration.jsonld"),
+            serde_json::to_vec(&serde_json::json!({
+                "@context": SPARQLD_CONTEXT_V1,
+                "@id": "body.jsonld",
+                "defines-context": "https://example.org/ctx"
+            }))
+            .unwrap(),
+        )
+        .unwrap();
+        fs::write(
+            directory.path().join("body.jsonld"),
+            r#"{"@context":{"name":"urn:name"}}"#,
+        )
+        .unwrap();
+        let dataset = Store::new().unwrap();
+
+        let load = load_directory_with_stats(directory.path(), &dataset).unwrap();
+
+        assert!(
+            load.load_errors.is_empty(),
+            "load errors: {:?}",
+            load.load_errors
+        );
+        assert!(
+            dataset
+                .contains(QuadRef::new(
+                    NamedNodeRef::new("sparqld:declaration.jsonld").unwrap(),
+                    JSONLD_CONTEXT,
+                    NamedNodeRef::new(SPARQLD_CONTEXT_V1).unwrap(),
+                    FILE_CATALOG_GRAPH,
+                ))
+                .unwrap()
+        );
+    }
+
+    #[test]
+    fn expands_dollar_keywords_with_the_embedded_sparqld_context() {
+        let directory = tempfile::tempdir().unwrap();
+        fs::write(
+            directory.path().join("alice.jsonld"),
+            serde_json::to_vec(&serde_json::json!({
+                "@context": [SPARQLD_CONTEXT_V1, {"name": "https://schema.org/name"}],
+                "$id": "urn:alice",
+                "$type": "https://schema.org/Person",
+                "name": "Alice"
+            }))
+            .unwrap(),
+        )
+        .unwrap();
+        let dataset = Store::new().unwrap();
+
+        let load = load_directory_with_stats(directory.path(), &dataset).unwrap();
+
+        assert!(
+            load.load_errors.is_empty(),
+            "load errors: {:?}",
+            load.load_errors
+        );
+        assert!(
+            dataset
+                .contains(QuadRef::new(
+                    NamedNodeRef::new("urn:alice").unwrap(),
+                    NamedNodeRef::new("http://www.w3.org/1999/02/22-rdf-syntax-ns#type").unwrap(),
+                    NamedNodeRef::new("https://schema.org/Person").unwrap(),
                     NamedNodeRef::new("sparqld:alice.jsonld").unwrap(),
                 ))
                 .unwrap()
@@ -2434,13 +2558,13 @@ mod tests {
             directory.path().join("z-declaration.jsonld"),
             serde_json::to_vec(&serde_json::json!({
                 "@context": {
-                    "context-file": {
-                        "@id": "https://sparqld.iolanta.tech/context-file",
+                    "defines-context": {
+                        "@id": "https://sparqld.iolanta.tech/defines-context",
                         "@type": "@id"
                     }
                 },
-                "@id": "https://example.org/ctx",
-                "context-file": "sparqld:../outside.jsonld"
+                "@id": "sparqld:../outside.jsonld",
+                "defines-context": "https://example.org/ctx"
             }))
             .unwrap(),
         )
@@ -2472,16 +2596,9 @@ mod tests {
         fs::write(
             directory.path().join("parent-declaration.jsonld"),
             serde_json::to_vec(&serde_json::json!({
-                "@context": {
-                    "sparqld": "https://sparqld.iolanta.tech/",
-                    "context-file": {
-                        "@id": "sparqld:context-file",
-                        "@type": "@id"
-                    }
-                },
-                "@id": "https://example.org/parent",
-
-                "context-file": "parent.jsonld"
+                "@context": SPARQLD_CONTEXT_V1,
+                "@id": "parent.jsonld",
+                "defines-context": "https://example.org/parent"
             }))
             .unwrap(),
         )
@@ -2489,16 +2606,9 @@ mod tests {
         fs::write(
             directory.path().join("z-child-declaration.jsonld"),
             serde_json::to_vec(&serde_json::json!({
-                "@context": {
-                    "sparqld": "https://sparqld.iolanta.tech/",
-                    "context-file": {
-                        "@id": "sparqld:context-file",
-                        "@type": "@id"
-                    }
-                },
-                "@id": "https://example.org/child",
-
-                "context-file": "child.jsonld"
+                "@context": SPARQLD_CONTEXT_V1,
+                "@id": "child.jsonld",
+                "defines-context": "https://example.org/child"
             }))
             .unwrap(),
         )

@@ -19,8 +19,8 @@ def test_relative_context_uses_requested_uri(
     """A source-relative import needs a canonical registration when reused remotely."""
     project = shutil.copytree(registering.SCENARIO / layout, tmp_path / PROJECT_DIR)
     body = registering.YamlDocument(project / registering.BODY)
-    terms = body.context()[1]
-    body.context()[1] = {'@import': 'terms.yamlld'}
+    terms = body.context()[-1]
+    body.context()[-1] = {'@import': 'terms.yamlld'}
     body.save()
     registering._dump(project / 'contexts/terms.yamlld', {'@context': terms})
     log = tmp_path / SERVER_LOG_NAME
@@ -40,8 +40,8 @@ def test_aliases_inside_term_definitions_fail(
         tmp_path / PROJECT_DIR,
     )
     body = registering.YamlDocument(project / registering.BODY)
-    definition = body.context()[1]['context-file']
-    definition['$id'] = definition.pop('@id')
+    definition = body.context()[-1]['name']
+    body.context()[-1]['name'] = {'$id': definition}
     body.save()
     with _serve(project, sparqld_binary, tmp_path / SERVER_LOG_NAME) as server:
         registering._wait_state(
@@ -94,19 +94,26 @@ def test_explicit_base_overrides_registration(
     tmp_path: Path,
     layout: str,
 ) -> None:
-    """An explicit document base overrides the source-directory registration base."""
+    """An explicit base moves a named body away; a same-file body ignores it."""
     project = shutil.copytree(registering.SCENARIO / layout, tmp_path / PROJECT_DIR)
     if layout == registering.COMBINED:
         document = registering.YamlDocument(project / registering.BODY)
     else:
         document = registering.YamlDocument(project / registering.REGISTRATION)
     node = document.context()
-    (node[1] if isinstance(node, list) else node)['@base'] = 'https://example.org/'
+    if isinstance(node, list):
+        node[-1]['@base'] = 'https://example.org/'
+    else:
+        document.set_context([node, {'@base': 'https://example.org/'}])
     document.save()
     log = tmp_path / SERVER_LOG_NAME
     with _serve(project, sparqld_binary, log) as server:
-        registering._wait_state(server, [], [registering.ALICE_FILE], False)
-    assert 'context-file is not a local file' in log.read_text()
+        if layout == registering.COMBINED:
+            registering._wait_state(server, [registering.ALICE], [])
+        else:
+            registering._wait_state(server, [], [registering.ALICE_FILE], False)
+    if layout == registering.SEPARATE:
+        assert 'defining file is not a local file' in log.read_text()
 
 
 @pytest.mark.parametrize(registering.LAYOUT_NAME, registering.LAYOUTS)
