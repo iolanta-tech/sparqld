@@ -1,5 +1,5 @@
 "@context":
-  - urn:sparqld:context:v1
+  - https://sparqld.iolanta.tech/contexts/v1.jsonld
   - name: https://schema.org/name
 "@id": https://example.org/contexts/person
 context-body: this
