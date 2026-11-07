@@ -6,9 +6,8 @@ nav:
   - File formats: formats.md
   - Named graphs: named-graphs.md
   - File catalog: file-catalog.md
-  - Contexts: contexts.md
-  - Context dependency example: context-dependencies.md
-  - Self-registering contexts: self-registering-contexts.md
+  - Contexts: contexts
+  - Vocabulary: vocabulary
   - Libraries: libraries
   - clients
   - Agents: agents
