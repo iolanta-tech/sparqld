@@ -1,3 +1,5 @@
-"@context": urn:context:first
-"@id": body.yamlld
+"@context":
+  - urn:context:first
+  - https://sparqld.iolanta.tech/contexts/v1.jsonld
+id: body.yamlld
 defines-context: urn:context:second
