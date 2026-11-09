@@ -1,4 +1,5 @@
 "@context":
-  - https://sparqld.iolanta.tech/contexts/v1.jsonld
-  - name: https://schema.org/name
-defines-context: "http://127.0.0.1:{port}/context"
+  name: https://schema.org/name
+"@type": http://www.w3.org/ns/json-ld#Context
+http://schema.org/contentUrl:
+  "@id": "http://127.0.0.1:{port}/context"

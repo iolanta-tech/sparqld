@@ -1,0 +1,9 @@
+PREFIX jsonld: <http://www.w3.org/ns/json-ld#>
+PREFIX schema: <http://schema.org/>
+
+SELECT ?file ?url WHERE {
+  GRAPH ?file {
+    [] a jsonld:Context ;
+       schema:contentUrl ?url .
+  }
+}

@@ -1,0 +1,47 @@
+# The sparqld default context, version 1.
+#
+# sparqld applies this context to every JSON-LD, YAML-LD, and Markdown-LD
+# source before the source's own `@context`, so the source can override any
+# term below. sparqld embeds this file and does not download it.
+"@context":
+  # Dollar aliases from https://json-ld.org/contexts/dollar-convenience.jsonld.
+  # A YAML key cannot start with `@`, so `$id` stands in for `@id`, and so on.
+  $always: "@always"
+  $base: "@base"
+  $container: "@container"
+  $direction: "@direction"
+  $embed: "@embed"
+  $explicit: "@explicit"
+  $graph: "@graph"
+  $id: "@id"
+  $import: "@import"
+  $included: "@included"
+  $index: "@index"
+  $json: "@json"
+  $language: "@language"
+  $list: "@list"
+  $nest: "@nest"
+  $never: "@never"
+  $none: "@none"
+  $null: "@null"
+  $omitDefault: "@omitDefault"
+  $once: "@once"
+  $prefix: "@prefix"
+  $propagate: "@propagate"
+  $protected: "@protected"
+  $requireAll: "@requireAll"
+  $reverse: "@reverse"
+  $set: "@set"
+  $type: "@type"
+  $value: "@value"
+  $version: "@version"
+  $vocab: "@vocab"
+
+  # The sparqld vocabulary.
+  sparqld: https://sparqld.iolanta.tech/
+
+  # Links a local file (the subject) to the context URL it defines (the object).
+  # The absolute IRI keeps the term working in a source that redefines `sparqld`.
+  defines-context:
+    "@id": https://sparqld.iolanta.tech/defines-context
+    "@type": "@id"

@@ -843,14 +843,14 @@
   
   
     <li class="md-nav__item">
-      <a href="../contexts/built-in-context/" class="md-nav__link">
+      <a href="../contexts/default-context/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-    Built-in context
+    Default context
   
 
     
@@ -2717,19 +2717,11 @@ project declaration in <code>dollar-convenience-context.jsonld</code>:</p>
 </tr>
 <tr>
 <td>sparqld:examples/context-reload/chain/second.yamlld</td>
-<td>https://sparqld.iolanta.tech/contexts/v1.jsonld</td>
-</tr>
-<tr>
-<td>sparqld:examples/context-reload/chain/second.yamlld</td>
 <td>urn:context:first</td>
 </tr>
 <tr>
 <td>sparqld:examples/context-reload/project/alice.yamlld</td>
 <td>urn:context:second</td>
-</tr>
-<tr>
-<td>sparqld:examples/dollar-convenience-context.jsonld</td>
-<td>https://sparqld.iolanta.tech/contexts/v1.jsonld</td>
 </tr>
 <tr>
 <td>sparqld:examples/markdown-ld/alpha-centauri.md</td>
@@ -2748,20 +2740,8 @@ project declaration in <code>dollar-convenience-context.jsonld</code>:</p>
 <td>https://example.org/ctx</td>
 </tr>
 <tr>
-<td>sparqld:examples/recursive-context/project/alice.jsonld</td>
-<td>https://sparqld.iolanta.tech/contexts/v1.jsonld</td>
-</tr>
-<tr>
-<td>sparqld:examples/recursive-context/project/example.jsonld</td>
-<td>https://sparqld.iolanta.tech/contexts/v1.jsonld</td>
-</tr>
-<tr>
 <td>sparqld:examples/registered-context/project/alice.yamlld</td>
 <td>https://example.org/yaml-ctx</td>
-</tr>
-<tr>
-<td>sparqld:examples/registered-context/project/z-context.yamlld</td>
-<td>https://sparqld.iolanta.tech/contexts/v1.jsonld</td>
 </tr>
 <tr>
 <td>sparqld:examples/self-registering-context/combined/alice.yamlld</td>
@@ -2772,20 +2752,8 @@ project declaration in <code>dollar-convenience-context.jsonld</code>:</p>
 <td>https://example.org/contexts/combined/person</td>
 </tr>
 <tr>
-<td>sparqld:examples/self-registering-context/combined/alice.yamlld</td>
-<td>https://sparqld.iolanta.tech/contexts/v1.jsonld</td>
-</tr>
-<tr>
 <td>sparqld:examples/self-registering-context/combined/contexts/person.yamlld</td>
 <td>https://example.org/contexts/combined/dollar</td>
-</tr>
-<tr>
-<td>sparqld:examples/self-registering-context/combined/contexts/person.yamlld</td>
-<td>https://sparqld.iolanta.tech/contexts/v1.jsonld</td>
-</tr>
-<tr>
-<td>sparqld:examples/self-registering-context/combined/contexts/z-dollar.yamlld</td>
-<td>https://sparqld.iolanta.tech/contexts/v1.jsonld</td>
 </tr>
 <tr>
 <td>sparqld:examples/self-registering-context/separate/alice.yamlld</td>
@@ -2796,32 +2764,8 @@ project declaration in <code>dollar-convenience-context.jsonld</code>:</p>
 <td>https://example.org/contexts/separate/person</td>
 </tr>
 <tr>
-<td>sparqld:examples/self-registering-context/separate/alice.yamlld</td>
-<td>https://sparqld.iolanta.tech/contexts/v1.jsonld</td>
-</tr>
-<tr>
 <td>sparqld:examples/self-registering-context/separate/contexts/person.yamlld</td>
 <td>https://example.org/contexts/separate/dollar</td>
-</tr>
-<tr>
-<td>sparqld:examples/self-registering-context/separate/contexts/person.yamlld</td>
-<td>https://sparqld.iolanta.tech/contexts/v1.jsonld</td>
-</tr>
-<tr>
-<td>sparqld:examples/self-registering-context/separate/contexts/z-dollar.yamlld</td>
-<td>https://sparqld.iolanta.tech/contexts/v1.jsonld</td>
-</tr>
-<tr>
-<td>sparqld:examples/self-registering-context/separate/contexts/z-registration.yamlld</td>
-<td>https://sparqld.iolanta.tech/contexts/v1.jsonld</td>
-</tr>
-<tr>
-<td>sparqld:examples/self-registering-context/variants/offline-context.yamlld</td>
-<td>https://sparqld.iolanta.tech/contexts/v1.jsonld</td>
-</tr>
-<tr>
-<td>sparqld:examples/self-registering-context/variants/terms-registration.yamlld</td>
-<td>https://sparqld.iolanta.tech/contexts/v1.jsonld</td>
 </tr>
 <tr>
 <td>sparqld:project/decisions/implement-live-file-backed-sparql-access-with.md</td>
@@ -2837,11 +2781,11 @@ project declaration in <code>dollar-convenience-context.jsonld</code>:</p>
 </tr>
 <tr>
 <td>sparqld:project/decisions/register-a-same-file-context-body-as/file-to-uri/body.yamlld</td>
-<td>https://sparqld.iolanta.tech/contexts/v1.jsonld</td>
+<td>https://sparqld.iolanta.tech/contexts/v1.yamlld</td>
 </tr>
 <tr>
 <td>sparqld:project/decisions/register-a-same-file-context-body-as/file-to-uri/other.yamlld</td>
-<td>https://sparqld.iolanta.tech/contexts/v1.jsonld</td>
+<td>https://sparqld.iolanta.tech/contexts/v1.yamlld</td>
 </tr>
 <tr>
 <td>sparqld:project/decisions/register-a-same-file-context-body-as/index.md</td>
@@ -2849,11 +2793,11 @@ project declaration in <code>dollar-convenience-context.jsonld</code>:</p>
 </tr>
 <tr>
 <td>sparqld:project/decisions/register-a-same-file-context-body-as/uri-to-file/body.yamlld</td>
-<td>https://sparqld.iolanta.tech/contexts/v1.jsonld</td>
+<td>https://sparqld.iolanta.tech/contexts/v1.yamlld</td>
 </tr>
 <tr>
 <td>sparqld:project/decisions/register-a-same-file-context-body-as/uri-to-file/other.yamlld</td>
-<td>https://sparqld.iolanta.tech/contexts/v1.jsonld</td>
+<td>https://sparqld.iolanta.tech/contexts/v1.yamlld</td>
 </tr>
 <tr>
 <td>sparqld:project/decisions/serve-sparql-endpoint-when.md</td>
