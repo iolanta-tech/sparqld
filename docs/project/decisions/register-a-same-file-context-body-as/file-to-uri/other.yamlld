@@ -1,3 +1,0 @@
-"@context": https://sparqld.iolanta.tech/contexts/v1.yamlld
-"@id": person.yamlld
-defines-context: https://example.org/contexts/person
