@@ -33,16 +33,25 @@ to it:
 
 {{ example_data('self-registering-context/combined/contexts/z-dollar.yamlld', indent=4) }}
 
-The dollar context here is a minimal fixture defining only `$id`, with an
-example URI to keep it separate from the complete context.
-For broader dollar-keyword authoring, use an explicitly acquired copy of the
-[complete context](https://json-ld.org/contexts/dollar-convenience.jsonld).
+The dollar context here is a minimal fixture defining only `$id`. It shows a
+context body that depends on another registered context. The
+[default context](default-context.md) already defines `$id` and the other
+dollar aliases for every source.
 
-The top-level `defines-context` member gives the context URI. It has no `@id`,
-so `sparqld` takes the containing file as the subject. As source data, this
-produces the registration triple. As a requested context, only its `@context`
-member supplies definitions; the top-level registration metadata does not
-become consumer data.
+`contexts/person.yamlld` records a saved context. The node has type
+[`jsonld:Context`](http://www.w3.org/ns/json-ld#Context), and
+[`schema:contentUrl`](http://schema.org/contentUrl) is the remote URL.
+`sparqld` registers the file that contains the node. The node is the saved
+copy, and the file is the graph. `contexts/z-dollar.yamlld` uses the same
+registration with `@id` set to the remote URL.
+[:fontawesome-brands-github: `iolanta-tech/vitrify`](https://github.com/iolanta-tech/vitrify)
+writes that named form. Both files register.
+
+This query lists each saved context and the file that registers it:
+
+{{ source('docs/queries/materialized-contexts.rq') }}
+
+As a requested context, only the `@context` member supplies term definitions.
 This follows the [JSON-LD context-processing algorithm](https://www.w3.org/TR/json-ld11-api/#context-processing-algorithm).
 
 This query reads Alice's name through the combined context:
@@ -53,10 +62,12 @@ This query reads Alice's name through the combined context:
 
 ## :material-source-branch: Bootstrap and paths
 
-- Request the [built-in context](built-in-context.md) for the registration
-  terms. Do not define `defines-context` by hand. `sparqld` retries failed
-  sources as registrations become available; filename order does not need to
-  put declarations first.
+- Write [`jsonld:Context`](http://www.w3.org/ns/json-ld#Context) and
+  [`schema:contentUrl`](http://schema.org/contentUrl) as full IRIs on a saved
+  context. A separate registration file can use `defines-context` from the
+  [default context](default-context.md). `sparqld` retries failed sources as
+  registrations become available; filename order does not need to put
+  declarations first.
 - Keep registration dependencies acyclic. A file that needs its own canonical
   URI to interpret its registration cannot establish that registration.
 - Include registration sources in the selected source patterns. Reading a body
@@ -65,7 +76,8 @@ This query reads Alice's name through the combined context:
   file resolves from the source directory: `person.yamlld` in the separate
   layout becomes `sparqld:contexts/person.yamlld`. An explicit `@base` changes
   this resolution. Keep the resulting subject local and inside the served
-  directory. A statement inside the body has no `@id` and ignores `@base`.
+  directory. For a saved context, the registered file is the graph, so `@id`
+  and `@base` do not select a different file.
 - Relative references **inside a requested context** resolve from its requested
   URI. For `https://example.org/contexts/combined/person`, `terms.yamlld` becomes
   `https://example.org/contexts/combined/terms.yamlld`, which needs its own registration.
@@ -91,7 +103,7 @@ two files:
 | Operation | Combined layout | Separate layout |
 | --- | --- | --- |
 | Edit context terms | Reloads consumers | Reloads consumers |
-| Remove registration triple | Consumers fail | Consumers fail; body remains |
+| Remove the registration | Consumers fail | Consumers fail; body remains |
 | Delete or corrupt person body | Registration disappears; consumers fail | Declaration remains; consumers fail |
 | Preserve an upstream body exactly | Requires a separate project declaration | Keeps original bytes |
 
