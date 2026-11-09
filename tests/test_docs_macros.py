@@ -6,9 +6,19 @@ from pathlib import Path
 import pytest
 from mkdocs_macros.util import import_local_module
 
+from docs_macros.sources import code_fence
+
 
 def _literal(lexical_form: str) -> dict[str, str]:
     return {'type': 'literal', 'value': lexical_form}
+
+
+def test_code_fence_outlasts_nested_markdown_fences() -> None:
+    source = '# Title\n\n```sh\necho hi\n```\n'
+    rendered = code_fence(source, 'markdown')
+    assert rendered.startswith('````markdown\n')
+    assert rendered.endswith('\n````')
+    assert '```sh\necho hi\n```' in rendered
 
 
 def test_decision_model_from_local_module(monkeypatch: pytest.MonkeyPatch) -> None:
