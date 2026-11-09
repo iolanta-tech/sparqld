@@ -5,6 +5,7 @@ import shutil
 from pathlib import Path
 
 import pytest
+from ruamel.yaml import YAML
 from serving import (
     PROJECT_DIR,
     ROOT,
@@ -14,9 +15,7 @@ from serving import (
 )
 
 CONTEXT_RELOAD = ROOT / 'docs/examples/context-reload'
-DECLARATIONS = CONTEXT_RELOAD / 'declarations'
 OLD_CONTEXT_RESULTS = CONTEXT_RELOAD / 'results/old'
-STANDALONE_LAYOUT = 'standalone'
 RESULTS_DIR = 'results'
 CONTEXT_RELOAD_QUERIES = tuple(
     (name, CONTEXT_RELOAD / 'queries' / f'{name}.rq') for name in ('alice', 'failures')
@@ -31,6 +30,21 @@ QUERIES = (
     ('alice', SCENARIO / 'queries/alice.rq'),
     ('dependencies', ROOT / 'docs/queries/context-dependencies.rq'),
 )
+YAML_CODEC = YAML()
+CONTEXT_URL = 'urn:context:second'
+
+
+def _dump_yaml(path: Path, document: dict) -> None:
+    with path.open('w') as stream:
+        YAML_CODEC.dump(document, stream)
+
+
+def _registered_body(name_term: str) -> dict:
+    return {
+        '@context': {'name': name_term},
+        '@type': 'http://www.w3.org/ns/json-ld#Context',
+        'http://schema.org/contentUrl': {'@id': CONTEXT_URL},
+    }
 
 
 def test_recursive_context_example(sparqld_binary: Path, tmp_path: Path) -> None:
@@ -58,24 +72,6 @@ def test_declaration_removal_unregisters_context(
         _wait_for_queries(server, QUERIES, SCENARIO / 'results/unregistered')
 
 
-def test_registered_yaml_context_example(
-    sparqld_binary: Path,
-    tmp_path: Path,
-) -> None:
-    """Query the YAML-LD registration example through the public endpoint."""
-    scenario = ROOT / 'docs/examples/registered-context'
-    with _serve(
-        scenario / PROJECT_DIR,
-        sparqld_binary,
-        tmp_path / SERVER_LOG_NAME,
-    ) as server:
-        _wait_for_queries(
-            server,
-            (('alice', scenario / 'queries/alice.rq'),),
-            scenario / RESULTS_DIR,
-        )
-
-
 def test_default_context_needs_no_request(
     sparqld_binary: Path,
     tmp_path: Path,
@@ -91,34 +87,30 @@ def test_default_context_needs_no_request(
         )
 
 
-@pytest.mark.parametrize('layout', [STANDALONE_LAYOUT, 'embedded'])
 def test_context_registration_recovery_and_change(
     sparqld_binary: Path,
     tmp_path: Path,
-    layout: str,
 ) -> None:
     """Register, retarget, and unregister a context while generic metadata remains."""
     project = shutil.copytree(CONTEXT_RELOAD / PROJECT_DIR, tmp_path / PROJECT_DIR)
-    extension = 'ttl' if layout == STANDALONE_LAYOUT else 'trig'
-    declaration = project / f'declaration.{extension}'
+    body = project / 'body.yamlld'
+    alternate = project / 'alternate.yamlld'
     with _serve(project, sparqld_binary, tmp_path / SERVER_LOG_NAME) as server:
         _wait_for_queries(
             server,
             CONTEXT_RELOAD_QUERIES,
             CONTEXT_RELOAD / 'results/unregistered',
         )
-        shutil.copyfile(DECLARATIONS / f'{layout}.{extension}', declaration)
+        _dump_yaml(body, _registered_body('urn:old'))
         _wait_for_queries(server, CONTEXT_RELOAD_QUERIES, OLD_CONTEXT_RESULTS)
-        shutil.copyfile(
-            DECLARATIONS / f'{layout}-updated.{extension}',
-            declaration,
-        )
+        _dump_yaml(body, {'@context': {'name': 'urn:old'}})
+        _dump_yaml(alternate, _registered_body('urn:new'))
         _wait_for_queries(
             server,
             CONTEXT_RELOAD_QUERIES,
             CONTEXT_RELOAD / 'results/new',
         )
-        shutil.copyfile(project / 'metadata.ttl', declaration)
+        _dump_yaml(alternate, {'@context': {'name': 'urn:new'}})
         _wait_for_queries(
             server,
             CONTEXT_RELOAD_QUERIES,
@@ -126,45 +118,28 @@ def test_context_registration_recovery_and_change(
         )
 
 
-def test_context_registration_chain(sparqld_binary: Path, tmp_path: Path) -> None:
-    """Resolve a declaration that itself needs another registered context."""
-    with _serve(
-        CONTEXT_RELOAD / 'chain',
-        sparqld_binary,
-        tmp_path / SERVER_LOG_NAME,
-    ) as server:
-        _wait_for_queries(server, CONTEXT_RELOAD_QUERIES, OLD_CONTEXT_RESULTS)
-
-
-@pytest.mark.parametrize('layout', [STANDALONE_LAYOUT, 'embedded'])
 def test_conflicting_registration_matches_restart(
     sparqld_binary: Path,
     tmp_path: Path,
-    layout: str,
 ) -> None:
-    """Invalidate both declarations and their consumer, then recover on deletion."""
+    """Invalidate both bodies and their consumer, then recover on deletion."""
     project = shutil.copytree(CONTEXT_RELOAD / PROJECT_DIR, tmp_path / PROJECT_DIR)
-    extension = 'ttl' if layout == STANDALONE_LAYOUT else 'trig'
-    shutil.copyfile(
-        DECLARATIONS / f'{layout}.{extension}',
-        project / f'declaration.{extension}',
-    )
+    body = project / 'body.yamlld'
+    alternate = project / 'alternate.yamlld'
+    _dump_yaml(body, _registered_body('urn:old'))
     with _serve(project, sparqld_binary, tmp_path / SERVER_LOG_NAME) as server:
         _wait_for_queries(server, CONTEXT_RELOAD_QUERIES, OLD_CONTEXT_RESULTS)
-        shutil.copyfile(
-            DECLARATIONS / f'{layout}-updated.{extension}',
-            project / f'conflict.{extension}',
-        )
+        _dump_yaml(alternate, _registered_body('urn:new'))
         _wait_for_queries(
             server,
             CONFLICT_QUERIES,
-            CONTEXT_RELOAD / 'results' / f'ambiguous-{layout}',
+            CONTEXT_RELOAD / 'results/ambiguous',
         )
     with _serve(project, sparqld_binary, tmp_path / SERVER_LOG_NAME) as server:
         _wait_for_queries(
             server,
             CONFLICT_QUERIES,
-            CONTEXT_RELOAD / 'results' / f'ambiguous-{layout}',
+            CONTEXT_RELOAD / 'results/ambiguous',
         )
-        (project / f'conflict.{extension}').unlink()
+        alternate.unlink()
         _wait_for_queries(server, CONTEXT_RELOAD_QUERIES, OLD_CONTEXT_RESULTS)
