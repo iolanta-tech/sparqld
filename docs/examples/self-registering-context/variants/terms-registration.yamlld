@@ -1,2 +1,5 @@
-"@id": contexts/terms.yamlld
-defines-context: "https://example.org/contexts/{layout}/terms.yamlld"
+'@context':
+  name: https://schema.org/name
+'@type': http://www.w3.org/ns/json-ld#Context
+http://schema.org/contentUrl:
+  '@id': "https://example.org/contexts/{layout}/terms.yamlld"
