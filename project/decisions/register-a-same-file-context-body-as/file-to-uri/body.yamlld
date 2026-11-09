@@ -1,4 +1,0 @@
-"@context":
-  - https://sparqld.iolanta.tech/contexts/v1.yamlld
-  - name: https://schema.org/name
-defines-context: https://example.org/contexts/person

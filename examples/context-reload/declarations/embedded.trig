@@ -1,3 +1,0 @@
-@prefix sparqld: <https://sparqld.iolanta.tech/> .
-
-<urn:registration> { <sparqld:body.yamlld> sparqld:defines-context <urn:context:second> . }

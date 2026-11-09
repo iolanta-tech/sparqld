@@ -1,3 +1,0 @@
-ASK {
-  <urn:alice> <https://schema.org/name> "Alice" .
-}
