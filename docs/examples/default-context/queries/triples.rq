@@ -1,0 +1,6 @@
+SELECT ?subject ?predicate
+WHERE {
+  VALUES ?subject { <urn:alice> <urn:schema> }
+  ?subject ?predicate ?object .
+}
+ORDER BY ?subject ?predicate
