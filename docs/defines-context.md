@@ -7,39 +7,35 @@
 "@id": https://sparqld.iolanta.tech/defines-context
 "@type": rdf:Property
 title: "sparqld:defines-context"
-description: Link a local body file to the context URI it defines.
+description: Link a named local body file to the context URI it defines.
 ---
 
 # :material-file-link: `sparqld:defines-context`
 
 **IRI:** <https://sparqld.iolanta.tech/defines-context>
 
-Link a local file to the absolute context URI that the file defines. The
-subject is the body file. The object is the context URI. The file must remain
-inside the served directory and use a `.json`, `.jsonld`, or `.yamlld`
-extension.
+Link a named local file to the absolute context URI that the file defines. The
+subject is the IRI of that body file. The object is the context URI. The file
+must remain inside the served directory and use a `.json`, `.jsonld`, or
+`.yamlld` extension.
 
 In this YAML-LD registration, the subject path resolves relative to the
 declaration file:
 
 {{ example_data('registered-context/project/z-context.yamlld') }}
 
-Sources that request `https://example.org/yaml-ctx` use `body.yamlld` after
-this declaration loads. `sparqld` reads the local body without downloading
-the context URI.
+The [default context](reference/contexts/default-context.md) defines the
+`defines-context` term, so this file does not define the term itself. Sources
+that request `https://example.org/yaml-ctx` use `body.yamlld` after this
+declaration loads. `sparqld` reads the local body without downloading the
+context URI.
 
-## :material-file-check-outline: Statement inside the body
+## :material-file-check-outline: Saved context file
 
-A body can define its own context URI. Omit `@id` in that statement.
-`sparqld` takes the file itself as the subject:
-
-{{ example_data('self-registering-context/combined/contexts/person.yamlld') }}
-
-The [built-in context](reference/contexts/built-in-context.md)
-`https://sparqld.iolanta.tech/contexts/v1.jsonld`
-defines the `sparqld:` prefix and the `defines-context` term. Request it in
-every file that states `defines-context`. `sparqld` embeds this context and does
-not download it.
+A fetched context can register the file that saves it. That registration uses
+[`jsonld:Context`](http://www.w3.org/ns/json-ld#Context) and
+[`schema:contentUrl`](http://schema.org/contentUrl), described in
+[Self-registering contexts](reference/contexts/self-registering-contexts.md).
 
 Several declarations may name the same context URI and the same body.
 Distinct bodies for one context URI produce a load error. Changing or
