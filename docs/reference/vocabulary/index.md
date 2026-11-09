@@ -25,12 +25,6 @@ These RDF terms describe context registrations and
 
     Link a source file to the context URIs requested while parsing it.
 
--   :material-file-link:{ .lg .middle } **[`sparqld:defines-context`](https://sparqld.iolanta.tech/defines-context)**
-
-    ---
-
-    Link a named local body file to the absolute context URI it defines in project RDF.
-
 -   :material-code-json:{ .lg .middle } **[`jsonld:Context`](http://www.w3.org/ns/json-ld#Context)**
 
     ---
