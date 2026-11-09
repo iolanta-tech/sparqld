@@ -1,0 +1,5 @@
+{
+  "@context": "https://example.org/ctx",
+  "@id": "http://dbpedia.org/resource/Alpha_Centauri",
+  "name": "Alpha Centauri"
+}
