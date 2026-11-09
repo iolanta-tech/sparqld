@@ -15,7 +15,7 @@ description: MCP tools, prompts, and structured SPARQL query responses.
 
 Configure your MCP client to launch `sparqld mcp <DIRECTORY>` over stdio.
 See the [CLI reference](../index.md#mcp-server) for directory and pattern options,
-or [Codex](codex.md) for plugin setup.
+or [Agents](index.md) for skill-based setup.
 
 ## :material-database-search: Query tool
 
