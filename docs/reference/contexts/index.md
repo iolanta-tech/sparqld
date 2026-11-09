@@ -24,7 +24,7 @@ same file keeps its meaning in another JSON-LD tool.
 | Context | Use |
 | --- | --- |
 | A relative `.jsonld` or `.yamlld` path | A context file under the served directory |
-| An absolute context URI with a project registration | A local body named by [`sparqld:defines-context`](https://sparqld.iolanta.tech/defines-context), or a saved [`jsonld:Context`](http://www.w3.org/ns/json-ld#Context) whose [`schema:contentUrl`](http://schema.org/contentUrl) is that URI |
+| An absolute context URI with a project registration | A saved [`jsonld:Context`](http://www.w3.org/ns/json-ld#Context) whose [`schema:contentUrl`](http://schema.org/contentUrl) is that URI |
 
 Relative contexts resolve from the source's directory. They may also use
 `@import` to reference another relative context. Every referenced file must
@@ -58,30 +58,28 @@ that context explicitly:
 
 `sparqld` does not download context URLs. The one exception is the
 [default context](default-context.md), which `sparqld` embeds. A source that
-names any other absolute context URI loads when project RDF links a local
-`.json`, `.jsonld`, or `.yamlld` body to that URI through
-[`sparqld:defines-context`](https://sparqld.iolanta.tech/defines-context).
-A node of type [`jsonld:Context`](http://www.w3.org/ns/json-ld#Context) with
-[`schema:contentUrl`](http://schema.org/contentUrl) set to the remote URL
-registers the file that contains it. The node can omit `@id`, or set `@id` to
-the remote URL.
+names any other absolute context URI loads when a local `.json`, `.jsonld`, or
+`.yamlld` file contains a node of type
+[`jsonld:Context`](http://www.w3.org/ns/json-ld#Context) with
+[`schema:contentUrl`](http://schema.org/contentUrl) set to that URI. The graph
+that contains the node is the context body. The node can omit `@id`, or set
+`@id` to the remote URL.
 [:fontawesome-brands-github: `iolanta-tech/vitrify`](https://github.com/iolanta-tech/vitrify)
-writes the named form. Multiple declarations may name the same body. Distinct
+writes the named form. Several nodes may register the same body. Distinct
 bodies for one context URI produce a load error.
 
-The [context dependency example](context-dependencies.md) shows a declaration
-that sorts after its consumer. A project that already requests the
-dollar-convenience URL can register it the same way:
+The [context dependency example](context-dependencies.md) shows a registration
+that sorts after its consumer:
 
-{{ example_data('dollar-convenience-context.jsonld') }}
+{{ example_data('recursive-context/project/example.jsonld') }}
 
 See [Self-registering contexts](self-registering-contexts.md) for a saved
 context in the same file as its term map, including bootstrap requirements and
 current error-handling limits.
 
 The [default context](default-context.md) `https://sparqld.iolanta.tech/contexts/v1.yamlld`
-needs no registration and no request. It defines `defines-context` and the
-dollar aliases.
+needs no registration and no request. It defines the dollar aliases and the
+`sparqld:` prefix.
 
 ## :material-shield-lock-outline: Context access
 
