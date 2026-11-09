@@ -39,6 +39,74 @@
   font-size: 1rem;
 }
 
+.md-typeset .start-paths {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  gap: 1rem;
+  align-items: stretch;
+  margin: 1.25em 0 1.5em;
+}
+
+.md-typeset .start-path {
+  min-width: 0;
+  margin: 0;
+  padding: 0.9rem 1rem 1rem;
+  border: 0.05rem solid var(--md-default-fg-color--lightest);
+  border-radius: 0.3rem;
+  background: var(--md-default-bg-color);
+  box-shadow: var(--md-shadow-z1);
+}
+
+.md-typeset .start-path h3 {
+  margin: 0 0 0.6rem;
+  font-size: 0.85rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  line-height: 1.35;
+}
+
+.md-typeset .start-path pre {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.md-typeset .start-path .install-command code {
+  font-size: inherit;
+}
+
+.md-typeset .start-path > :first-child {
+  margin-top: 0;
+}
+
+.md-typeset .start-path > :last-child {
+  margin-bottom: 0;
+}
+
+.md-typeset .start-paths__or {
+  align-self: center;
+  margin: 0;
+  padding: 0.35rem 0.55rem;
+  border-radius: 999px;
+  background: color-mix(
+    in srgb,
+    var(--md-default-fg-color) 6%,
+    var(--md-default-bg-color)
+  );
+  color: var(--md-default-fg-color--light);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  line-height: 1;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+@media screen and (max-width: 59.9375em) {
+  .md-typeset .start-paths {
+    grid-template-columns: 1fr;
+  }
+}
+
 .md-typeset .client-gallery .client-logo {
   display: block;
   width: auto;
