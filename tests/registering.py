@@ -20,8 +20,8 @@ BODY = 'contexts/person.yamlld'
 DOLLAR_BODY = 'contexts/z-dollar.yamlld'
 COMBINED = 'combined'
 LAYOUT_NAME = 'layout'
-ALICE = 'Alice'
-ALICE_FILE = 'alice.yamlld'
+STAR = 'Alpha Centauri'
+STAR_FILE = 'alpha-centauri.yamlld'
 LAYOUTS = (COMBINED,)
 VARIANTS = SCENARIO / 'variants'
 YAML_CODEC = YAML()
@@ -35,7 +35,7 @@ def _dump(path: Path, document: dict) -> None:
 
 QUERIES = tuple(
     (name, SCENARIO / 'queries' / f'{name}.rq')
-    for name in ('alice', 'failures', 'registration')
+    for name in ('alpha-centauri', 'failures', 'registration')
 )
 
 
@@ -94,21 +94,21 @@ class ReloadExpectation:
             document = YamlDocument(self.target)
             document.body.pop('http://schema.org/contentUrl')
             document.save()
-            self.failures = [ALICE_FILE]
+            self.failures = [STAR_FILE]
             self.registered = False
             return
         if self.change == 'delete':
             self.target.unlink()
-            self.failures = [ALICE_FILE]
+            self.failures = [STAR_FILE]
             self.registered = False
             return
         if self.change == 'invalid':
             self.target.write_text('"@context": [')
-            self.failures = [ALICE_FILE, BODY]
+            self.failures = [STAR_FILE, BODY]
             self.registered = False
             return
         self.target.unlink()
-        self.failures = [ALICE_FILE, BODY]
+        self.failures = [STAR_FILE, BODY]
         self.registered = False
 
 
