@@ -9,26 +9,36 @@
 name: Codex agents
 title: Codex
 description: Query a local sparqld knowledge base from Codex.
+hide: [toc]
 ---
 
 # :fontawesome-brands-openai: Codex
 
-Install the Codex plugin from the [:fontawesome-brands-github: `iolanta-tech/sparqld`](https://github.com/iolanta-tech/sparqld)
-GitHub marketplace:
+Install the skill for Codex:
+
+```sh
+npx skills add iolanta-tech/sparqld --skill sparqld -g -a codex
+```
+
+Prefer that path. The Codex marketplace plugin from
+[:fontawesome-brands-github: `iolanta-tech/sparqld`](https://github.com/iolanta-tech/sparqld)
+packages the same skill when you install through Codex instead:
 
 ```sh
 codex plugin marketplace add iolanta-tech/sparqld --ref main
 codex plugin add sparqld@sparqld-development
 ```
 
-Start a new Codex thread and invoke `@sparqld`. Give it the absolute path to
-your knowledge base. When it asks, approve the local MCP configuration. Codex
-gives each knowledge base a separate server name, such as `sparqld-iolanta`.
+Ask Codex to set up the knowledge base:
 
-Open another new thread after registration. Use the `query` tool from that
-server to run read-only SPARQL; edit source files to change data.
+```text
+/sparqld set up a queryable knowledge base at my documents folder
+```
 
-With the example dataset configured through the installed plugin, this Codex
-session used its query tool to find the recorded planets and moons:
+Approve installing `sparqld` and registering the MCP server when it asks. Open a
+new thread after registration. Use the `query` tool from that server.
 
-{{ agent_conversation('plugin-alpha-centauri') }}
+With the example dataset configured, this Codex session used its query tool to
+find the recorded planets:
+
+{{ agent_conversation('alpha-centauri') }}
