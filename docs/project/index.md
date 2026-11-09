@@ -39,7 +39,7 @@ description: Release, source, licensing, and development information for sparqld
 
     ---
 
-    Version 0.1.7 · Rust 1.88 or later with Cargo
+    Version 0.1.7 · Rust 1.89 or later with Cargo
 
 -   :material-source-repository:{ .lg .middle } **Source and issues**
 
