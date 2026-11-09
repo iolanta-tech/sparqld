@@ -38,8 +38,6 @@ def test_decision_page_keeps_a_directory_index() -> None:
     nested = 'sparqld:project/decisions/register-a-same-file-context-body-as/index.md'
     flat = 'sparqld:project/decisions/implement-sparqld-in.md'
 
-    assert decision_page(nested) == (
-        'register-a-same-file-context-body-as/index.md'
-    )
+    assert decision_page(nested) == ('register-a-same-file-context-body-as/index.md')
     assert decision_page(flat) == 'implement-sparqld-in.md'
     assert decision_page('https://example.org/decision') == 'decision'
