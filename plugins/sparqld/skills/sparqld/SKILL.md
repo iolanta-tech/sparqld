@@ -14,15 +14,22 @@ the selected tool launches `sparqld mcp` for that absolute directory, even when
 the tool is already available. If the configuration cannot be verified or
 targets another directory, resolve that before querying.
 
-## Set up MCP
+Do not fetch sparqld documentation from the network. Use this skill,
+`sparqld mcp --help`, and the live MCP tool schema.
 
-If that tool is unavailable:
+## Set up the binary
+
+If the `query` tool is unavailable:
 
 1. Ask permission to check whether the installed executable supports MCP:
 
    ```sh
    sparqld mcp --help
    ```
+
+   Treat that help text as the source of truth for MCP flags such as
+   `--pattern` and `--query-timeout`. Pass any needed flags when registering
+   the server.
 
    If `sparqld` is missing, ask permission to install it with:
 
@@ -41,37 +48,32 @@ If that tool is unavailable:
    ```
 
    Recheck the command before adding the MCP configuration.
-2. Ask permission before configuring the user's MCP client to launch:
+2. Ask permission before configuring Codex. Derive a server name from the
+   knowledge-base directory basename, such as `sparqld-iolanta`.
+
+   Check that name first:
 
    ```sh
-   sparqld mcp /absolute/path/to/data
+   codex mcp get sparqld-iolanta
    ```
 
-   The MCP client owns this stdio process and its tool connection.
+   Reuse it only when it launches `sparqld mcp` for the same absolute directory.
+   A matching configuration under another name does not verify the selected
+   tool. If it points elsewhere, ask the user to choose a distinct name.
 
-## Codex
+   After explicit permission, add the configuration. Put `sparqld mcp` and its
+   arguments after `--`. Add flags only when the user needs them; take names
+   and shapes from `sparqld mcp --help`:
 
-For an available tool, inspect its server's configuration with
-`codex mcp get <server-name>` and verify the command and directory before using
-that tool. A matching configuration under another name does not verify it.
+   ```sh
+   codex mcp add sparqld-iolanta -- sparqld mcp /absolute/path/to/data
+   ```
 
-When setting up a server, derive a name from the directory basename, such as
-`sparqld-iolanta`. Check that name first:
+   Read the configuration back with `codex mcp get <server-name>` and confirm
+   the command and directory.
 
-```sh
-codex mcp get sparqld-iolanta
-```
-
-Reuse it only when it launches `sparqld mcp` for the same absolute directory.
-If it points elsewhere, ask the user to choose a distinct name. After explicit
-permission, add the configuration:
-
-```sh
-codex mcp add sparqld-iolanta -- sparqld mcp /absolute/path/to/data
-```
-
-Ask the user to open a new Codex thread. Use the `query` tool from the server
-configured for the selected directory.
+   Ask the user to open a new Codex thread. Use the `query` tool from the
+   server configured for the selected directory.
 
 ## Query workflow
 

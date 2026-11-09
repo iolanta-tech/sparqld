@@ -33,6 +33,20 @@ def source_heading(
     return f'{title}<span class="example-source-link" markdown>:fontawesome-brands-github: [`{name}`]({github})</span>'
 
 
+def code_fence(source: str, syntax: str) -> str:
+    """Wrap source in a fence longer than any backtick run it contains."""
+    longest = 0
+    current = 0
+    for character in source:
+        if character == '`':
+            current += 1
+            longest = max(longest, current)
+        else:
+            current = 0
+    fence = '`' * max(3, longest + 1)
+    return f'{fence}{syntax}\n{source}\n{fence}'
+
+
 def source_data(
     path: Path,
     repository_path: str | Path,
@@ -45,6 +59,6 @@ def source_data(
     source = path.read_text().rstrip('\n')
     syntax = EXAMPLE_SYNTAXES.get(path.suffix.lower(), 'text')
     heading = source_heading(path, repository_path, title, repo_url)
-    body = f'```{syntax}\n{source}\n```'
+    body = code_fence(source, syntax)
     rendered = f'!!! example "{heading}"\n\n{indent_block(body, 4)}\n'
     return indent_block(rendered, indent)

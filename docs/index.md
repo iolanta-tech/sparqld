@@ -50,30 +50,52 @@ importing it into a database.
 
 </div>
 
-## :material-server-outline: A local endpoint in one command
+## Get started
+
+<div class="start-paths" markdown>
+
+<div class="start-path" markdown>
+
+### :material-robot-outline: Agents
+
+Install the `sparqld` skill for your coding agent:
+
+```sh
+npx skills add iolanta-tech/sparqld --skill sparqld -g
+```
+
+Then ask:
+
+```text
+/sparqld set up a queryable knowledge base at my documents folder
+```
+
+[:material-rocket-launch-outline: Starting with Agents](quickstart/agents.md){ .md-button .md-button--primary }
+
+</div>
+
+<p class="start-paths__or">or</p>
+
+<div class="start-path" markdown>
+
+### :material-server-outline: Local endpoint
 
 <div class="install-command" markdown>
+
+{{ command('cargo install sparqld') }}
 
 {{ command('sparqld ./data') }}
 
 </div>
 
-The directory is served at `http://127.0.0.1:7737/`. Query it from your shell,
-application, or coding agent; edit the files to change the data.
+The directory is served at `http://127.0.0.1:7737/`. Query it from your shell or
+application; edit the files to change the data.
 
-[:material-rocket-launch-outline: Start the Quickstart](quickstart.md){ .md-button .md-button--primary }
-[:material-book-open-page-variant-outline: Browse the reference](reference/index.md){ .md-button }
+[:material-rocket-launch-outline: Starting in CLI](quickstart/cli.md){ .md-button .md-button--primary }
+[:material-book-open-page-variant-outline: Reference](reference/index.md){ .md-button }
 
-## :material-robot-outline: A queryable knowledge base for agents
+</div>
 
-Give an agent the local endpoint and it can inspect the same versioned knowledge
-base that you edit. `sparqld` fits repositories that need reproducible RDF,
-fast feedback, and a clear boundary between querying and changing data.
-
-It is useful for:
-
-- local knowledge bases and ontology repositories;
-- generated RDF build output and application fixtures;
-- documentation projects and agents that need to query their working data.
+</div>
 
 No database service, import script, or synchronization layer is required.

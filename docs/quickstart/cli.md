@@ -4,16 +4,15 @@
   name: schema:name
   title: schema:headline
   description: schema:description
-"@id": quickstart.md
+"@id": quickstart/cli.md
 "@type": schema:HowTo
-icon: material/rocket-launch-outline
-hide: [toc]
-name: Quickstart
-title: Quickstart
-description: Serve Markdown-LD files and run a SPARQL query with sparqld.
+icon: material/console
+name: Starting in CLI
+title: Starting in CLI
+description: Serve Markdown-LD files and run a SPARQL query with sparqld and sq.
 ---
 
-# :material-rocket-launch-outline: Quickstart
+# :material-console: Starting in CLI
 
 This guide needs Cargo. [Install Rust and Cargo](https://rustup.rs/) if it is
 not already available.
@@ -69,5 +68,6 @@ In `data/alpha-centauri.md`, change `Alpha Centauri` to a new name and save the
 file. Run the same `sq` command again: the result changes without restarting
 `sparqld`.
 
-Next, see [Agents](reference/agents/index.md) or browse the
-[compatible SPARQL clients](reference/clients/index.md).
+Browse the [compatible SPARQL clients](../reference/clients/index.md) for other
+ways to query the endpoint, or prefer [Starting with Agents](agents.md) for the
+skill-based path.
