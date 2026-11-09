@@ -16,6 +16,11 @@ reference unless they are needed to complete the task.
 Explain sparqld-specific behavior and less familiar RDF concepts where they
 first become necessary.
 
+## Review
+
+After any change under `docs/` or to `mkdocs.yml`—including a one-character
+edit—run the mkdocs skill review before claiming the work done.
+
 ## Prose
 
 - State an absence only when it corrects a likely reader expectation and

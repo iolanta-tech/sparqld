@@ -34,7 +34,7 @@ def test_reload_and_restart(
     state = registering.ReloadExpectation(project, registering.COMBINED, change)
     live = tmp_path / 'live.log'
     with _serve(project, sparqld_binary, live) as server:
-        registering._wait_state(server, [registering.ALICE], [])
+        registering._wait_state(server, [registering.STAR], [])
         state.apply()
         with registering._recognize_panic(live):
             registering._wait_state(
@@ -51,7 +51,7 @@ def test_reload_and_restart(
             state.registered,
         )
         state.target.write_text(state.original)
-        registering._wait_state(server, [registering.ALICE], [])
+        registering._wait_state(server, [registering.STAR], [])
 
 
 @pytest.mark.parametrize(
@@ -77,7 +77,7 @@ def test_cycles_fail_without_hanging(
     else:
         body.context().insert(0, 'person.yamlld')
     body.save()
-    failures = [registering.ALICE_FILE, registering.BODY]
+    failures = [registering.STAR_FILE, registering.BODY]
     if cycle == 'mutual':
         failures.append(registering.DOLLAR_BODY)
     with (
@@ -98,5 +98,5 @@ def test_missing_nested_dependency_on_startup(
     (project / registering.DOLLAR_BODY).unlink()
     with _serve(project, sparqld_binary, tmp_path / SERVER_LOG_NAME) as server:
         registering._wait_state(
-            server, [], [registering.ALICE_FILE, registering.BODY], False
+            server, [], [registering.STAR_FILE, registering.BODY], False
         )

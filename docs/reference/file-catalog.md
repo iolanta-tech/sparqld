@@ -59,9 +59,9 @@ Query the catalog to find the context requests:
 
 {{ stored_sparql('docs/queries/context-dependencies.rq') | sparql_table }}
 
-The [context dependency example](contexts/context-dependencies.md) shows a remote
-context registration, catalog errors after that declaration is removed, and
-restore.
+[Remote contexts](contexts/remote-contexts.md) shows an unregistered absolute
+context URL, registration with vitrify, and the catalog after that body is
+available.
 
 ## :material-graph-outline: Embedded graphs
 

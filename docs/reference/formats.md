@@ -102,5 +102,4 @@ error-reporting behavior. Dataset formats load their declared named graphs; see
 
 JSON-LD, YAML-LD, and Markdown-LD start from the
 [default context](contexts/default-context.md) and then use the contexts their
-documents declare. See [Contexts](contexts/index.md) for local context files and
-registered context URIs.
+documents declare. See [Contexts](contexts/index.md).

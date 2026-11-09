@@ -2,5 +2,5 @@ title: Contexts
 nav:
   - index.md
   - Default context: default-context.md
-  - Context dependency example: context-dependencies.md
-  - Self-registering contexts: self-registering-contexts.md
+  - Remote contexts: remote-contexts.md
+  - Project contexts: project-contexts.md

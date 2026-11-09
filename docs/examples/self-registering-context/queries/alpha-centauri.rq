@@ -1,0 +1,1 @@
+SELECT ?name WHERE { <http://dbpedia.org/resource/Alpha_Centauri> <https://schema.org/name> ?name }

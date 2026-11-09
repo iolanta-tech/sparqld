@@ -36,6 +36,3 @@
   $value: "@value"
   $version: "@version"
   $vocab: "@vocab"
-
-  # The sparqld vocabulary.
-  sparqld: https://sparqld.iolanta.tech/

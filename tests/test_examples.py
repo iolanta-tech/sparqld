@@ -27,7 +27,7 @@ SCENARIO = ROOT / 'docs/examples/recursive-context'
 QUERIES = (
     ('declaration', SCENARIO / 'queries/declaration.rq'),
     ('failures', SCENARIO / 'queries/failures.rq'),
-    ('alice', SCENARIO / 'queries/alice.rq'),
+    ('alpha-centauri', SCENARIO / 'queries/alpha-centauri.rq'),
     ('dependencies', ROOT / 'docs/queries/context-dependencies.rq'),
 )
 YAML_CODEC = YAML()
@@ -76,7 +76,7 @@ def test_default_context_needs_no_request(
     sparqld_binary: Path,
     tmp_path: Path,
 ) -> None:
-    """Expand dollar aliases by default and let a source context override them."""
+    """Expand dollar aliases from the embedded default context with no request."""
     scenario = ROOT / 'docs/examples/default-context'
     log = tmp_path.joinpath(SERVER_LOG_NAME)
     with _serve(scenario / PROJECT_DIR, sparqld_binary, log) as server:
