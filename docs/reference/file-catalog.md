@@ -44,8 +44,8 @@ dependencies after errors are cleared. Deleting a source removes its outgoing
 edges. Changes to local context files reload their dependent sources, including
 sources whose previous loading attempt failed.
 
-This source requests the dollar-keyword context URL. That URL loads from the
-project declaration in `dollar-convenience-context.jsonld`:
+This source requests a remote context URL. The catalog records the request
+whether or not a local body registers that URL:
 
 {{ example_data('context-dependencies.yamlld') }}
 
