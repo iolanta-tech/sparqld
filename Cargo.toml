@@ -134,7 +134,7 @@
 name = "sparqld"
 version = "0.1.7"
 edition = "2024"
-rust-version = "1.88"
+rust-version = "1.89"
 description = "A live, read-only SPARQL server for RDF files"
 license = "Apache-2.0 OR MIT"
 repository = "https://github.com/iolanta-tech/sparqld"
@@ -170,6 +170,7 @@ cognitive_complexity = "deny"
 missing_docs_in_private_items = "deny"
 
 [dev-dependencies]
+debtmap = "0.24.1"
 rmcp = { version = "3.0.1", features = ["client", "transport-child-process"] }
 tempfile = "3"
 tokio = { version = "1", features = ["process", "time"] }

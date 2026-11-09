@@ -16,16 +16,6 @@
           "type": "uri",
           "value": "https://example.org/ctx"
         }
-      },
-      {
-        "file": {
-          "type": "uri",
-          "value": "sparqld:example.jsonld"
-        },
-        "context": {
-          "type": "uri",
-          "value": "https://sparqld.iolanta.tech/contexts/v1.jsonld"
-        }
       }
     ]
   }

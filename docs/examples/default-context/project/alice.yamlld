@@ -1,0 +1,3 @@
+$id: urn:alice
+$type: https://schema.org/Person
+https://schema.org/name: Alice

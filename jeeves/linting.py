@@ -8,6 +8,7 @@ import typer
 from typer._click.parser import _Option, _OptionParser, _ParsingState
 
 from jeeves.clippy import clippy_findings
+from jeeves.debtmap import lint_debtmap
 from jeeves.diff import modified_lines
 from jeeves.findings import text_findings
 from jeeves.formatting import (
@@ -50,11 +51,12 @@ def lint(
         ),
     ] = None,
 ) -> None:
-    """Check Rust and Python sources."""
+    """Check Rust and Python sources, then debtmap density."""
     if diff is not None:
         lint_diff(diff)
         return
     in_parallel(lint_rust, lint_python)
+    lint_debtmap()
 
 
 def evolve():

@@ -1,5 +1,4 @@
 {
-  "@context": "https://sparqld.iolanta.tech/contexts/v1.jsonld",
   "@id": "dollar-convenience.jsonld",
   "defines-context": "https://json-ld.org/contexts/dollar-convenience.jsonld"
 }

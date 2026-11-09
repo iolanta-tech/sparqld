@@ -23,11 +23,11 @@ two files in one directory:
 {{ example_data('recursive-context/project/example.jsonld', indent=4) }}
 
 Alice requests the context `https://example.org/ctx`.
-`example.jsonld` states that it
-[`sparqld:defines-context`](https://sparqld.iolanta.tech/defines-context)
-`https://example.org/ctx`. The statement has no `@id`, so `sparqld` takes the
-file itself as the subject. `sparqld` loads Alice after it has that statement,
-even though Alice sorts before `example.jsonld`.
+`example.jsonld` contains a
+[`jsonld:Context`](http://www.w3.org/ns/json-ld#Context) node whose
+[`schema:contentUrl`](http://schema.org/contentUrl) is that URL, so `sparqld`
+registers the file. `sparqld` loads Alice after it has that node, even though
+Alice sorts before `example.jsonld`.
 
 ## :material-database-search-outline: Initial state
 
@@ -59,7 +59,7 @@ Further queries check the declaration, failed sources, and Alice's data:
 
 ## :material-refresh: Without the registration
 
-When `example.jsonld` loses its `defines-context` member, the watcher reloads
+When `example.jsonld` loses its [`schema:contentUrl`](http://schema.org/contentUrl) value, the watcher reloads
 Alice. The declaration ASK fails, Alice records a load error, and her name is
 no longer queryable:
 

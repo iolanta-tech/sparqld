@@ -27,8 +27,8 @@ error-reporting behavior. Dataset formats load their declared named graphs; see
 
     `.json`, `.jsonld`
 
-    Linked data in JSON. Declare any terms and keyword aliases in the
-    document's `@context`.
+    Linked data in JSON. Declare terms in the document's `@context`; the
+    default context already supplies the dollar keyword aliases.
 
 -   :simple-yaml:{ .lg .middle } **[YAML-LD](https://www.w3.org/TR/yaml-ld-10/)**
 
@@ -100,6 +100,7 @@ error-reporting behavior. Dataset formats load their declared named graphs; see
 
 ## :material-code-braces-box: Contexts
 
-JSON-LD, YAML-LD, and Markdown-LD use the contexts their documents declare.
-See [Contexts](contexts/index.md) for the supported dollar-keyword context and local
-context files.
+JSON-LD, YAML-LD, and Markdown-LD start from the
+[default context](contexts/default-context.md) and then use the contexts their
+documents declare. See [Contexts](contexts/index.md) for local context files and
+registered context URIs.

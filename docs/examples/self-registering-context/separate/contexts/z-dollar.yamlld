@@ -1,4 +1,5 @@
 '@context':
-- https://sparqld.iolanta.tech/contexts/v1.jsonld
-- $id: '@id'
-defines-context: https://example.org/contexts/separate/dollar
+  $id: '@id'
+'@type': http://www.w3.org/ns/json-ld#Context
+http://schema.org/contentUrl:
+  '@id': https://example.org/contexts/separate/dollar
