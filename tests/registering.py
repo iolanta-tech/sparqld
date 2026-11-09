@@ -95,7 +95,12 @@ class ReloadExpectation:
             return
         if self.change == 'unregister':
             document = YamlDocument(self.target)
-            document.body.pop('defines-context')
+            member = (
+                'http://schema.org/contentUrl'
+                if 'http://schema.org/contentUrl' in document.body
+                else 'defines-context'
+            )
+            document.body.pop(member)
             document.save()
             self.failures = [ALICE_FILE]
             self.registered = False
