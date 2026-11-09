@@ -1,5 +1,0 @@
-{
-  "@context": "https://example.org/ctx",
-  "@id": "urn:alice",
-  "name": "Alice"
-}

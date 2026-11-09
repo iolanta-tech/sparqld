@@ -1,6 +1,6 @@
 SELECT ?subject ?predicate
 WHERE {
-  VALUES ?subject { <urn:alice> <urn:schema> }
-  ?subject ?predicate ?object .
+  <http://dbpedia.org/resource/Alpha_Centauri> ?predicate ?object .
+  BIND(<http://dbpedia.org/resource/Alpha_Centauri> AS ?subject)
 }
-ORDER BY ?subject ?predicate
+ORDER BY ?predicate

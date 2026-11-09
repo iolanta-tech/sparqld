@@ -10,7 +10,7 @@
       {
         "file": {
           "type": "uri",
-          "value": "sparqld:alice.jsonld"
+          "value": "sparqld:alpha-centauri.jsonld"
         },
         "context": {
           "type": "uri",
