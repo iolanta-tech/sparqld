@@ -100,11 +100,13 @@ def test_explicit_base_overrides_registration(
         document = registering.YamlDocument(project / registering.BODY)
     else:
         document = registering.YamlDocument(project / registering.REGISTRATION)
-    node = document.context()
+    node = document.body.get('@context')
     if isinstance(node, list):
         node[-1]['@base'] = 'https://example.org/'
     else:
-        document.set_context([node, {'@base': 'https://example.org/'}])
+        document.set_context(
+            [*([node] if node else []), {'@base': 'https://example.org/'}]
+        )
     document.save()
     log = tmp_path / SERVER_LOG_NAME
     with _serve(project, sparqld_binary, log) as server:
