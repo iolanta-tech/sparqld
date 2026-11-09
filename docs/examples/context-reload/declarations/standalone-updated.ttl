@@ -1,3 +1,0 @@
-@prefix sparqld: <https://sparqld.iolanta.tech/> .
-
-<sparqld:alternate.yamlld> sparqld:defines-context <urn:context:second> .
