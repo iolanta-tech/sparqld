@@ -1,9 +1,9 @@
 {
-  "@context": [
-    "https://sparqld.iolanta.tech/contexts/v1.jsonld",
-    {
-      "name": "https://schema.org/name"
-    }
-  ],
-  "defines-context": "https://example.org/ctx"
+  "@context": {
+    "name": "https://schema.org/name"
+  },
+  "@type": "http://www.w3.org/ns/json-ld#Context",
+  "http://schema.org/contentUrl": {
+    "@id": "https://example.org/ctx"
+  }
 }
