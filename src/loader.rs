@@ -96,9 +96,6 @@ const FILE_CATALOG_GRAPH: NamedNodeRef<'_> = NamedNodeRef::new_unchecked("sparql
 /// Predicate linking a source to each context requested during parsing.
 const JSONLD_CONTEXT: NamedNodeRef<'_> =
     NamedNodeRef::new_unchecked("http://www.w3.org/ns/json-ld#context");
-/// Predicate linking a local body file to the absolute context IRI it defines.
-const DEFINES_CONTEXT: NamedNodeRef<'_> =
-    NamedNodeRef::new_unchecked("https://sparqld.iolanta.tech/defines-context");
 /// Diagnostic text identifying conflicting context body declarations.
 const AMBIGUOUS_TARGETS: &str = "has multiple defining files";
 /// URL of the sparqld default context, which sparqld serves from memory instead of downloading.
@@ -604,7 +601,11 @@ fn staged_reload(dataset: &Store, affected: &BTreeSet<PathBuf>) -> LoadResult<St
     })
 }
 
-/// Load each affected source that still exists, using registrations visible outside the reload.
+/// Load each affected source that still exists, using registrations visible for the reload.
+///
+/// Sources stage into the reload store first. A second pass rebuilds registrations from that
+/// staging store so dependents of a saved-context body see the body's registration in the same
+/// reload that updates the body.
 fn stage_current_sources(
     root: &Path,
     affected: &BTreeSet<PathBuf>,
@@ -612,14 +613,47 @@ fn stage_current_sources(
     dataset: &Store,
     staged: &mut StagedReload,
 ) -> LoadResult<()> {
+    let yaml_json = Arc::new(Mutex::new(BTreeMap::new()));
+    let to_stage = affected
+        .intersection(current_sources)
+        .cloned()
+        .collect::<BTreeSet<_>>();
     let registrations = context_bodies(&lookup_store(
         dataset,
         &staged.store,
         &staged.excluded_graphs,
     )?)?;
-    let yaml_json = Arc::new(Mutex::new(BTreeMap::new()));
-    for relative in affected.intersection(current_sources) {
+    for relative in &to_stage {
         stage_one_source(root, relative, &registrations, &yaml_json, staged)?;
+    }
+    let registrations = context_bodies(&lookup_store(
+        dataset,
+        &staged.store,
+        &staged.excluded_graphs,
+    )?)?;
+    let retries = staged.failed_sources.keys().cloned().collect::<Vec<_>>();
+    for relative in retries {
+        clear_staged_source(staged, &relative)?;
+        stage_one_source(root, &relative, &registrations, &yaml_json, staged)?;
+    }
+    Ok(())
+}
+
+/// Drop a source's staged quads and failure record before retrying it in the same reload.
+fn clear_staged_source(staged: &mut StagedReload, relative: &Path) -> LoadResult<()> {
+    staged.failed_sources.remove(relative);
+    staged.staged_sources.remove(relative);
+    let graph = graph_name(relative)?;
+    let mut graphs = scoped_graphs_for_source(&staged.store, relative)?;
+    graphs.insert(graph);
+    for graph in graphs {
+        let quads = staged
+            .store
+            .quads_for_pattern(None, None, None, Some(graph.as_ref().into()))
+            .collect::<Result<Vec<_>, _>>()?;
+        for quad in quads {
+            staged.store.remove(quad.as_ref())?;
+        }
     }
     Ok(())
 }
@@ -1720,25 +1754,15 @@ struct ContextRegistration {
     graph: String,
 }
 
-/// Read named `defines-context` subjects and materialized context nodes.
+/// Read saved context nodes that register a local body for a context URL.
 fn context_registrations(dataset: &Store) -> LoadResult<Vec<ContextRegistration>> {
-    let defines_context = format!(
-        "SELECT DISTINCT ?context ?body ?graph WHERE {{
-           GRAPH ?graph {{ ?body <{iri}> ?context . }}
-           FILTER(isIRI(?body) && isIRI(?context))
-         }}",
-        iri = DEFINES_CONTEXT.as_str()
-    );
-    let mut registrations =
-        registration_rows(dataset, &defines_context, "context", "body", "graph")?;
-    registrations.extend(registration_rows(
+    registration_rows(
         dataset,
         include_str!("../docs/queries/materialized-contexts.rq"),
         "url",
         "file",
         "file",
-    )?);
-    Ok(registrations)
+    )
 }
 
 /// Collect registration rows whose selected values are IRIs.
@@ -1878,16 +1902,15 @@ mod tests {
         })
     }
 
-    fn write_context_declaration(directory: &Path, url: &str, body_file: &str, body: &[u8]) {
-        fs::write(directory.join(body_file), body).unwrap();
+    fn write_registered_context(
+        directory: &Path,
+        url: &str,
+        body_file: &str,
+        terms: serde_json::Value,
+    ) {
         fs::write(
-            directory.join("z-declaration.jsonld"),
-            serde_json::to_vec(&serde_json::json!({
-                "@context": SPARQLD_CONTEXT_V1,
-                "@id": body_file,
-                "defines-context": url
-            }))
-            .unwrap(),
+            directory.join(body_file),
+            serde_json::to_vec(&materialized_context(url, terms)).unwrap(),
         )
         .unwrap();
     }
@@ -1917,11 +1940,11 @@ mod tests {
             r#"{"@context":{"name":"urn:name"}}"#,
         )
         .unwrap();
-        write_context_declaration(
+        write_registered_context(
             directory.path(),
             "https://example.org/ctx",
             "body.jsonld",
-            br#"{"@context":{"name":"urn:name"}}"#,
+            serde_json::json!({"name": "urn:name"}),
         );
         for (filename, content) in [
             (
@@ -1973,10 +1996,6 @@ mod tests {
                 (
                     "<sparqld:success.jsonld>".into(),
                     "<sparqld:terms.jsonld>".into()
-                ),
-                (
-                    "<sparqld:z-declaration.jsonld>".into(),
-                    "<https://sparqld.iolanta.tech/contexts/v1.yamlld>".into()
                 ),
             ]
         );
@@ -2395,36 +2414,21 @@ mod tests {
         )
         .unwrap();
         fs::write(
-            directory.path().join("body.jsonld"),
-            r#"{"@context":{"name":"urn:name"}}"#,
-        )
-        .unwrap();
-        fs::write(
-            directory.path().join("z-declaration.jsonld"),
-            serde_json::to_vec(&serde_json::json!({
-                "@context": {
-                    "sparqld": "https://sparqld.iolanta.tech/",
-                    "defines-context": {
-                        "@id": "sparqld:defines-context",
-                        "@type": "@id"
-                    }
-                },
-                "@id": "body.jsonld",
-                "defines-context": "https://example.org/ctx"
-            }))
+            directory.path().join("z-body.jsonld"),
+            serde_json::to_vec(&materialized_context(
+                "https://example.org/ctx",
+                serde_json::json!({"name": "urn:name"}),
+            ))
             .unwrap(),
         )
         .unwrap();
         let dataset = Store::new().unwrap();
-
         let load = load_directory_with_stats(directory.path(), &dataset).unwrap();
-
         assert!(
             load.load_errors.is_empty(),
             "load errors: {:?}",
             load.load_errors
         );
-        assert!(load.loaded_sources.contains(Path::new("alice.jsonld")));
         assert!(
             dataset
                 .contains(QuadRef::new(
@@ -2435,6 +2439,7 @@ mod tests {
                 ))
                 .unwrap()
         );
+        assert!(load.loaded_sources.contains(Path::new("alice.jsonld")));
     }
 
     #[test]
@@ -2445,12 +2450,17 @@ mod tests {
             r#"{"@context":"https://example.org/ctx","@id":"urn:alice","name":"Alice"}"#,
         )
         .unwrap();
-        write_context_declaration(
-            directory.path(),
-            "https://example.org/ctx",
-            "body.yamlld",
-            b"'@context':\n  name: urn:name\n",
-        );
+        fs::write(
+            directory.path().join("body.yamlld"),
+            concat!(
+                "'@context':\n",
+                "  name: urn:name\n",
+                "'@type': http://www.w3.org/ns/json-ld#Context\n",
+                "http://schema.org/contentUrl:\n",
+                "  '@id': https://example.org/ctx\n",
+            ),
+        )
+        .unwrap();
         let dataset = Store::new().unwrap();
         let load = load_directory_with_stats(directory.path(), &dataset).unwrap();
         assert!(
@@ -2458,42 +2468,6 @@ mod tests {
             "load errors: {:?}",
             load.load_errors
         );
-        assert!(
-            dataset
-                .contains(QuadRef::new(
-                    NamedNodeRef::new("urn:alice").unwrap(),
-                    NamedNodeRef::new("urn:name").unwrap(),
-                    LiteralRef::new_simple_literal("Alice"),
-                    NamedNodeRef::new("sparqld:alice.jsonld").unwrap(),
-                ))
-                .unwrap()
-        );
-    }
-
-    #[test]
-    fn resolves_a_body_excluded_from_source_patterns() {
-        let directory = tempfile::tempdir().unwrap();
-        fs::write(
-            directory.path().join("alice.jsonld"),
-            r#"{"@context":"https://example.org/ctx","@id":"urn:alice","name":"Alice"}"#,
-        )
-        .unwrap();
-        write_context_declaration(
-            directory.path(),
-            "https://example.org/ctx",
-            "body.jsonld",
-            br#"{"@context":{"name":"urn:name"}}"#,
-        );
-        let patterns =
-            SourcePatterns::compile(&["*.jsonld".into(), "!body.jsonld".into()]).unwrap();
-        let dataset = Store::new().unwrap();
-        let load = load_directory_with_patterns(directory.path(), &dataset, &patterns).unwrap();
-        assert!(
-            load.load_errors.is_empty(),
-            "load errors: {:?}",
-            load.load_errors
-        );
-        assert!(!load.loaded_sources.contains(Path::new("body.jsonld")));
         assert!(
             dataset
                 .contains(QuadRef::new(
@@ -2514,36 +2488,23 @@ mod tests {
             "<urn:keep> <urn:value> \"kept\" .",
         )
         .unwrap();
-        write_context_declaration(
-            directory.path(),
-            "https://example.org/ctx",
-            "one.jsonld",
-            br#"{"@context":{"name":"urn:name"}}"#,
-        );
-        fs::write(
-            directory.path().join("two.jsonld"),
-            br#"{"@context":{"name":"urn:other"}}"#,
-        )
-        .unwrap();
-        fs::write(
-            directory.path().join("a-declaration.jsonld"),
-            serde_json::to_vec(&serde_json::json!({
-                "@context": SPARQLD_CONTEXT_V1,
-                "@id": "two.jsonld",
-                "defines-context": "https://example.org/ctx"
-            }))
-            .unwrap(),
-        )
-        .unwrap();
+        for (name, term) in [("one.jsonld", "urn:name"), ("two.jsonld", "urn:other")] {
+            fs::write(
+                directory.path().join(name),
+                serde_json::to_vec(&materialized_context(
+                    "https://example.org/ctx",
+                    serde_json::json!({"name": term}),
+                ))
+                .unwrap(),
+            )
+            .unwrap();
+        }
         let dataset = Store::new().unwrap();
         let load = load_directory_with_stats(directory.path(), &dataset).unwrap();
-        for declaration in ["a-declaration.jsonld", "z-declaration.jsonld"] {
-            let error = &load.load_errors[Path::new(declaration)];
-            assert!(
-                error.contains("multiple defining files"),
-                "{declaration}: {error}"
-            );
-            assert!(!load.loaded_sources.contains(Path::new(declaration)));
+        for name in ["one.jsonld", "two.jsonld"] {
+            let error = &load.load_errors[Path::new(name)];
+            assert!(error.contains("multiple defining files"), "{name}: {error}");
+            assert!(!load.loaded_sources.contains(Path::new(name)));
         }
         assert!(load.loaded_sources.contains(Path::new("keep.ttl")));
         assert!(
@@ -2620,11 +2581,11 @@ mod tests {
             r#"{"@context":"https://example.org/ctx","@id":"urn:alice","name":"Alice"}"#,
         )
         .unwrap();
-        write_context_declaration(
+        write_registered_context(
             directory.path(),
             "https://example.org/ctx",
             "body.json",
-            br#"{"@context":{"name":"urn:name"}}"#,
+            serde_json::json!({"name": "urn:name"}),
         );
         let dataset = Store::new().unwrap();
         let load = load_directory_with_stats(directory.path(), &dataset).unwrap();
@@ -2646,119 +2607,19 @@ mod tests {
     }
 
     #[test]
-    fn records_a_malformed_registered_body() {
+    fn skips_registration_when_the_body_fails_to_load() {
         let directory = tempfile::tempdir().unwrap();
         fs::write(
             directory.path().join("alice.jsonld"),
             r#"{"@context":"https://example.org/ctx","@id":"urn:alice","name":"Alice"}"#,
         )
         .unwrap();
-        write_context_declaration(
-            directory.path(),
-            "https://example.org/ctx",
-            "body.jsonld",
-            b"{",
-        );
+        fs::write(directory.path().join("body.jsonld"), "{").unwrap();
         let dataset = Store::new().unwrap();
         let load = load_directory_with_stats(directory.path(), &dataset).unwrap();
         let error = &load.load_errors[Path::new("alice.jsonld")];
-        assert!(!error.contains("context is not registered"), "{error}");
-        assert!(error.contains("https://example.org/ctx"), "{error}");
-    }
-
-    #[test]
-    fn accepts_identical_defines_context_declarations() {
-        let directory = tempfile::tempdir().unwrap();
-        fs::write(
-            directory.path().join("alice.jsonld"),
-            r#"{"@context":"https://example.org/ctx","@id":"urn:alice","name":"Alice"}"#,
-        )
-        .unwrap();
-        fs::write(
-            directory.path().join("body.jsonld"),
-            r#"{"@context":{"name":"urn:name"}}"#,
-        )
-        .unwrap();
-        let declaration = serde_json::json!({
-            "@context": SPARQLD_CONTEXT_V1,
-            "@id": "body.jsonld",
-            "defines-context": "https://example.org/ctx"
-        });
-        fs::write(
-            directory.path().join("a-declaration.jsonld"),
-            serde_json::to_vec(&declaration).unwrap(),
-        )
-        .unwrap();
-        fs::write(
-            directory.path().join("b-declaration.jsonld"),
-            serde_json::to_vec(&declaration).unwrap(),
-        )
-        .unwrap();
-        let dataset = Store::new().unwrap();
-        let load = load_directory_with_stats(directory.path(), &dataset).unwrap();
-        assert!(
-            load.load_errors.is_empty(),
-            "load errors: {:?}",
-            load.load_errors
-        );
-        assert!(
-            dataset
-                .contains(QuadRef::new(
-                    NamedNodeRef::new("urn:alice").unwrap(),
-                    NamedNodeRef::new("urn:name").unwrap(),
-                    LiteralRef::new_simple_literal("Alice"),
-                    NamedNodeRef::new("sparqld:alice.jsonld").unwrap(),
-                ))
-                .unwrap()
-        );
-    }
-
-    #[test]
-    fn registers_a_context_from_a_separate_source() {
-        let directory = tempfile::tempdir().unwrap();
-        fs::write(
-            directory.path().join("alice.jsonld"),
-            r#"{"@context":"https://example.org/ctx","@id":"urn:alice","name":"Alice"}"#,
-        )
-        .unwrap();
-        fs::write(
-            directory.path().join("body.jsonld"),
-            r#"{"@context":{"name":"urn:name"}}"#,
-        )
-        .unwrap();
-        fs::write(
-            directory.path().join("z-url.jsonld"),
-            serde_json::to_vec(&serde_json::json!({
-                "@context": {
-                    "sparqld": "https://sparqld.iolanta.tech/",
-                    "defines-context": {
-                        "@id": "sparqld:defines-context",
-                        "@type": "@id"
-                    }
-                },
-                "@id": "body.jsonld",
-                "defines-context": "https://example.org/ctx"
-            }))
-            .unwrap(),
-        )
-        .unwrap();
-        let dataset = Store::new().unwrap();
-        let load = load_directory_with_stats(directory.path(), &dataset).unwrap();
-        assert!(
-            load.load_errors.is_empty(),
-            "load errors: {:?}",
-            load.load_errors
-        );
-        assert!(
-            dataset
-                .contains(QuadRef::new(
-                    NamedNodeRef::new("urn:alice").unwrap(),
-                    NamedNodeRef::new("urn:name").unwrap(),
-                    LiteralRef::new_simple_literal("Alice"),
-                    NamedNodeRef::new("sparqld:alice.jsonld").unwrap(),
-                ))
-                .unwrap()
-        );
+        assert!(error.contains("context is not registered"), "{error}");
+        assert!(load.load_errors.contains_key(Path::new("body.jsonld")));
     }
 
     #[test]
@@ -2884,40 +2745,6 @@ mod tests {
                     NamedNodeRef::new("sparqld:z-body.jsonld").unwrap(),
                 ))
                 .unwrap()
-        );
-    }
-
-    #[test]
-    fn keeps_a_blank_defines_context_subject_unregistered() {
-        let directory = tempfile::tempdir().unwrap();
-        fs::write(
-            directory.path().join("alice.jsonld"),
-            r#"{"@context":"https://example.org/ctx","@id":"urn:alice","name":"Alice"}"#,
-        )
-        .unwrap();
-        fs::write(
-            directory.path().join("z-body.jsonld"),
-            serde_json::to_vec(&serde_json::json!({
-                "defines-context": "https://example.org/ctx"
-            }))
-            .unwrap(),
-        )
-        .unwrap();
-        let dataset = Store::new().unwrap();
-
-        let load = load_directory_with_stats(directory.path(), &dataset).unwrap();
-
-        let error = &load.load_errors[Path::new("alice.jsonld")];
-        assert!(error.contains("context is not registered"), "{error}");
-        let quads = dataset
-            .quads_for_pattern(None, Some(DEFINES_CONTEXT), None, None)
-            .collect::<Result<Vec<_>, _>>()
-            .unwrap();
-        assert_eq!(quads.len(), 1);
-        assert!(matches!(quads[0].subject, NamedOrBlankNode::BlankNode(_)));
-        assert_eq!(
-            quads[0].graph_name,
-            NamedNode::new("sparqld:z-body.jsonld").unwrap().into()
         );
     }
 
@@ -3067,24 +2894,17 @@ mod tests {
     fn serves_the_embedded_sparqld_context_without_a_file() {
         let directory = tempfile::tempdir().unwrap();
         fs::write(
-            directory.path().join("declaration.jsonld"),
+            directory.path().join("alice.jsonld"),
             serde_json::to_vec(&serde_json::json!({
                 "@context": SPARQLD_CONTEXT_V1,
-                "@id": "body.jsonld",
-                "defines-context": "https://example.org/ctx"
+                "$id": "urn:alice",
+                "$type": "https://schema.org/Person"
             }))
             .unwrap(),
         )
         .unwrap();
-        fs::write(
-            directory.path().join("body.jsonld"),
-            r#"{"@context":{"name":"urn:name"}}"#,
-        )
-        .unwrap();
         let dataset = Store::new().unwrap();
-
         let load = load_directory_with_stats(directory.path(), &dataset).unwrap();
-
         assert!(
             load.load_errors.is_empty(),
             "load errors: {:?}",
@@ -3093,7 +2913,7 @@ mod tests {
         assert!(
             dataset
                 .contains(QuadRef::new(
-                    NamedNodeRef::new("sparqld:declaration.jsonld").unwrap(),
+                    NamedNodeRef::new("sparqld:alice.jsonld").unwrap(),
                     JSONLD_CONTEXT,
                     NamedNodeRef::new(SPARQLD_CONTEXT_V1).unwrap(),
                     FILE_CATALOG_GRAPH,
@@ -3161,16 +2981,15 @@ mod tests {
             "alice.jsonld",
             &serde_json::json!({
                 "$id": "urn:alice",
-                "defines-context": "https://example.org/ctx"
+                "$type": "https://schema.org/Person"
             }),
         );
-
         assert!(
             dataset
                 .contains(QuadRef::new(
                     NamedNodeRef::new("urn:alice").unwrap(),
-                    DEFINES_CONTEXT,
-                    NamedNodeRef::new("https://example.org/ctx").unwrap(),
+                    NamedNodeRef::new("http://www.w3.org/1999/02/22-rdf-syntax-ns#type").unwrap(),
+                    NamedNodeRef::new("https://schema.org/Person").unwrap(),
                     NamedNodeRef::new("sparqld:alice.jsonld").unwrap(),
                 ))
                 .unwrap()
@@ -3183,7 +3002,10 @@ mod tests {
         let dataset = load_single_source(
             "people.jsonld",
             &serde_json::json!([
-                {"$id": "urn:alice", "defines-context": "https://example.org/a"},
+                {
+                    "$id": "urn:alice",
+                    "$type": "https://schema.org/Person"
+                },
                 {
                     "@context": {"name": "https://schema.org/name"},
                     "$id": "urn:bob",
@@ -3191,13 +3013,12 @@ mod tests {
                 }
             ]),
         );
-
         assert!(
             dataset
                 .contains(QuadRef::new(
                     NamedNodeRef::new("urn:alice").unwrap(),
-                    DEFINES_CONTEXT,
-                    NamedNodeRef::new("https://example.org/a").unwrap(),
+                    NamedNodeRef::new("http://www.w3.org/1999/02/22-rdf-syntax-ns#type").unwrap(),
+                    NamedNodeRef::new("https://schema.org/Person").unwrap(),
                     NamedNodeRef::new("sparqld:people.jsonld").unwrap(),
                 ))
                 .unwrap()
@@ -3222,21 +3043,28 @@ mod tests {
             &serde_json::json!({
                 "@context": {
                     "$id": "https://example.org/id",
-                    "defines-context": "https://example.org/own-term"
+                    "$type": "https://example.org/type"
                 },
                 "@id": "urn:alice",
-                "defines-context": "plain text",
+                "$type": "plain text",
                 "$id": "plain text"
             }),
         );
-
         assert!(
             dataset
-                .quads_for_pattern(None, Some(DEFINES_CONTEXT), None, None,)
+                .quads_for_pattern(
+                    Some(NamedNodeRef::new("urn:alice").unwrap().into()),
+                    Some(
+                        NamedNodeRef::new("http://www.w3.org/1999/02/22-rdf-syntax-ns#type")
+                            .unwrap()
+                    ),
+                    None,
+                    None,
+                )
                 .next()
                 .is_none()
         );
-        for predicate in ["https://example.org/own-term", "https://example.org/id"] {
+        for predicate in ["https://example.org/type", "https://example.org/id"] {
             assert!(
                 dataset
                     .quads_for_pattern(
@@ -3259,14 +3087,21 @@ mod tests {
             &serde_json::json!({
                 "@context": [null, {"note": "https://example.org/note"}],
                 "@id": "urn:alice",
-                "defines-context": "https://example.org/ctx",
+                "$type": "https://schema.org/Person",
                 "note": "kept"
             }),
         );
-
         assert!(
             dataset
-                .quads_for_pattern(None, Some(DEFINES_CONTEXT), None, None)
+                .quads_for_pattern(
+                    Some(NamedNodeRef::new("urn:alice").unwrap().into()),
+                    Some(
+                        NamedNodeRef::new("http://www.w3.org/1999/02/22-rdf-syntax-ns#type")
+                            .unwrap()
+                    ),
+                    None,
+                    None,
+                )
                 .next()
                 .is_none()
         );
@@ -3291,11 +3126,11 @@ mod tests {
             r#"{"@context":"ipfs://bafyexample/context","@id":"urn:alice","name":"Alice"}"#,
         )
         .unwrap();
-        write_context_declaration(
+        write_registered_context(
             directory.path(),
             "ipfs://bafyexample/context",
             "body.jsonld",
-            br#"{"@context":{"name":"urn:name"}}"#,
+            serde_json::json!({"name": "urn:name"}),
         );
         let dataset = Store::new().unwrap();
         let load = load_directory_with_stats(directory.path(), &dataset).unwrap();
@@ -3317,32 +3152,6 @@ mod tests {
     }
 
     #[test]
-    fn rejects_a_registered_body_outside_the_served_directory() {
-        let directory = tempfile::tempdir().unwrap();
-        fs::write(
-            directory.path().join("alice.jsonld"),
-            r#"{"@context":"https://example.org/ctx","@id":"urn:alice","name":"Alice"}"#,
-        )
-        .unwrap();
-        fs::write(
-            directory.path().join("z-declaration.jsonld"),
-            serde_json::to_vec(&serde_json::json!({
-                "@context": {
-                    "sparqld": null
-                },
-                "@id": "sparqld:../outside.jsonld",
-                "defines-context": "https://example.org/ctx"
-            }))
-            .unwrap(),
-        )
-        .unwrap();
-        let dataset = Store::new().unwrap();
-        let load = load_directory_with_stats(directory.path(), &dataset).unwrap();
-        let error = &load.load_errors[Path::new("alice.jsonld")];
-        assert!(error.contains("outside the served directory"), "{error}");
-    }
-
-    #[test]
     fn resolves_nested_imports_against_the_requested_context_uri() {
         let directory = tempfile::tempdir().unwrap();
         fs::write(
@@ -3350,36 +3159,18 @@ mod tests {
             r#"{"@context":"https://example.org/parent","@id":"urn:alice","name":"Alice"}"#,
         )
         .unwrap();
-        fs::write(
-            directory.path().join("parent.jsonld"),
-            r#"{"@context":{"@import":"https://example.org/child"}}"#,
-        )
-        .unwrap();
-        fs::write(
-            directory.path().join("child.jsonld"),
-            r#"{"@context":{"name":"urn:name"}}"#,
-        )
-        .unwrap();
-        fs::write(
-            directory.path().join("parent-declaration.jsonld"),
-            serde_json::to_vec(&serde_json::json!({
-                "@context": SPARQLD_CONTEXT_V1,
-                "@id": "parent.jsonld",
-                "defines-context": "https://example.org/parent"
-            }))
-            .unwrap(),
-        )
-        .unwrap();
-        fs::write(
-            directory.path().join("z-child-declaration.jsonld"),
-            serde_json::to_vec(&serde_json::json!({
-                "@context": SPARQLD_CONTEXT_V1,
-                "@id": "child.jsonld",
-                "defines-context": "https://example.org/child"
-            }))
-            .unwrap(),
-        )
-        .unwrap();
+        write_registered_context(
+            directory.path(),
+            "https://example.org/parent",
+            "parent.jsonld",
+            serde_json::json!({"@import": "https://example.org/child"}),
+        );
+        write_registered_context(
+            directory.path(),
+            "https://example.org/child",
+            "child.jsonld",
+            serde_json::json!({"name": "urn:name"}),
+        );
         let dataset = Store::new().unwrap();
         let load = load_directory_with_stats(directory.path(), &dataset).unwrap();
         assert!(
@@ -3407,19 +3198,20 @@ mod tests {
             r#"{"@context":"https://example.org/ctx","@id":"urn:alice","name":"Alice"}"#,
         )
         .unwrap();
-        write_context_declaration(
+        write_registered_context(
             directory.path(),
             "https://example.org/ctx",
             "body.jsonld",
-            br#"{"@context":{"name":"urn:old"}}"#,
+            serde_json::json!({"name": "urn:old"}),
         );
         let dataset = Store::new().unwrap();
         let load = load_directory_with_stats(directory.path(), &dataset).unwrap();
-        fs::write(
-            directory.path().join("body.jsonld"),
-            br#"{"@context":{"name":"urn:new"}}"#,
-        )
-        .unwrap();
+        write_registered_context(
+            directory.path(),
+            "https://example.org/ctx",
+            "body.jsonld",
+            serde_json::json!({"name": "urn:new"}),
+        );
         let report = reload_changed(
             directory.path(),
             &BTreeSet::from([directory.path().join("body.jsonld")]),
@@ -3442,25 +3234,29 @@ mod tests {
     }
 
     #[test]
-    fn reloads_dependents_when_a_declaration_is_deleted() {
+    fn reloads_dependents_when_a_registration_is_removed() {
         let directory = tempfile::tempdir().unwrap();
         fs::write(
             directory.path().join("alice.jsonld"),
             r#"{"@context":"https://example.org/ctx","@id":"urn:alice","name":"Alice"}"#,
         )
         .unwrap();
-        write_context_declaration(
+        write_registered_context(
             directory.path(),
             "https://example.org/ctx",
             "body.jsonld",
-            br#"{"@context":{"name":"urn:name"}}"#,
+            serde_json::json!({"name": "urn:name"}),
         );
         let dataset = Store::new().unwrap();
         let load = load_directory_with_stats(directory.path(), &dataset).unwrap();
-        fs::remove_file(directory.path().join("z-declaration.jsonld")).unwrap();
+        fs::write(
+            directory.path().join("body.jsonld"),
+            r#"{"@context":{"name":"urn:name"}}"#,
+        )
+        .unwrap();
         let report = reload_changed(
             directory.path(),
-            &BTreeSet::from([directory.path().join("z-declaration.jsonld")]),
+            &BTreeSet::from([directory.path().join("body.jsonld")]),
             &load.loaded_sources,
             &load.load_errors,
             &dataset,
@@ -3528,12 +3324,24 @@ mod tests {
 
     #[test]
     fn separates_one_reload_from_failure_recovery() {
-        let directory = Path::new("docs/examples/context-reload/chain");
+        let directory = tempfile::tempdir().unwrap();
+        fs::write(
+            directory.path().join("alice.jsonld"),
+            r#"{"@context":"https://example.org/parent","@id":"urn:alice","name":"Alice"}"#,
+        )
+        .unwrap();
+        write_registered_context(
+            directory.path(),
+            "https://example.org/parent",
+            "parent.jsonld",
+            serde_json::json!({"@import": "https://example.org/child"}),
+        );
+        // child is missing on the first pass
         let dataset = Store::new().unwrap();
         let patterns = SourcePatterns::all();
-        let sources = source_paths(directory, &patterns).unwrap();
+        let sources = source_paths(directory.path(), &patterns).unwrap();
         let first = reload_changed_with_patterns(
-            directory,
+            directory.path(),
             &sources,
             &BTreeSet::new(),
             &BTreeMap::new(),
@@ -3541,25 +3349,32 @@ mod tests {
             &patterns,
         )
         .unwrap();
-        assert_eq!(
-            first.load_errors.keys().cloned().collect::<BTreeSet<_>>(),
-            BTreeSet::from([
-                PathBuf::from("alice.yamlld"),
-                PathBuf::from("second.yamlld"),
-            ])
-        );
+        assert!(first.load_errors.contains_key(Path::new("alice.jsonld")));
+        assert!(first.load_errors.contains_key(Path::new("parent.jsonld")));
 
+        write_registered_context(
+            directory.path(),
+            "https://example.org/child",
+            "child.jsonld",
+            serde_json::json!({"name": "urn:name"}),
+        );
+        let mut changed = retry::failed_files(&dataset).unwrap();
+        changed.insert(PathBuf::from("child.jsonld"));
         let recovered = retry::reload_with_retries(
-            directory,
-            &retry::failed_files(&dataset).unwrap(),
+            directory.path(),
+            &changed,
             &first.loaded_sources,
             &first.load_errors,
             &dataset,
             &patterns,
         )
         .unwrap();
-        assert_eq!(recovered.loaded_sources, sources);
-        assert!(recovered.load_errors.is_empty());
+        assert!(
+            recovered.load_errors.is_empty(),
+            "{:?}",
+            recovered.load_errors
+        );
+        assert!(recovered.loaded_sources.contains(Path::new("alice.jsonld")));
         assert!(retry::failed_files(&dataset).unwrap().is_empty());
     }
 
@@ -4398,23 +4213,20 @@ mod tests {
             r#"{"@context":"https://example.org/aliases","$id":"urn:json-subject","$type":"urn:Type"}"#,
         )
         .unwrap();
-        write_context_declaration(
+        write_registered_context(
             directory.path(),
             "https://example.org/aliases",
             "aliases.jsonld",
-            br#"{"@context":{"$id":"@id","$type":"@type"}}"#,
+            serde_json::json!({"$id": "@id", "$type": "@type"}),
         );
         let dataset = Store::new().unwrap();
-
         let loaded = load_directory(directory.path(), &dataset).unwrap();
-
         assert_eq!(
             loaded,
             BTreeSet::from([
                 PathBuf::from("aliases.jsonld"),
                 PathBuf::from("source.jsonld"),
                 PathBuf::from("source.yamlld"),
-                PathBuf::from("z-declaration.jsonld"),
             ])
         );
         for (subject, graph) in [
