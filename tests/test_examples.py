@@ -17,6 +17,7 @@ CONTEXT_RELOAD = ROOT / 'docs/examples/context-reload'
 DECLARATIONS = CONTEXT_RELOAD / 'declarations'
 OLD_CONTEXT_RESULTS = CONTEXT_RELOAD / 'results/old'
 STANDALONE_LAYOUT = 'standalone'
+RESULTS_DIR = 'results'
 CONTEXT_RELOAD_QUERIES = tuple(
     (name, CONTEXT_RELOAD / 'queries' / f'{name}.rq') for name in ('alice', 'failures')
 )
@@ -52,7 +53,7 @@ def test_declaration_removal_unregisters_context(
     with _serve(project, sparqld_binary, tmp_path / SERVER_LOG_NAME) as server:
         _wait_for_queries(server, QUERIES, SCENARIO / 'results/initial')
         document = json.loads(body.read_text())
-        document.pop('defines-context')
+        document.pop('http://schema.org/contentUrl')
         body.write_text(json.dumps(document))
         _wait_for_queries(server, QUERIES, SCENARIO / 'results/unregistered')
 
@@ -71,7 +72,22 @@ def test_registered_yaml_context_example(
         _wait_for_queries(
             server,
             (('alice', scenario / 'queries/alice.rq'),),
-            scenario / 'results',
+            scenario / RESULTS_DIR,
+        )
+
+
+def test_default_context_needs_no_request(
+    sparqld_binary: Path,
+    tmp_path: Path,
+) -> None:
+    """Expand dollar aliases by default and let a source context override them."""
+    scenario = ROOT / 'docs/examples/default-context'
+    log = tmp_path.joinpath(SERVER_LOG_NAME)
+    with _serve(scenario / PROJECT_DIR, sparqld_binary, log) as server:
+        _wait_for_queries(
+            server,
+            (('triples', scenario / 'queries/triples.rq'),),
+            scenario / RESULTS_DIR,
         )
 
 
