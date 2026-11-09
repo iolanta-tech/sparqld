@@ -1,3 +1,0 @@
-"@context": "http://127.0.0.1:{port}/context"
-"@id": urn:alice
-name: Alice
