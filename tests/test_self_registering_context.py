@@ -1,4 +1,4 @@
-"""Compare context bodies that carry their registration with separate declarations."""
+"""Exercise context bodies that carry their own registration."""
 
 import shutil
 from pathlib import Path
@@ -8,11 +8,10 @@ import registering
 from serving import PROJECT_DIR, SERVER_LOG_NAME, _serve, _wait_for_queries
 
 
-@pytest.mark.parametrize(registering.LAYOUT_NAME, registering.LAYOUTS)
-def test_bootstrap(sparqld_binary: Path, tmp_path: Path, layout: str) -> None:
+def test_bootstrap(sparqld_binary: Path, tmp_path: Path) -> None:
     """Late dollar registration and late person registration resolve on startup."""
     with _serve(
-        registering.SCENARIO / layout,
+        registering.SCENARIO / registering.COMBINED,
         sparqld_binary,
         tmp_path / SERVER_LOG_NAME,
     ) as server:
@@ -20,24 +19,19 @@ def test_bootstrap(sparqld_binary: Path, tmp_path: Path, layout: str) -> None:
 
 
 @pytest.mark.parametrize(
-    (registering.LAYOUT_NAME, 'change'),
-    [
-        pytest.param(layout, change, marks=registering.KNOWN_PANIC)
-        if (layout, change) == (registering.SEPARATE, 'dollar')
-        else (layout, change)
-        for layout in registering.LAYOUTS
-        for change in ('edit', 'delete', 'invalid', 'unregister', 'dollar')
-    ],
+    'change',
+    ('edit', 'delete', 'invalid', 'unregister', 'dollar'),
 )
 def test_reload_and_restart(
     sparqld_binary: Path,
     tmp_path: Path,
-    layout: str,
     change: str,
 ) -> None:
     """Live changes and cold starts reach the same state; restoring files recovers."""
-    project = shutil.copytree(registering.SCENARIO / layout, tmp_path / PROJECT_DIR)
-    state = registering.ReloadExpectation(project, layout, change)
+    project = shutil.copytree(
+        registering.SCENARIO / registering.COMBINED, tmp_path / PROJECT_DIR
+    )
+    state = registering.ReloadExpectation(project, registering.COMBINED, change)
     live = tmp_path / 'live.log'
     with _serve(project, sparqld_binary, live) as server:
         registering._wait_state(server, [registering.ALICE], [])
@@ -93,19 +87,16 @@ def test_cycles_fail_without_hanging(
         registering._wait_state(server, [], failures, False)
 
 
-@registering.KNOWN_PANIC
 def test_missing_nested_dependency_on_startup(
     sparqld_binary: Path,
     tmp_path: Path,
 ) -> None:
     """A missing nested context should produce catalog errors during a cold start."""
     project = shutil.copytree(
-        registering.SCENARIO / registering.SEPARATE, tmp_path / PROJECT_DIR
+        registering.SCENARIO / registering.COMBINED, tmp_path / PROJECT_DIR
     )
     (project / registering.DOLLAR_BODY).unlink()
-    log = tmp_path / SERVER_LOG_NAME
-    with (
-        _serve(project, sparqld_binary, log) as server,
-        registering._recognize_panic(log),
-    ):
-        registering._wait_state(server, [], [registering.ALICE_FILE, registering.BODY])
+    with _serve(project, sparqld_binary, tmp_path / SERVER_LOG_NAME) as server:
+        registering._wait_state(
+            server, [], [registering.ALICE_FILE, registering.BODY], False
+        )
