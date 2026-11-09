@@ -10,7 +10,7 @@
       {
         "subject": {
           "type": "uri",
-          "value": "urn:alice"
+          "value": "http://dbpedia.org/resource/Alpha_Centauri"
         },
         "predicate": {
           "type": "uri",
@@ -20,21 +20,11 @@
       {
         "subject": {
           "type": "uri",
-          "value": "urn:alice"
+          "value": "http://dbpedia.org/resource/Alpha_Centauri"
         },
         "predicate": {
           "type": "uri",
           "value": "https://schema.org/name"
-        }
-      },
-      {
-        "subject": {
-          "type": "uri",
-          "value": "urn:schema"
-        },
-        "predicate": {
-          "type": "uri",
-          "value": "https://example.org/vocab/id"
         }
       }
     ]
