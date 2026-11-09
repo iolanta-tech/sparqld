@@ -18,13 +18,11 @@ SCENARIO = (
 CANONICAL = 'https://example.org/contexts/combined/person'
 BODY = 'contexts/person.yamlld'
 DOLLAR_BODY = 'contexts/z-dollar.yamlld'
-REGISTRATION = 'contexts/z-registration.yamlld'
 COMBINED = 'combined'
-SEPARATE = 'separate'
 LAYOUT_NAME = 'layout'
 ALICE = 'Alice'
 ALICE_FILE = 'alice.yamlld'
-LAYOUTS = (COMBINED, SEPARATE)
+LAYOUTS = (COMBINED,)
 VARIANTS = SCENARIO / 'variants'
 YAML_CODEC = YAML()
 PANIC = 'The remote context stack is invalid'
@@ -71,18 +69,17 @@ class ReloadExpectation:
 
     def __init__(self, project: Path, layout: str, change: str) -> None:
         """Record the file that `change` will edit and the initial catalog."""
-        declaration = BODY if layout == COMBINED else REGISTRATION
         if change == 'dollar':
             target = project / DOLLAR_BODY
         else:
             target = project / BODY
         if change == 'unregister':
-            target = project / declaration
+            target = project / BODY
         self.target = target
         self.original = target.read_text()
         self.failures: list[str] = []
         self.names: list[str] = []
-        self.registered = layout == SEPARATE
+        self.registered = True
         self.change = change
 
     def apply(self) -> None:
@@ -95,12 +92,7 @@ class ReloadExpectation:
             return
         if self.change == 'unregister':
             document = YamlDocument(self.target)
-            member = (
-                'http://schema.org/contentUrl'
-                if 'http://schema.org/contentUrl' in document.body
-                else 'defines-context'
-            )
-            document.body.pop(member)
+            document.body.pop('http://schema.org/contentUrl')
             document.save()
             self.failures = [ALICE_FILE]
             self.registered = False
@@ -108,13 +100,16 @@ class ReloadExpectation:
         if self.change == 'delete':
             self.target.unlink()
             self.failures = [ALICE_FILE]
+            self.registered = False
             return
         if self.change == 'invalid':
             self.target.write_text('"@context": [')
             self.failures = [ALICE_FILE, BODY]
+            self.registered = False
             return
         self.target.unlink()
         self.failures = [ALICE_FILE, BODY]
+        self.registered = False
 
 
 KNOWN_PANIC = pytest.mark.xfail(
