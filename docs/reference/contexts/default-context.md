@@ -30,9 +30,7 @@ Version 1 defines:
 - the dollar aliases of the
   [dollar-convenience context](https://json-ld.org/contexts/dollar-convenience.jsonld),
   such as `$id` and `$type`;
-- the `sparqld:` prefix, which expands to `https://sparqld.iolanta.tech/`;
-- the [`defines-context`](https://sparqld.iolanta.tech/defines-context) term,
-  which links a local file to the context URI that the file defines.
+- the `sparqld:` prefix, which expands to `https://sparqld.iolanta.tech/`.
 
 {{ source('docs/contexts/v1.yamlld', title='https://sparqld.iolanta.tech/contexts/v1.yamlld') }}
 

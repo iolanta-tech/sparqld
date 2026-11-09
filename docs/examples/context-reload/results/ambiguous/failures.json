@@ -1,8 +1,7 @@
 {
   "head": {
     "vars": [
-      "file",
-      "context"
+      "file"
     ]
   },
   "results": {
@@ -11,10 +10,18 @@
         "file": {
           "type": "uri",
           "value": "sparqld:alice.yamlld"
-        },
-        "context": {
+        }
+      },
+      {
+        "file": {
           "type": "uri",
-          "value": "urn:context:second"
+          "value": "sparqld:alternate.yamlld"
+        }
+      },
+      {
+        "file": {
+          "type": "uri",
+          "value": "sparqld:body.yamlld"
         }
       }
     ]

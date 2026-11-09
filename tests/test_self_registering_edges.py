@@ -10,14 +10,14 @@ import registering
 from serving import PROJECT_DIR, SERVER_LOG_NAME, _serve
 
 
-@pytest.mark.parametrize(registering.LAYOUT_NAME, registering.LAYOUTS)
 def test_relative_context_uses_requested_uri(
     sparqld_binary: Path,
     tmp_path: Path,
-    layout: str,
 ) -> None:
     """A source-relative import needs a canonical registration when reused remotely."""
-    project = shutil.copytree(registering.SCENARIO / layout, tmp_path / PROJECT_DIR)
+    project = shutil.copytree(
+        registering.SCENARIO / registering.COMBINED, tmp_path / PROJECT_DIR
+    )
     body = registering.YamlDocument(project / registering.BODY)
     terms = body.context()[-1]
     body.context()[-1] = {'@import': 'terms.yamlld'}
@@ -26,7 +26,12 @@ def test_relative_context_uses_requested_uri(
     log = tmp_path / SERVER_LOG_NAME
     with _serve(project, sparqld_binary, log) as server:
         registering._wait_state(server, [], [registering.ALICE_FILE])
-        registering._install(project, 'terms-registration.yamlld', layout=layout)
+        registering._install(
+            project,
+            'terms-registration.yamlld',
+            'contexts/terms.yamlld',
+            layout=registering.COMBINED,
+        )
         registering._wait_state(server, [registering.ALICE], [])
 
 
@@ -88,18 +93,15 @@ def test_http_context_stays_offline(
         assert 'context is not registered' in log.read_text()
 
 
-@pytest.mark.parametrize(registering.LAYOUT_NAME, registering.LAYOUTS)
-def test_explicit_base_overrides_registration(
+def test_explicit_base_does_not_move_a_saved_context(
     sparqld_binary: Path,
     tmp_path: Path,
-    layout: str,
 ) -> None:
-    """An explicit base moves a named body away; a same-file body ignores it."""
-    project = shutil.copytree(registering.SCENARIO / layout, tmp_path / PROJECT_DIR)
-    if layout == registering.COMBINED:
-        document = registering.YamlDocument(project / registering.BODY)
-    else:
-        document = registering.YamlDocument(project / registering.REGISTRATION)
+    """An explicit @base on a saved context does not select a different body file."""
+    project = shutil.copytree(
+        registering.SCENARIO / registering.COMBINED, tmp_path / PROJECT_DIR
+    )
+    document = registering.YamlDocument(project / registering.BODY)
     node = document.body.get('@context')
     if isinstance(node, list):
         node[-1]['@base'] = 'https://example.org/'
@@ -108,34 +110,24 @@ def test_explicit_base_overrides_registration(
             [*([node] if node else []), {'@base': 'https://example.org/'}]
         )
     document.save()
-    log = tmp_path / SERVER_LOG_NAME
-    with _serve(project, sparqld_binary, log) as server:
-        if layout == registering.COMBINED:
-            registering._wait_state(server, [registering.ALICE], [])
-        else:
-            registering._wait_state(server, [], [registering.ALICE_FILE], False)
-    if layout == registering.SEPARATE:
-        assert 'defining file is not a local file' in log.read_text()
+    with _serve(project, sparqld_binary, tmp_path / SERVER_LOG_NAME) as server:
+        registering._wait_state(server, [registering.ALICE], [])
 
 
-@pytest.mark.parametrize(registering.LAYOUT_NAME, registering.LAYOUTS)
 def test_registration_must_be_selected(
     sparqld_binary: Path,
     tmp_path: Path,
-    layout: str,
 ) -> None:
     """Excluded bodies remain readable as contexts, but contribute no registration."""
-    project = shutil.copytree(registering.SCENARIO / layout, tmp_path / PROJECT_DIR)
-    if layout == registering.COMBINED:
-        declaration = registering.BODY
-    else:
-        declaration = registering.REGISTRATION
+    project = shutil.copytree(
+        registering.SCENARIO / registering.COMBINED, tmp_path / PROJECT_DIR
+    )
     log = tmp_path / SERVER_LOG_NAME
     with _serve(
         project,
         sparqld_binary,
         log,
-        arguments=('--pattern', f'!{declaration}'),
+        arguments=('--pattern', f'!{registering.BODY}'),
     ) as server:
         registering._wait_state(server, [], [registering.ALICE_FILE], False)
         document = registering.YamlDocument(project / registering.ALICE_FILE)

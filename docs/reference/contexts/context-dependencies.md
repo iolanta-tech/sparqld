@@ -74,25 +74,3 @@ no longer queryable:
 === "Alice"
 
 {{ source('docs/examples/recursive-context/results/unregistered/alice.json', indent=4, title='Expected result') }}
-
-## :material-file-multiple-outline: Registration in a separate file
-
-A YAML-LD project with the same shape, using `https://example.org/yaml-ctx`,
-keeps the statement in its own file. There the statement names the body with
-`@id`:
-
-=== "alice.yamlld"
-
-{{ example_data('registered-context/project/alice.yamlld', indent=4) }}
-
-=== "z-context.yamlld"
-
-{{ example_data('registered-context/project/z-context.yamlld', indent=4) }}
-
-=== "body.yamlld"
-
-{{ example_data('registered-context/project/body.yamlld', indent=4) }}
-
-{{ example_data('registered-context/queries/alice.rq') }}
-
-{{ source('docs/examples/registered-context/results/alice.json', title='Expected result') }}

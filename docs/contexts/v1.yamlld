@@ -39,9 +39,3 @@
 
   # The sparqld vocabulary.
   sparqld: https://sparqld.iolanta.tech/
-
-  # Links a local file (the subject) to the context URL it defines (the object).
-  # The absolute IRI keeps the term working in a source that redefines `sparqld`.
-  defines-context:
-    "@id": https://sparqld.iolanta.tech/defines-context
-    "@type": "@id"
