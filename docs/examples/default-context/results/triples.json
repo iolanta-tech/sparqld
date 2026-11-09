@@ -1,0 +1,42 @@
+{
+  "head": {
+    "vars": [
+      "subject",
+      "predicate"
+    ]
+  },
+  "results": {
+    "bindings": [
+      {
+        "subject": {
+          "type": "uri",
+          "value": "urn:alice"
+        },
+        "predicate": {
+          "type": "uri",
+          "value": "http://www.w3.org/1999/02/22-rdf-syntax-ns#type"
+        }
+      },
+      {
+        "subject": {
+          "type": "uri",
+          "value": "urn:alice"
+        },
+        "predicate": {
+          "type": "uri",
+          "value": "https://schema.org/name"
+        }
+      },
+      {
+        "subject": {
+          "type": "uri",
+          "value": "urn:schema"
+        },
+        "predicate": {
+          "type": "uri",
+          "value": "https://example.org/vocab/id"
+        }
+      }
+    ]
+  }
+}
