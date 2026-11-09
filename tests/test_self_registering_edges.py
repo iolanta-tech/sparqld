@@ -25,14 +25,14 @@ def test_relative_context_uses_requested_uri(
     registering._dump(project / 'contexts/terms.yamlld', {'@context': terms})
     log = tmp_path / SERVER_LOG_NAME
     with _serve(project, sparqld_binary, log) as server:
-        registering._wait_state(server, [], [registering.ALICE_FILE])
+        registering._wait_state(server, [], [registering.STAR_FILE])
         registering._install(
             project,
             'terms-registration.yamlld',
             'contexts/terms.yamlld',
             layout=registering.COMBINED,
         )
-        registering._wait_state(server, [registering.ALICE], [])
+        registering._wait_state(server, [registering.STAR], [])
 
 
 def test_aliases_inside_term_definitions_fail(
@@ -50,7 +50,7 @@ def test_aliases_inside_term_definitions_fail(
     body.save()
     with _serve(project, sparqld_binary, tmp_path / SERVER_LOG_NAME) as server:
         registering._wait_state(
-            server, [], [registering.ALICE_FILE, registering.BODY], False
+            server, [], [registering.STAR_FILE, registering.BODY], False
         )
 
 
@@ -69,8 +69,8 @@ def test_http_context_stays_offline(
         port = listener.getsockname()[1]
         registering._install(
             project,
-            'offline-alice.yamlld',
-            registering.ALICE_FILE,
+            'offline-alpha-centauri.yamlld',
+            registering.STAR_FILE,
             port=str(port),
         )
         if registered:
@@ -84,8 +84,8 @@ def test_http_context_stays_offline(
         with _serve(project, sparqld_binary, log) as server:
             registering._wait_state(
                 server,
-                [registering.ALICE] if registered else [],
-                [] if registered else [registering.ALICE_FILE],
+                [registering.STAR] if registered else [],
+                [] if registered else [registering.STAR_FILE],
                 False,
             )
             assert not select.select([listener], [], [], 0)[0]
@@ -111,7 +111,7 @@ def test_explicit_base_does_not_move_a_saved_context(
         )
     document.save()
     with _serve(project, sparqld_binary, tmp_path / SERVER_LOG_NAME) as server:
-        registering._wait_state(server, [registering.ALICE], [])
+        registering._wait_state(server, [registering.STAR], [])
 
 
 def test_registration_must_be_selected(
@@ -129,8 +129,8 @@ def test_registration_must_be_selected(
         log,
         arguments=('--pattern', f'!{registering.BODY}'),
     ) as server:
-        registering._wait_state(server, [], [registering.ALICE_FILE], False)
-        document = registering.YamlDocument(project / registering.ALICE_FILE)
+        registering._wait_state(server, [], [registering.STAR_FILE], False)
+        document = registering.YamlDocument(project / registering.STAR_FILE)
         document.set_context(registering.BODY)
         document.save()
-        registering._wait_state(server, [registering.ALICE], [], False)
+        registering._wait_state(server, [registering.STAR], [], False)
