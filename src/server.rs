@@ -306,8 +306,13 @@ pub(crate) fn evaluate_sparql<'a>(
     query: &str,
     execution: &QueryExecution,
 ) -> Result<QueryResults<'a>, QueryError> {
-    let mut prepared = SparqlEvaluator::new()
-        .with_cancellation_token(execution.token())
+    let mut evaluator = SparqlEvaluator::new().with_cancellation_token(execution.token());
+    for (prefix, iri) in crate::loader::default_context_prefixes() {
+        evaluator = evaluator
+            .with_prefix(prefix, iri)
+            .expect("embedded default context prefixes are valid");
+    }
+    let mut prepared = evaluator
         .parse_query(query)
         .map_err(|error| QueryError::BadRequest(error.to_string()))?;
     prepared.dataset_mut().set_default_graph_as_union();
@@ -433,7 +438,7 @@ fn internal_server_error(error: impl std::fmt::Display) -> HttpError {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use oxigraph::model::{GraphNameRef, NamedNode, NamedNodeRef, QuadRef};
+    use oxigraph::model::{GraphNameRef, Literal, NamedNode, NamedNodeRef, QuadRef};
     use std::sync::mpsc;
     use std::thread;
     use std::time::Duration;
@@ -498,6 +503,39 @@ mod tests {
                 .to_string()
                 .unwrap()
                 .contains("\"boolean\":true")
+        );
+    }
+
+    #[test]
+    fn uses_prefixes_from_the_default_context_in_queries() {
+        let dataset = Store::new().unwrap();
+        let subject = NamedNodeRef::new("urn:subject").unwrap();
+        let predicate = NamedNodeRef::new("http://www.w3.org/2000/01/rdf-schema#comment").unwrap();
+        let object = Literal::new_simple_literal("example");
+        dataset
+            .insert(QuadRef::new(
+                subject,
+                predicate,
+                object.as_ref(),
+                GraphNameRef::DefaultGraph,
+            ))
+            .unwrap();
+
+        let response = request_on(
+            &dataset,
+            Method::GET,
+            "/?query=SELECT%20%3Fcomment%20WHERE%20%7B%20%3Curn%3Asubject%3E%20rdfs%3Acomment%20%3Fcomment%20%7D",
+            None,
+            "",
+        );
+
+        assert_eq!(response.status(), StatusCode::OK);
+        assert!(
+            response
+                .into_body()
+                .to_string()
+                .unwrap()
+                .contains("example")
         );
     }
 

@@ -55,9 +55,9 @@ Unresolved requests also produce dependency edges:
 
 Query the catalog to find the context requests:
 
-{{ source('docs/queries/context-dependencies.rq') }}
+{{ source('docs/queries/context-dependencies-example.rq') }}
 
-{{ stored_sparql('docs/queries/context-dependencies.rq') | sparql_table }}
+{{ stored_sparql('docs/queries/context-dependencies-example.rq') | sparql_table }}
 
 [Remote contexts](contexts/remote-contexts.md) shows an unregistered absolute
 context URL, registration with vitrify, and the catalog after that body is

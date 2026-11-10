@@ -10,12 +10,10 @@ icon: material/source-repository
 hide: [toc]
 name: sparqld project
 title: Project
-description: Release, source, licensing, and development information for sparqld.
+description: Source, build requirements, licensing, and development information for sparqld.
 ---
 
 # :material-source-repository: Project
-
-`sparqld` 0.1.7 is an early release for local, file-backed SPARQL access.
 
 <div class="grid cards" markdown>
 
@@ -35,11 +33,11 @@ description: Release, source, licensing, and development information for sparqld
 
     [:octicons-arrow-right-24: Contributing](contributing.md)
 
--   :material-tag-outline:{ .lg .middle } **Release and requirements**
+-   :material-tag-outline:{ .lg .middle } **Build requirements**
 
     ---
 
-    Version 0.1.7 · Rust 1.89 or later with Cargo
+    Rust 1.89 or later with Cargo
 
 -   :material-source-repository:{ .lg .middle } **Source and issues**
 

@@ -19,9 +19,22 @@ first become necessary.
 ## Review
 
 After any change under `docs/` or to `mkdocs.yml`—including a one-character
-edit—run the mkdocs skill review before claiming the work done.
+edit—run the mkdocs skill review before claiming the work done. When planning
+changes under `docs/` or to `mkdocs.yml`, list that review as an explicit plan
+step.
 
 ## Prose
+
+- Use the default graph for ordinary query examples. Select a source graph when
+  graph selection is the behavior being demonstrated.
+- Prefer existing DBpedia URIs for linked-data examples when a suitable entry
+  exists. For queries over the shared default graph, choose subjects and facts
+  that distinguish each example's results while keeping related subjects
+  connected to the page's topic. Do not use source-graph restrictions only to
+  separate one example from another.
+- Keep rendered `SELECT` examples to at most 10 rows. Narrow queries to the
+  resources and facts being demonstrated; use `LIMIT` only when teaching
+  pagination.
 
 - State an absence only when it corrects a likely reader expectation and
   materially affects use or understanding; otherwise describe the supported

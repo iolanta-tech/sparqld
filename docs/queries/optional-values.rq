@@ -1,12 +1,13 @@
 PREFIX dbp: <http://dbpedia.org/property/>
 PREFIX schema: <https://schema.org/>
 
-SELECT ?name ?discovered
+SELECT DISTINCT ?name ?discovered
 WHERE {
-  GRAPH ?graph {
-    ?body schema:name ?name .
-    OPTIONAL { ?body dbp:discovered ?discovered }
+  VALUES ?body {
+    <http://dbpedia.org/resource/Alpha_Centauri>
+    <http://dbpedia.org/resource/Proxima_Centauri_b>
   }
-  FILTER(STRSTARTS(STR(?graph), "sparqld:examples/"))
+  ?body schema:name ?name .
+  OPTIONAL { ?body dbp:discovered ?discovered }
 }
 ORDER BY ?name

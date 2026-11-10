@@ -62,11 +62,11 @@ dict per row, keys are variable names).
 
 {% raw %}
 ```markdown
-{{ sparql('SELECT ?name WHERE { ?s <https://schema.org/name> ?name } LIMIT 3') | sparql_table }}
+{{ sparql('SELECT ?name WHERE { <http://dbpedia.org/resource/Alpha_Centauri> <https://schema.org/name> ?name }') | sparql_table }}
 ```
 {% endraw %}
 
-{{ sparql('SELECT ?name WHERE { ?s <https://schema.org/name> ?name } LIMIT 3') | sparql_table }}
+{{ sparql('SELECT ?name WHERE { <http://dbpedia.org/resource/Alpha_Centauri> <https://schema.org/name> ?name }') | sparql_table }}
 
 ### `stored_sparql`
 

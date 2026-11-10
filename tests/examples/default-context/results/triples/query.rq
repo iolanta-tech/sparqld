@@ -1,6 +1,5 @@
-SELECT ?subject ?predicate
+SELECT ?predicate ?object
 WHERE {
-  <http://dbpedia.org/resource/Alpha_Centauri> ?predicate ?object .
-  BIND(<http://dbpedia.org/resource/Alpha_Centauri> AS ?subject)
+  <http://dbpedia.org/resource/Guillem_Anglada-Escud%C3%A9> ?predicate ?object .
 }
 ORDER BY ?predicate

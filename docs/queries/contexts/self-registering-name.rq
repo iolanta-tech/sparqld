@@ -1,6 +1,0 @@
-SELECT ?name
-WHERE {
-  GRAPH <sparqld:examples/self-registering-context/combined/alpha-centauri.yamlld> {
-    <http://dbpedia.org/resource/Alpha_Centauri> <https://schema.org/name> ?name .
-  }
-}

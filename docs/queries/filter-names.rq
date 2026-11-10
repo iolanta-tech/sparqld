@@ -1,7 +1,11 @@
 PREFIX schema: <https://schema.org/>
 
-SELECT ?name
+SELECT DISTINCT ?name
 WHERE {
+  VALUES ?subject {
+    <http://dbpedia.org/resource/Alpha_Centauri>
+    <http://dbpedia.org/resource/Proxima_Centauri_b>
+  }
   ?subject schema:name ?name .
   FILTER(CONTAINS(LCASE(STR(?name)), "centauri"))
 }

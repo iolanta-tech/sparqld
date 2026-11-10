@@ -83,12 +83,13 @@ Then ask:
 
 {{ command('cargo install sparqld') }}
 
-{{ command('sparqld ./data') }}
+{{ command('sparqld /path/to/your/knowledge-base') }}
 
 </div>
 
-The directory is served at `http://127.0.0.1:7737/`. Query it from your shell or
-application; edit the files to change the data.
+Replace the example path with the directory you want to serve. The endpoint is
+available at `http://127.0.0.1:7737/`; query it from your shell or application,
+and edit the files to change the data.
 
 [:material-rocket-launch-outline: Starting in CLI](quickstart/cli.md){ .md-button .md-button--primary }
 [:material-console-line: Reference](reference/index.md){ .md-button }

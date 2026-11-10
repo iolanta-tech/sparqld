@@ -3,6 +3,8 @@
 from pathlib import Path
 from typing import Any
 
+from ruamel.yaml import YAML
+
 from docs_macros.conversation import agent_message, conversation_paths
 from docs_macros.locations import (
     CLIENTS_DIR,
@@ -16,7 +18,7 @@ from docs_macros.tree import append_directory
 
 
 class EnvironmentMacros:
-    """Macros that read the repository URL from the MkDocs environment."""
+    """Expose project-aware macros to MkDocs."""
 
     def __init__(self, env: Any) -> None:
         self._env = env
@@ -33,6 +35,20 @@ class EnvironmentMacros:
             title,
             repository_url(self._env),
         )
+
+    def default_prefix_table(self) -> str:
+        """Render SPARQL prefixes from the canonical default context."""
+        context_path = ROOT_DIR / 'docs' / 'contexts' / 'v1.yamlld'
+        document = YAML(typ='safe').load(context_path.read_text())
+        context = document['@context']
+        prefixes = [
+            (prefix, iri)
+            for prefix, iri in context.items()
+            if isinstance(iri, str) and iri.endswith(('#', '/'))
+        ]
+        rows = ['| Prefix | Expanded value |', '| --- | --- |']
+        rows.extend(f'| [`{prefix}:`]({iri}) | `{iri}` |' for prefix, iri in prefixes)
+        return '\n'.join(rows)
 
     def example_data(self, name: str, indent: int = 0, title: str = 'Source') -> str:
         return self.source(Path('docs/examples') / name, indent=indent, title=title)

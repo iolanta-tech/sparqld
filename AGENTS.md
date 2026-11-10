@@ -40,4 +40,7 @@
 
 ## Subdirectory guidance
 
+Before reading or editing under a listed subdirectory, read that subdirectory's
+`AGENTS.md` in full.
+
 - [docs/AGENTS.md](docs/AGENTS.md) - MkDocs authoring and ADR metadata conventions

@@ -45,6 +45,7 @@ __all__ = ['CLIENT_COMPATIBILITY_PATH', 'Decision']
 
 def _register_source_macros(env: Any, macros: EnvironmentMacros) -> None:
     env.macro(macros.source)
+    env.macro(macros.default_prefix_table)
     env.macro(macros.example_data)
     env.macro(example_code)
     env.macro(macros.result_data)
