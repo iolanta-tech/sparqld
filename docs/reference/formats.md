@@ -14,10 +14,9 @@ description: File extensions recognized by sparqld and their support status.
 
 # :material-file-multiple-outline: File formats
 
-`sparqld` selects a parser from a file's extension. Every loaded source is
-loaded into its own named graph and participates in the same watching and
-error-reporting behavior. Dataset formats load their declared named graphs; see
-[Named graphs](named-graphs.md).
+`sparqld` selects a parser from a file's extension. Every source enters its own
+named graph and shares the same watching and error-reporting behavior. Dataset
+formats keep their declared named graphs; see [Named graphs](named-graphs.md).
 
 <div class="grid cards" markdown>
 
