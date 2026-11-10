@@ -17,9 +17,7 @@ jobs:
       - run: cargo build --locked
       - run: cargo test --locked
 
-  # Advisory: reviewdog posts findings; fail_on_error is false so remaining
-  # style errors do not block merges. Flip to true when the error backlog is
-  # clear and the rules you care about stay at severity error.
+  # Blocking: reviewdog fails the job on Vale error-level alerts.
   vale:
     name: Vale
     runs-on: ubuntu-latest
@@ -36,7 +34,7 @@ jobs:
           files: >-
             ["README.md", "docs/index.md", "docs/quickstart", "docs/reference",
             "docs/project", "docs/conversations"]
-          fail_on_error: false
+          fail_on_error: true
           filter_mode: file
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
