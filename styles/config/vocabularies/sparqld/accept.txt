@@ -23,6 +23,8 @@ MCP's
 mcp
 monorepo
 nanopublication
+Obsidian
+openCypher
 Oxigraph
 oxigraph
 OxJSONLD
