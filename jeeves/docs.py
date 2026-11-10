@@ -3,6 +3,8 @@
 import sh
 import typer
 
+from jeeves.clients import verify_clients
+from jeeves.example_results import refresh_example_results
 from jeeves.history import (
     LANGUAGE_HISTORY_PATH,
     history_points,
@@ -26,3 +28,7 @@ def language_history():
     render_language_history(points)
     written = LANGUAGE_HISTORY_PATH.relative_to(PROJECT_ROOT)
     typer.echo(f'Wrote {written}')
+
+
+docs.command()(refresh_example_results)
+docs.command()(verify_clients)
