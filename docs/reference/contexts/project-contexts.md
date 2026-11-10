@@ -52,7 +52,7 @@ Term definitions come only from the `@context` member
 
 {{ example_data('self-registering-context/queries/alpha-centauri.rq') }}
 
-{{ source('docs/examples/self-registering-context/results/alpha-centauri.json', title='Expected result') }}
+{{ source('docs/examples/self-registering-context/results/alpha-centauri/results.json', title='Expected result') }}
 
 ## :material-source-branch: Bootstrap and paths
 
