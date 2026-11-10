@@ -1,6 +1,9 @@
 ---
 name: evolve
-description: Run `j evolve` and resolve the next lint finding group. Use when asked to evolve the repository, run `j evolve`, or fix the next Ruff, Flake8/WPS, Cargo formatting, or Clippy failure.
+description: >-
+  Run `j evolve` and resolve the next lint finding group. Use when asked to
+  evolve the repository, run `j evolve`, or fix the next Ruff, Flake8/WPS,
+  Cargo formatting, Clippy, or Vale failure.
 ---
 
 # Evolve
