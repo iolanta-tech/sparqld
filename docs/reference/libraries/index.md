@@ -6,6 +6,7 @@
   description: schema:description
 "@id": reference/libraries/index.md
 "@type": schema:TechArticle
+icon: material/code-block-tags
 hide: [toc]
 name: SPARQL client libraries
 title: Libraries
