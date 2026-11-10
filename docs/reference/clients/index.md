@@ -15,8 +15,7 @@ description: Command-line SPARQL clients and HTTP tools tested against sparqld.
 
 # :material-console-network-outline: Clients
 
-These command-line tools are checked against the current `sparqld` binary
-by `j verify-clients`. The recorded result is included here.
+This page lists command-line tools that work with `sparqld`.
 
 {{ client_compatibility() }}
 
@@ -33,7 +32,7 @@ by `j verify-clients`. The recorded result is included here.
     sq -e http://127.0.0.1:7737/ graphs
     ```
 
-    Use an endpoint URL directly, or [configure the endpoint and prefixes](sq/index.md)
+    Use an endpoint address directly, or [configure the endpoint and prefixes](sq/index.md)
     for concise repeated queries.
 
 -   **[Apache Jena `rsparql`](https://jena.apache.org/documentation/query/sparql-remote.html)**
