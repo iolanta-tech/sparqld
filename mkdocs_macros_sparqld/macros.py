@@ -8,7 +8,13 @@ from urllib.parse import urlparse
 
 from mkdocs_macros_sparqld import render
 from mkdocs_macros_sparqld.configuration import configure
-from mkdocs_macros_sparqld.server import ensure_endpoint, run_query, stop_server
+from mkdocs_macros_sparqld.server import (
+    ensure_endpoint,
+    run_query,
+    run_query_in,
+    stop_server,
+)
+from mkdocs_macros_sparqld.table import SelectBindings
 
 __all__ = [
     'configure',
@@ -16,6 +22,7 @@ __all__ = [
     'ensure_endpoint',
     'on_post_build',
     'run_query',
+    'run_query_in',
 ]
 
 
@@ -28,7 +35,7 @@ def _project_file(project_dir: Path, relative: str) -> Path:
     return path
 
 
-def _execute(query: str) -> list[dict[str, str]] | bool | str:
+def _execute(query: str) -> render.QueryOutput:
     content_type, body = run_query(query)
     return render.parse_result(content_type, body)
 
@@ -43,15 +50,18 @@ class SparqldMacros:
             raise RuntimeError('sparqld endpoint does not include a port')
         env.variables['sparqld_port'] = port
 
-    def sparql(self, query: str) -> list[dict[str, str]] | bool | str:
-        """Run a verbatim SPARQL query. SELECT returns a list of binding dicts."""
+    def sparql(self, query: str) -> render.QueryOutput:
+        """Run a verbatim SPARQL query. SELECT returns bindings for sparql_table."""
         return _execute(query)
 
-    def stored_sparql(self, path: str) -> list[dict[str, str]] | bool | str:
+    def stored_sparql(self, path: str) -> render.QueryOutput:
         """Run a `.rq` file relative to the MkDocs project root."""
         return _execute(_project_file(self._project_dir, path).read_text())
 
-    def sparql_table(self, rows: list[dict[str, str]]) -> str:
+    def sparql_table(
+        self,
+        rows: SelectBindings | list[dict[str, str]],
+    ) -> str:
         """Render SELECT bindings from sparql() / stored_sparql() as a Markdown table."""
         return render.bindings_table(rows)
 
