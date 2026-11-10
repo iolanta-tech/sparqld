@@ -41,6 +41,16 @@ def test_decision_model_from_local_module(monkeypatch: pytest.MonkeyPatch) -> No
     assert decision.graph.term_type == 'uri'
 
 
+def test_living_adr_status_maps_to_info_banner() -> None:
+    """Living ADRs render an info banner with a Living label."""
+    from docs_macros.adr import ADR_STATUS, adr_metadata
+
+    assert ADR_STATUS['living'] == 'Living'
+    assert adr_metadata('2026-11-10', 'living') == (
+        '!!! info "Living · :material-calendar-clock: 10 November 2026"\n'
+    )
+
+
 def test_decision_page_keeps_a_directory_index() -> None:
     """Link a nested decision to its directory, and a flat decision to its file."""
     from docs_macros.decisions import decision_page
