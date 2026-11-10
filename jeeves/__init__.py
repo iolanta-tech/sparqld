@@ -1,6 +1,5 @@
 """Project automation commands."""
 
-from jeeves.clients import verify_clients as verify_clients
 from jeeves.docs import docs as docs
 from jeeves.formatting import fmt as fmt
 from jeeves.linting import evolve as evolve
