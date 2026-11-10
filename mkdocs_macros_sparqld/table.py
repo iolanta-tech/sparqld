@@ -19,6 +19,13 @@ class BindingTable(BaseModel):
         return _BINDING_ROWS.validate_python(rows)
 
 
+class SelectBindings(BaseModel):
+    """SELECT variables and binding rows for `sparql_table`."""
+
+    columns: list[str]
+    rows: list[dict[str, str]]
+
+
 def _table_columns(rows: list[dict[str, str]]) -> list[str]:
     columns = list(rows[0].keys())
     for row in rows[1:]:
@@ -40,3 +47,13 @@ def _table_lines(
         cells = [str(row.get(name, '')) for name in columns]
         lines.append('| {values} |'.format(values=' | '.join(cells)))
     return lines
+
+
+def render_bindings(columns: list[str], rows: list[dict[str, str]]) -> str:
+    """Render a Markdown table for known columns and rows."""
+    binding_rows = BindingTable(rows=rows).rows
+    if not columns:
+        if not binding_rows:
+            return ''
+        columns = _table_columns(binding_rows)
+    return '\n'.join(_table_lines(columns, binding_rows))
