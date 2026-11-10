@@ -27,6 +27,11 @@ step.
 
 - Use the default graph for ordinary query examples. Select a source graph when
   graph selection is the behavior being demonstrated.
+- Prefer existing DBpedia URIs for linked-data examples when a suitable entry
+  exists. For queries over the shared default graph, choose subjects and facts
+  that distinguish each example's results while keeping related subjects
+  connected to the page's topic. Do not use source-graph restrictions only to
+  separate one example from another.
 
 - State an absence only when it corrects a likely reader expectation and
   materially affects use or understanding; otherwise describe the supported
