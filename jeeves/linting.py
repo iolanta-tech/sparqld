@@ -1,4 +1,4 @@
-"""Lint and evolve commands."""
+"""Lint commands."""
 
 from collections.abc import Sequence
 from typing import Annotated
@@ -14,8 +14,6 @@ from jeeves.findings import text_findings
 from jeeves.formatting import (
     cargo_fmt,
     cargo_fmt_command,
-    fmt_python,
-    fmt_rust,
     ruff_format,
     ruff_format_command,
 )
@@ -68,24 +66,6 @@ def lint(
     in_parallel(lint_rust, lint_python)
     lint_vale()
     lint_debtmap()
-
-
-def evolve():
-    """Format a clean tree, then lint it."""
-    status = sh.git(
-        'status',
-        '--porcelain',
-        _cwd=SH_CWD,
-        _tty_out=False,
-    )
-    if str(status).strip():
-        typer.echo('Working tree has uncommitted changes.')
-        typer.echo(status, nl=False)
-        raise typer.Exit(code=1)
-    if in_parallel(fmt_rust, fmt_python):
-        typer.echo('Formatting changed files.')
-        raise typer.Exit(code=1)
-    lint()
 
 
 def lint_rust():
