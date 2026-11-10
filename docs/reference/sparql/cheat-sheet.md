@@ -72,7 +72,7 @@ format, assembled from matching bindings.
 
 ## :material-counter: Count triples by named graph
 
-Compare the triple counts for each example source file.
+Compare triple counts for three related astronomy example files.
 
 {{ source('docs/queries/graph-counts.rq') }}
 
