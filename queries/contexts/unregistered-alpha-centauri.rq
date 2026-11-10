@@ -1,0 +1,5 @@
+ASK {
+  GRAPH <sparqld:examples/recursive-context/unregistered/alpha-centauri.jsonld> {
+    <http://dbpedia.org/resource/Alpha_Centauri> <https://schema.org/name> "Alpha Centauri" .
+  }
+}

@@ -1,0 +1,5 @@
+{
+  "@context": "https://example.org/unregistered-demo-context",
+  "@id": "http://dbpedia.org/resource/Alpha_Centauri",
+  "name": "Alpha Centauri"
+}
