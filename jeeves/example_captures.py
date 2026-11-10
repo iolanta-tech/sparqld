@@ -16,6 +16,7 @@ from jeeves.example_projects import CopiedProject, UnchangedProject
 from jeeves.repository import PROJECT_ROOT
 
 EXAMPLES = PROJECT_ROOT / 'docs/examples'
+GOLDENS = PROJECT_ROOT / 'tests/examples'
 
 
 @dataclass(frozen=True)
@@ -40,13 +41,13 @@ def _static_captures() -> tuple[Capture, ...]:
     return (
         Capture(
             label='default-context',
-            crate_parent=default_context / 'results',
+            crate_parent=GOLDENS / 'default-context/results',
             queries=_named_queries(default_context, ('triples',)),
             prepare=UnchangedProject(default_context / 'project'),
         ),
         Capture(
             label='self-registering-context',
-            crate_parent=self_registering / 'results',
+            crate_parent=GOLDENS / 'self-registering-context/results',
             queries=_named_queries(
                 self_registering,
                 ('alpha-centauri', failures, 'registration'),
@@ -65,13 +66,13 @@ def _recursive_captures() -> tuple[Capture, ...]:
     return (
         Capture(
             label='recursive-context/initial',
-            crate_parent=recursive / 'results/initial',
+            crate_parent=GOLDENS / 'recursive-context/results/initial',
             queries=queries,
             prepare=UnchangedProject(source),
         ),
         Capture(
             label='recursive-context/unregistered',
-            crate_parent=recursive / 'results/unregistered',
+            crate_parent=GOLDENS / 'recursive-context/results/unregistered',
             queries=queries,
             prepare=CopiedProject(source, drop_content_url),
         ),
@@ -86,25 +87,25 @@ def _reload_captures() -> tuple[Capture, ...]:
     return (
         Capture(
             label='context-reload/unregistered',
-            crate_parent=reload / 'results/unregistered',
+            crate_parent=GOLDENS / 'context-reload/results/unregistered',
             queries=queries,
             prepare=UnchangedProject(source),
         ),
         Capture(
             label='context-reload/old',
-            crate_parent=reload / 'results/old',
+            crate_parent=GOLDENS / 'context-reload/results/old',
             queries=queries,
             prepare=CopiedProject(source, register_old),
         ),
         Capture(
             label='context-reload/new',
-            crate_parent=reload / 'results/new',
+            crate_parent=GOLDENS / 'context-reload/results/new',
             queries=queries,
             prepare=CopiedProject(source, register_new),
         ),
         Capture(
             label='context-reload/ambiguous',
-            crate_parent=reload / 'results/ambiguous',
+            crate_parent=GOLDENS / 'context-reload/results/ambiguous',
             queries=_named_queries(reload, names, dependencies=True),
             prepare=CopiedProject(source, register_ambiguous),
         ),
