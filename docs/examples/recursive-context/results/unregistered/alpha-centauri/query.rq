@@ -1,0 +1,3 @@
+ASK {
+  <http://dbpedia.org/resource/Alpha_Centauri> <https://schema.org/name> "Alpha Centauri" .
+}
