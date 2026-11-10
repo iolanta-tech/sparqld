@@ -10,6 +10,9 @@
 
 - Store integration example projects, queries, and expected results in `docs`.
   Documentation and integration tests must use the same files.
+- Example HTTP goldens are vitrify RO-Crate directories under
+  `docs/examples/**/results/`. Refresh them with
+  `j docs refresh-example-results` after changing a scenario project or query.
 - Point `sparqld` directly at an example project for read-only tests. Copy the
   project to a temporary directory only when a test changes or deletes files.
 - Use pytest for user-facing example scenarios. Keep Rust tests for internal
