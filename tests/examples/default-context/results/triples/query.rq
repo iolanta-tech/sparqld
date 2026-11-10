@@ -1,4 +1,5 @@
-SELECT ?comment
+SELECT ?predicate ?object
 WHERE {
-  <http://dbpedia.org/resource/Alpha_Centauri> rdfs:comment ?comment .
+  <http://dbpedia.org/resource/Guillem_Anglada-Escud%C3%A9> ?predicate ?object .
 }
+ORDER BY ?predicate
