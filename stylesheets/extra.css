@@ -11,6 +11,8 @@
   --format-development-foreground: #805700;
   --adr-draft-background: #eceff1;
   --adr-draft-foreground: #455a64;
+  --adr-living-background: #e3f2fd;
+  --adr-living-foreground: #0d47a1;
 }
 
 [data-md-color-scheme="slate"] {
@@ -24,6 +26,8 @@
   --format-development-foreground: #f4cf65;
   --adr-draft-background: #263238;
   --adr-draft-foreground: #b0bec5;
+  --adr-living-background: #0d2137;
+  --adr-living-foreground: #90caf9;
 }
 
 .md-typeset .format-status {
@@ -306,6 +310,11 @@
   color: var(--adr-draft-foreground);
 }
 
+.md-typeset .adr-status--living {
+  background: var(--adr-living-background);
+  color: var(--adr-living-foreground);
+}
+
 .md-typeset .adr-date {
   color: var(--md-default-fg-color--light);
 }
@@ -320,4 +329,8 @@
 
 .md-typeset .adr-cards > ul > li:has(.adr-status--draft) {
   border-top: 0.15rem solid var(--adr-draft-foreground);
+}
+
+.md-typeset .adr-cards > ul > li:has(.adr-status--living) {
+  border-top: 0.15rem solid var(--adr-living-foreground);
 }
