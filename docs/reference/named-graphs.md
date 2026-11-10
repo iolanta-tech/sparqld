@@ -47,7 +47,7 @@ separate and are scoped to that source file.
 
 This documentation site is itself served with `sparqld`, so paths are relative
 to the served `docs/` directory. For the tangible
-[`examples/`](https://github.com/iolanta-tech/sparqld/tree/main/docs/examples)
+[:fontawesome-brands-github: `examples/`](https://github.com/iolanta-tech/sparqld/tree/main/docs/examples)
 directory inside it:
 
 | Source path | Named graph |
