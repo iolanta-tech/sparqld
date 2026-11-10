@@ -1,0 +1,4 @@
+SELECT ?comment
+WHERE {
+  <http://dbpedia.org/resource/Guillem_Anglada-Escud%C3%A9> rdfs:comment ?comment .
+}
