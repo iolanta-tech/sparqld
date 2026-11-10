@@ -6,8 +6,7 @@
   description: schema:description
 "@id": reference/index.md
 "@type": schema:TechArticle
-icon: material/book-open-page-variant-outline
-hide: [toc]
+icon: material/console-line
 name: sparqld command reference
 title: Reference
 description: Command-line arguments and options for sparqld.
