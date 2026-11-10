@@ -12,7 +12,7 @@ hide: [toc]
 
 This planning path uses Sophia JSON-LD as the semantic foundation for a new language server, rather than as an LSP implementation. “Universe” is planning shorthand for the consequences of committing to this foundation.
 
-Sophia JSON-LD [:fontawesome-brands-github: `pchampin/sophia_rs`](https://github.com/pchampin/sophia_rs/tree/main/jsonld) is the `sophia_jsonld` parser-and-serializer package in Sophia [:fontawesome-brands-github: `pchampin/sophia_rs`](https://github.com/pchampin/sophia_rs); its manifest [:fontawesome-brands-github: `Cargo.toml`](https://github.com/pchampin/sophia_rs/blob/main/jsonld/Cargo.toml) depends on [`json-ld` 0.15.1](https://crates.io/crates/json-ld/0.15.1) and offers optional `file:` and HTTP(S) context retrieval.
+Sophia JSON-LD [:fontawesome-brands-github: `pchampin/sophia_rs`](https://github.com/pchampin/sophia_rs/tree/main/jsonld) is the `sophia_jsonld` parser-and-serializer package in Sophia [:fontawesome-brands-github: `pchampin/sophia_rs`](https://github.com/pchampin/sophia_rs); its manifest [:fontawesome-brands-github: `Cargo.toml`](https://github.com/pchampin/sophia_rs/blob/main/jsonld/Cargo.toml) depends on [`json-ld` 0.15.1](https://crates.io/crates/json-ld/0.15.1) and offers optional `file:` and HTTP and HTTPS context retrieval.
 
 ## :material-format-list-checks: Implementation checklist
 
