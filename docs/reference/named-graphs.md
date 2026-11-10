@@ -57,7 +57,7 @@ directory inside it:
 | `examples/proxima-centauri-b.jsonld` | `sparqld:examples/proxima-centauri-b.jsonld` |
 
 Paths always use `/` as the separator, and characters that cannot appear
-literally in the graph IRI are percent-encoded. Renaming or moving a source
+literally in the graph IRI are URI-encoded. Renaming or moving a source
 therefore gives it a new graph IRI.
 
 Use `GRAPH` to retain source provenance in query results:
