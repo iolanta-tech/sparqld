@@ -1,1 +1,1 @@
-{"head":{"vars":["subject","predicate"]},"results":{"bindings":[{"subject":{"type":"uri","value":"http://dbpedia.org/resource/Alpha_Centauri"},"predicate":{"type":"uri","value":"http://www.w3.org/1999/02/22-rdf-syntax-ns#type"}},{"subject":{"type":"uri","value":"http://dbpedia.org/resource/Alpha_Centauri"},"predicate":{"type":"uri","value":"https://schema.org/name"}}]}}
+{"head":{"vars":["comment"]},"results":{"bindings":[{"comment":{"type":"literal","value":"The Alpha Centauri system contains Alpha Centauri A, Alpha Centauri B, and Proxima Centauri."}}]}}
