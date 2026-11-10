@@ -44,6 +44,9 @@ sq -e http://127.0.0.1:7737/ \
   'SELECT ?subject ?predicate ?object { ?subject ?predicate ?object } LIMIT 20'
 ```
 
+> ⚠️ **Warning:** `cargo install sq` installs an unrelated crates.io package.
+> Use the GitHub install above.
+
 For copy-pasteable example data and a first query, see the
 [Quickstart](https://sparqld.iolanta.tech/quickstart/).
 
