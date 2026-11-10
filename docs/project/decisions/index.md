@@ -6,6 +6,7 @@
   description: schema:description
 "@id": project/decisions/index.md
 "@type": schema:TechArticle
+icon: material/sign-direction
 hide: [toc]
 name: Architecture decisions
 title: Decisions
