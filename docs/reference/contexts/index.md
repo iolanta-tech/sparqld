@@ -19,6 +19,6 @@ description: How sparqld resolves JSON-LD contexts for sources in the served dir
 
 {{ example_data('default-context/queries/triples.rq') }}
 
-{{ source('docs/examples/default-context/results/triples.json', title='Expected result') }}
+{{ source('docs/examples/default-context/results/triples/results.json', title='Expected result') }}
 
 This document lacks what's called a Context. Or does it?
