@@ -6,6 +6,7 @@
   description: schema:description
 "@id": reference/api/index.md
 "@type": schema:TechArticle
+icon: material/api
 name: sparqld HTTP API
 title: HTTP API
 description: SPARQL Protocol request and response behavior exposed by sparqld.
