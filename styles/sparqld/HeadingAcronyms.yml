@@ -1,0 +1,8 @@
+extends: existence
+message: "Avoid using acronyms in a title or heading."
+link: https://learn.microsoft.com/en-us/style-guide/acronyms#be-careful-with-acronyms-in-titles-and-headings
+level: warning
+scope: heading
+tokens:
+  # Allow HTTP; flag other short all-caps tokens in headings.
+  - '\b(?!HTTP\b)[A-Z]{2,4}\b'
