@@ -6,6 +6,7 @@
   description: schema:description
 "@id": reference/agents/index.md
 "@type": schema:TechArticle
+icon: material/robot-outline
 name: Agents
 title: Agents
 description: Let agents query a local sparqld knowledge base.
