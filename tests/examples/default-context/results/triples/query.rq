@@ -1,5 +1,3 @@
-PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
-
 SELECT ?comment
 WHERE {
   <http://dbpedia.org/resource/Alpha_Centauri> rdfs:comment ?comment .
