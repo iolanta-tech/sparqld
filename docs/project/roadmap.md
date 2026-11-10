@@ -11,7 +11,7 @@ name: sparqld roadmap
 hide: [toc]
 title: Roadmap
 description: Achievable outcomes that advance sparqld's mission.
-datePublished: 2026-11-07
+datePublished: 2026-11-10
 ---
 
 # :material-map-marker-path: Roadmap
@@ -35,6 +35,7 @@ flowchart LR
     graphCounts("Readers can identify the data and catalog graphs<br/>included by the graph-count recipe")
     heading("Readers can navigate the MkDocs integration reference<br/>through its macro-section heading")
     discovery("Standards-aware clients can discover<br/>sparqld's query service from its endpoint")
+    obsidian("Users can run SPARQL against a watched directory<br/>from an Obsidian plugin")
     mission("<strong>Mission</strong><br/>Continuously improve the experience of people and agents<br/>querying local Linked Data with sparqld")
 
     configuration --> remote
@@ -51,4 +52,5 @@ flowchart LR
     graphCounts --> mission
     heading --> mission
     discovery --> mission
+    obsidian --> mission
 ```
