@@ -21,7 +21,7 @@ Install `sparqld` with Cargo:
 
 {{ command('cargo install sparqld') }}
 
-Install [`sq`](https://github.com/ktk/sq) to send the query:
+Install [:fontawesome-brands-github: `ktk/sq`](https://github.com/ktk/sq) to send the query:
 
 {{ command('cargo install --git https://github.com/ktk/sq') }}
 
@@ -57,8 +57,6 @@ Save it as `orbits.rq`:
 Run it with `sq`:
 
 {{ command('sq -e http://127.0.0.1:7737/ -f orbits.rq') }}
-
-The query returns:
 
 {{ result_data('orbits.tsv') }}
 
