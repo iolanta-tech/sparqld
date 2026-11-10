@@ -1580,6 +1580,19 @@ fn default_context() -> &'static Value {
     &default_context_document()["@context"]
 }
 
+/// Return namespace prefixes declared by the embedded default context.
+pub(crate) fn default_context_prefixes() -> Vec<(String, String)> {
+    default_context()
+        .as_object()
+        .into_iter()
+        .flat_map(serde_json::Map::iter)
+        .filter_map(|(prefix, value)| {
+            let iri = value.as_str()?;
+            (iri.ends_with(['#', '/'])).then(|| (prefix.clone(), iri.to_owned()))
+        })
+        .collect()
+}
+
 /// Put the default context before the `@context` of each top-level node.
 ///
 /// The document's own `@context` follows the default context in the resulting
