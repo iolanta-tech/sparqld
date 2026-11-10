@@ -19,9 +19,14 @@ first become necessary.
 ## Review
 
 After any change under `docs/` or to `mkdocs.yml`—including a one-character
-edit—run the mkdocs skill review before claiming the work done.
+edit—run the mkdocs skill review before claiming the work done. When planning
+changes under `docs/` or to `mkdocs.yml`, list that review as an explicit plan
+step.
 
 ## Prose
+
+- Use the default graph for ordinary query examples. Select a source graph when
+  graph selection is the behavior being demonstrated.
 
 - State an absence only when it corrects a likely reader expectation and
   materially affects use or understanding; otherwise describe the supported
