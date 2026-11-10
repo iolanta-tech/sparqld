@@ -18,8 +18,8 @@
 ## Commands
 
 - The `jeeves` package runs with the direnv virtualenv active. Invoke `ruff`, `flake8`,
-  `mkdocs`, and Cargo through `sh` (`sh.ruff`, `sh.flake8`, `sh.mkdocs`,
-  `sh.cargo`).
+  `mkdocs`, Vale, and Cargo through `sh` (`sh.ruff`, `sh.flake8`, `sh.mkdocs`,
+  `sh.vale`, `sh.cargo`).
 - Bake optional or repeated arguments with `bake`. Pass rustfmt `--check` after
   `--` on `sh.cargo.fmt`.
 

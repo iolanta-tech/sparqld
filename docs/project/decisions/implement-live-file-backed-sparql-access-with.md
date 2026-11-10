@@ -75,8 +75,8 @@ flowchart LR
     <td class="excl hot">[:x:](https://docs.rs/crate/oxigraph_server/0.3.4 "Bulk-loads data into storage")</td>
     <td class="excl">[:x:](https://docs.rs/crate/oxigraph_server/0.3.4 "No live reload documented")</td>
     <td class="excl">[:white_check_mark:](https://docs.rs/crate/oxigraph_server/0.3.4 "Provides a SPARQL HTTP endpoint")</td>
-    <td class="excl">[:x:](https://docs.rs/oxigraph/latest/oxigraph/io/enum.RdfFormat.html "YAML-LD is not an RDF format")</td>
-    <td class="excl">[:x:](https://docs.rs/oxigraph/latest/oxigraph/io/enum.RdfFormat.html "Markdown-LD is not an RDF format")</td>
+    <td class="excl">[:x:](https://docs.rs/oxigraph/latest/oxigraph/io/ "YAML-LD is not an RDF format")</td>
+    <td class="excl">[:x:](https://docs.rs/oxigraph/latest/oxigraph/io/ "Markdown-LD is not an RDF format")</td>
     <td class="excl">[1,801](https://github.com/oxigraph/oxigraph/stargazers "Observed 2026-08-07")</td>
     <td class="excl">[v0.5.9<br>2026-06-18](https://github.com/oxigraph/oxigraph/releases/tag/v0.5.9 "Released 2026-06-18")</td>
   </tr>

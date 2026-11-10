@@ -6,6 +6,7 @@
   description: schema:description
 "@id": reference/contexts/index.md
 "@type": schema:TechArticle
+icon: material/code-braces-box
 hide: [toc]
 name: Contexts
 title: Contexts

@@ -24,6 +24,16 @@ from jeeves.shell import command_output, in_parallel
 
 _DIFF_OPTION_VALUE = _OptionParser._get_value_from_state
 
+# Reader-facing prose; keep in sync with the Vale job in `.github/workflows/ci.yml`.
+VALE_PATHS = (
+    'README.md',
+    'docs/index.md',
+    'docs/quickstart',
+    'docs/reference',
+    'docs/project',
+    'docs/conversations',
+)
+
 
 def _diff_option_value(
     parser: _OptionParser,
@@ -51,11 +61,12 @@ def lint(
         ),
     ] = None,
 ) -> None:
-    """Check Rust and Python sources, then debtmap density."""
+    """Check Rust, Python, Vale prose, then debtmap density."""
     if diff is not None:
         lint_diff(diff)
         return
     in_parallel(lint_rust, lint_python)
+    lint_vale()
     lint_debtmap()
 
 
@@ -91,6 +102,17 @@ def lint_python():
     sh.flake8(str(PROJECT_ROOT), _cwd=SH_CWD, _fg=True)
 
 
+def lint_vale() -> None:
+    """Lint reader-facing Markdown; fail on Vale error-level alerts only."""
+    sh.vale(
+        '--no-global',
+        '--minAlertLevel=error',
+        *VALE_PATHS,
+        _cwd=SH_CWD,
+        _fg=True,
+    )
+
+
 def lint_diff(base: str) -> None:
     """Report lint findings on lines changed from `base`."""
     modified = modified_lines(base)
@@ -102,7 +124,7 @@ def lint_diff(base: str) -> None:
 
 
 def check_output():
-    """Return formatter and Python linter output for the whole tree."""
+    """Return formatter, Python, and Vale linter output for the whole tree."""
     chunks = (
         command_output(ruff_format_command(check=True), str(PROJECT_ROOT)),
         command_output(
@@ -112,5 +134,13 @@ def check_output():
         command_output(sh.flake8, str(PROJECT_ROOT)),
         command_output(sh.ty.check.bake('--output-format', 'concise')),
         command_output(cargo_fmt_command(check=True)),
+        command_output(
+            sh.vale.bake(
+                '--no-global',
+                '--output=line',
+                '--minAlertLevel=error',
+            ),
+            *VALE_PATHS,
+        ),
     )
     return '\n'.join(chunk for chunk in chunks if str(chunk).strip())

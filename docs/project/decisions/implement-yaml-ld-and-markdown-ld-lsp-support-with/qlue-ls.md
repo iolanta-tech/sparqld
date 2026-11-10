@@ -17,7 +17,7 @@ This planning shorthand assumes that Qlue-ls [:fontawesome-brands-github: `Ioann
 ## :material-format-list-checks: Implementation checklist
 
 - [ ] :material-lan-connect: Map Qlue-ls’s server lifecycle, document store, URI handling, position conversion, capability registration, and diagnostics interfaces; isolate components that can remain language-neutral.
-- [ ] :material-file-code-outline: Replace or generalize the SPARQL parser, formatter, completion, and backend-query pipeline so JSON-LD documents become first-class inputs without retaining SPARQL assumptions.
+- [ ] :material-file-code-outline: Replace or generalize the SPARQL parser, formatter, completion, and query-execution pipeline so JSON-LD documents become first-class inputs without retaining SPARQL assumptions.
 - [ ] :material-file-tree-outline: Build a YAML-LD syntax tree and source map that map semantic values and JSON-LD paths to YAML key and value spans.
 - [ ] :material-language-markdown-outline: Extract Markdown-LD front matter, retain its document offset, and translate JSON-LD diagnostics and navigation ranges back into the Markdown buffer.
 - [ ] :material-graph-outline: Select and integrate a JSON-LD processor, including context loading, relative-IRI resolution, local-document policy, and error translation to source ranges.
