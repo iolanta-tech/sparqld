@@ -16,7 +16,7 @@
       "@type": "Dataset",
       "name": "results.json",
       "description": "SPARQL retrieval materialized by Vitrify.",
-      "datePublished": "2026-11-10T08:53:49.615726353+00:00",
+      "datePublished": "2026-11-10T12:32:40.954443628+00:00",
       "additionalProperty": [
         {
           "@id": "#retrieval-duration"
@@ -32,7 +32,7 @@
         }
       ],
       "publisher": {
-        "@id": "http://127.0.0.1:51287/"
+        "@id": "http://127.0.0.1:39343/"
       },
       "author": {
         "@id": "https://vitrify.iolanta.tech"
@@ -60,7 +60,7 @@
       "version": "0.1.4"
     },
     {
-      "@id": "http://127.0.0.1:51287/",
+      "@id": "http://127.0.0.1:39343/",
       "@type": "Organization"
     },
     {
@@ -69,8 +69,8 @@
       "actionStatus": {
         "@id": "http://schema.org/CompletedActionStatus"
       },
-      "startTime": "2026-11-10T08:53:49.599625503+00:00",
-      "endTime": "2026-11-10T08:53:49.615726353+00:00",
+      "startTime": "2026-11-10T12:32:40.943510072+00:00",
+      "endTime": "2026-11-10T12:32:40.954443628+00:00",
       "instrument": {
         "@id": "https://vitrify.iolanta.tech"
       },
@@ -79,7 +79,7 @@
       },
       "object": [
         {
-          "@id": "http://127.0.0.1:51287/"
+          "@id": "http://127.0.0.1:39343/"
         },
         {
           "@id": "query.rq"
@@ -88,7 +88,7 @@
       "result": {
         "@id": "results.json"
       },
-      "identifier": "http://127.0.0.1:51287/",
+      "identifier": "http://127.0.0.1:39343/",
       "description": "HTTP 200; Accept: application/sparql-results+json"
     },
     {
@@ -96,7 +96,7 @@
       "@type": "PropertyValue",
       "propertyID": "retrieval-duration",
       "name": "Retrieval duration",
-      "value": 0.005321209,
+      "value": 0.004037717,
       "unitCode": "SEC"
     }
   ]
