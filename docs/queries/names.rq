@@ -8,5 +8,6 @@ WHERE {
     <http://dbpedia.org/resource/Proxima_Centauri_b>
   }
   ?subject schema:name ?name .
+  FILTER(?name IN ("Alpha Centauri", "Centaurus", "Proxima Centauri b"))
 }
 ORDER BY ?subject
