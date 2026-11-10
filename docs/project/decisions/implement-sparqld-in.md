@@ -7,7 +7,6 @@ status: decided
 date: 2026-07-31
 author: Anatoly Scherbakov
 tags: [decision]
-hide: [toc]
 ---
 
 # Implement `sparqld` in Rust
