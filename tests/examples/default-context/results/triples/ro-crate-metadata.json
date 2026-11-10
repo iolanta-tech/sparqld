@@ -16,7 +16,7 @@
       "@type": "Dataset",
       "name": "results.json",
       "description": "SPARQL retrieval materialized by Vitrify.",
-      "datePublished": "2026-11-10T12:32:40.084724316+00:00",
+      "datePublished": "2026-11-10T12:38:27.596207351+00:00",
       "additionalProperty": [
         {
           "@id": "#retrieval-duration"
@@ -32,7 +32,7 @@
         }
       ],
       "publisher": {
-        "@id": "http://127.0.0.1:52839/"
+        "@id": "http://127.0.0.1:48725/"
       },
       "author": {
         "@id": "https://vitrify.iolanta.tech"
@@ -48,9 +48,9 @@
     {
       "@id": "query.rq",
       "@type": "File",
-      "contentSize": "151",
+      "contentSize": "97",
       "encodingFormat": "application/sparql-query",
-      "sha256": "df9bc37f8fc54e5c291b152f06c639576e709fdb458c90e119d7403fb9af710e"
+      "sha256": "2e45e9bef4ef0f861a4742980bbc32478b9b30b70743071a86aae0e5b5eb8352"
     },
     {
       "@id": "https://vitrify.iolanta.tech",
@@ -60,7 +60,7 @@
       "version": "0.1.4"
     },
     {
-      "@id": "http://127.0.0.1:52839/",
+      "@id": "http://127.0.0.1:48725/",
       "@type": "Organization"
     },
     {
@@ -69,8 +69,8 @@
       "actionStatus": {
         "@id": "http://schema.org/CompletedActionStatus"
       },
-      "startTime": "2026-11-10T12:32:40.072776460+00:00",
-      "endTime": "2026-11-10T12:32:40.084724316+00:00",
+      "startTime": "2026-11-10T12:38:27.582883114+00:00",
+      "endTime": "2026-11-10T12:38:27.596207351+00:00",
       "instrument": {
         "@id": "https://vitrify.iolanta.tech"
       },
@@ -79,7 +79,7 @@
       },
       "object": [
         {
-          "@id": "http://127.0.0.1:52839/"
+          "@id": "http://127.0.0.1:48725/"
         },
         {
           "@id": "query.rq"
@@ -88,7 +88,7 @@
       "result": {
         "@id": "results.json"
       },
-      "identifier": "http://127.0.0.1:52839/",
+      "identifier": "http://127.0.0.1:48725/",
       "description": "HTTP 200; Accept: application/sparql-results+json"
     },
     {
@@ -96,7 +96,7 @@
       "@type": "PropertyValue",
       "propertyID": "retrieval-duration",
       "name": "Retrieval duration",
-      "value": 0.004130985,
+      "value": 0.004805577,
       "unitCode": "SEC"
     }
   ]
