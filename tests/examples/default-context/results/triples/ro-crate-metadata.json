@@ -16,7 +16,7 @@
       "@type": "Dataset",
       "name": "results.json",
       "description": "SPARQL retrieval materialized by Vitrify.",
-      "datePublished": "2026-11-10T12:38:27.596207351+00:00",
+      "datePublished": "2026-11-10T12:47:14.728122624+00:00",
       "additionalProperty": [
         {
           "@id": "#retrieval-duration"
@@ -32,7 +32,7 @@
         }
       ],
       "publisher": {
-        "@id": "http://127.0.0.1:48725/"
+        "@id": "http://127.0.0.1:50703/"
       },
       "author": {
         "@id": "https://vitrify.iolanta.tech"
@@ -41,16 +41,16 @@
     {
       "@id": "results.json",
       "@type": "File",
-      "contentSize": "188",
-      "sha256": "d5e321ec787921edc52574cb2bb9a5a0a4d902d115b04c431ecfae248479b72e",
+      "contentSize": "399",
+      "sha256": "3f565ac24867d278423528fb35d95bf45022ede6c16fd44c1ba4126cd0cab2de",
       "encodingFormat": "application/sparql-results+json"
     },
     {
       "@id": "query.rq",
       "@type": "File",
-      "contentSize": "97",
+      "contentSize": "137",
       "encodingFormat": "application/sparql-query",
-      "sha256": "2e45e9bef4ef0f861a4742980bbc32478b9b30b70743071a86aae0e5b5eb8352"
+      "sha256": "d890215a4bbb90c93be339d18c54b35c432b34c3253f1c94e9a4ee132438ea39"
     },
     {
       "@id": "https://vitrify.iolanta.tech",
@@ -60,7 +60,7 @@
       "version": "0.1.4"
     },
     {
-      "@id": "http://127.0.0.1:48725/",
+      "@id": "http://127.0.0.1:50703/",
       "@type": "Organization"
     },
     {
@@ -69,8 +69,8 @@
       "actionStatus": {
         "@id": "http://schema.org/CompletedActionStatus"
       },
-      "startTime": "2026-11-10T12:38:27.582883114+00:00",
-      "endTime": "2026-11-10T12:38:27.596207351+00:00",
+      "startTime": "2026-11-10T12:47:14.715518458+00:00",
+      "endTime": "2026-11-10T12:47:14.728122624+00:00",
       "instrument": {
         "@id": "https://vitrify.iolanta.tech"
       },
@@ -79,7 +79,7 @@
       },
       "object": [
         {
-          "@id": "http://127.0.0.1:48725/"
+          "@id": "http://127.0.0.1:50703/"
         },
         {
           "@id": "query.rq"
@@ -88,7 +88,7 @@
       "result": {
         "@id": "results.json"
       },
-      "identifier": "http://127.0.0.1:48725/",
+      "identifier": "http://127.0.0.1:50703/",
       "description": "HTTP 200; Accept: application/sparql-results+json"
     },
     {
@@ -96,7 +96,7 @@
       "@type": "PropertyValue",
       "propertyID": "retrieval-duration",
       "name": "Retrieval duration",
-      "value": 0.004805577,
+      "value": 0.005790183,
       "unitCode": "SEC"
     }
   ]
