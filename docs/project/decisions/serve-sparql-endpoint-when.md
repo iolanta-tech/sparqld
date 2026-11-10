@@ -120,9 +120,9 @@ flowchart LR
     <th>Outcome</th>
     <td class="chosen">:white_check_mark: Chosen</td>
     <td class="not-selected">:material-minus-circle-outline: Not selected</td>
-    <td class="excl">:x: Excluded — preserves log-coupled startup</td>
-    <td class="excl">:x: Excluded — adds out-of-band coordination</td>
-    <td class="excl">:x: Excluded — does not improve server startup</td>
+    <td class="excl">:x: Excluded—preserves log-coupled startup</td>
+    <td class="excl">:x: Excluded—adds out-of-band coordination</td>
+    <td class="excl">:x: Excluded—does not improve server startup</td>
   </tr>
 </table>
 
