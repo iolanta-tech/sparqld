@@ -25,6 +25,10 @@ Install [`sq`](https://github.com/ktk/sq) to send the query:
 
 {{ command('cargo install --git https://github.com/ktk/sq') }}
 
+!!! warning "`cargo install sq` installs the wrong package"
+
+    The crates.io crate named `sq` is unrelated. Use the GitHub install above.
+
 ## :material-server-outline: Serve a directory
 
 Create a directory for the data:
