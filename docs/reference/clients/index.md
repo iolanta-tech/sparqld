@@ -6,6 +6,7 @@
   description: schema:description
 "@id": reference/clients/index.md
 "@type": schema:TechArticle
+icon: material/console-network-outline
 hide: [toc]
 name: SPARQL clients and HTTP tools
 title: Clients
