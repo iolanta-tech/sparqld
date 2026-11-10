@@ -11,6 +11,7 @@ ADR_STATUS = MappingProxyType(
         'draft': 'Draft',
         'undecided': 'Undecided',
         'decided': 'Decided',
+        'living': 'Living',
     }
 )
 
@@ -20,6 +21,7 @@ _ADR_STATUS_ADMONITION = MappingProxyType(
         'draft': 'note',
         'undecided': 'warning',
         'decided': 'success',
+        'living': 'info',
     }
 )
 
