@@ -32,9 +32,11 @@ the IRI of the term it denotes.
 
 - On an ADR index page under `docs/project/decisions/`, place
   `{{ adr_metadata(date, status) }}` immediately after the H1 so visible ADR
-  metadata is derived from frontmatter. Supporting alternative-universe pages
-  use `{{ universe_metadata(adr_path, status) }}` instead: they identify their
-  parent ADR and their chosen, excluded, or undecided status rather than
+  metadata is derived from frontmatter. Supported statuses include `draft`,
+  `undecided`, `decided`, and `living` (chosen outcome kept; comparison may
+  gain rows when new alternatives appear). Supporting alternative-universe
+  pages use `{{ universe_metadata(adr_path, status) }}` instead: they identify
+  their parent ADR and their chosen, excluded, or undecided status rather than
   presenting themselves as ADRs.
 - Keep `**/AGENTS.md` in `exclude_docs` in `mkdocs.yml` so agent guidance is not
   published as documentation.
