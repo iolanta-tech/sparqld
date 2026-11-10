@@ -1,12 +1,13 @@
-SELECT ?graph ?name
+PREFIX schema: <https://schema.org/>
+
+SELECT DISTINCT ?subject ?name
 WHERE {
-  GRAPH ?graph {
-    ?subject <https://schema.org/name> ?name .
+  VALUES ?subject {
+    <http://dbpedia.org/resource/Alpha_Centauri>
+    <http://dbpedia.org/resource/Centaurus>
+    <http://dbpedia.org/resource/Proxima_Centauri_b>
   }
-  VALUES ?graph {
-    <sparqld:examples/alpha-centauri.yamlld>
-    <sparqld:examples/centaurus.md>
-    <sparqld:examples/proxima-centauri-b.jsonld>
-  }
+  ?subject schema:name ?name .
+  FILTER(?name IN ("Alpha Centauri", "Centaurus", "Proxima Centauri b"))
 }
-ORDER BY ?graph
+ORDER BY ?subject

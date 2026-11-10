@@ -4,6 +4,11 @@
 # source before the source's own `@context`, so the source can override any
 # term below. sparqld embeds this file and does not download it.
 "@context":
+  # Stable W3C namespace prefixes.
+  rdf: http://www.w3.org/1999/02/22-rdf-syntax-ns#
+  rdfs: http://www.w3.org/2000/01/rdf-schema#
+  xsd: http://www.w3.org/2001/XMLSchema#
+
   # Dollar aliases from https://json-ld.org/contexts/dollar-convenience.jsonld.
   # A YAML key cannot start with `@`, so `$id` stands in for `@id`, and so on.
   $always: "@always"

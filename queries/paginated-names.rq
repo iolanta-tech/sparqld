@@ -1,11 +1,8 @@
 PREFIX schema: <https://schema.org/>
 
-SELECT ?name
+SELECT DISTINCT ?name
 WHERE {
-  GRAPH ?graph {
-    ?subject schema:name ?name .
-  }
-  FILTER(STRSTARTS(STR(?graph), "sparqld:examples/"))
+  ?subject schema:name ?name .
 }
 ORDER BY ?name
 LIMIT 2
