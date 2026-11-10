@@ -21,15 +21,15 @@ registration supplies its body.
 
 === "Dependencies"
 
-{{ source('docs/examples/recursive-context/results/unregistered/dependencies.json', indent=4, title='Expected result') }}
+{{ source('docs/examples/recursive-context/results/unregistered/dependencies/results.json', indent=4, title='Expected result') }}
 
 === "Failed sources"
 
-{{ source('docs/examples/recursive-context/results/unregistered/failures.json', indent=4, title='Expected result') }}
+{{ source('docs/examples/recursive-context/results/unregistered/failures/results.json', indent=4, title='Expected result') }}
 
 === "Alpha Centauri"
 
-{{ source('docs/examples/recursive-context/results/unregistered/alpha-centauri.json', indent=4, title='Expected result') }}
+{{ source('docs/examples/recursive-context/results/unregistered/alpha-centauri/results.json', indent=4, title='Expected result') }}
 
 ## :material-download-outline: Acquire the context with vitrify
 
@@ -52,25 +52,25 @@ tiny offline stand-in URL with the same registration shape:
 
 {{ source('docs/queries/context-dependencies.rq', indent=4) }}
 
-{{ source('docs/examples/recursive-context/results/initial/dependencies.json', indent=4, title='Expected result') }}
+{{ source('docs/examples/recursive-context/results/initial/dependencies/results.json', indent=4, title='Expected result') }}
 
 === "Declaration"
 
 {{ example_data('recursive-context/queries/declaration.rq', indent=4) }}
 
-{{ source('docs/examples/recursive-context/results/initial/declaration.json', indent=4, title='Expected result') }}
+{{ source('docs/examples/recursive-context/results/initial/declaration/results.json', indent=4, title='Expected result') }}
 
 === "Failed sources"
 
 {{ example_data('recursive-context/queries/failures.rq', indent=4) }}
 
-{{ source('docs/examples/recursive-context/results/initial/failures.json', indent=4, title='Expected result') }}
+{{ source('docs/examples/recursive-context/results/initial/failures/results.json', indent=4, title='Expected result') }}
 
 === "Alpha Centauri"
 
 {{ example_data('recursive-context/queries/alpha-centauri.rq', indent=4) }}
 
-{{ source('docs/examples/recursive-context/results/initial/alpha-centauri.json', indent=4, title='Expected result') }}
+{{ source('docs/examples/recursive-context/results/initial/alpha-centauri/results.json', indent=4, title='Expected result') }}
 
 Several nodes may share one body. Distinct bodies for one URI are a load error.
 Changing a registered body reloads sources that requested it.
