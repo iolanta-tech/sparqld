@@ -1,7 +1,11 @@
 SELECT ?graph (COUNT(*) AS ?triples)
 WHERE {
+  VALUES ?graph {
+    <sparqld:examples/alpha-centauri.yamlld>
+    <sparqld:examples/centaurus.md>
+    <sparqld:examples/proxima-centauri-b.jsonld>
+  }
   GRAPH ?graph { ?subject ?predicate ?object }
-  FILTER(STRSTARTS(STR(?graph), "sparqld:examples/"))
 }
 GROUP BY ?graph
 ORDER BY DESC(?triples) ?graph
