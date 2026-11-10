@@ -6,7 +6,7 @@
 "@id": reference/contexts/project-contexts.md
 "@type": schema:TechArticle
 title: Project contexts
-description: Author relative context files and optional self-registering project-owned context URIs.
+description: Define relative context files and optional self-registering project-owned context URIs.
 ---
 
 # :material-folder-outline: Project contexts
@@ -19,9 +19,9 @@ description: Author relative context files and optional self-registering project
 
 {{ example_code('alpha-centauri.yamlld', indent=4) }}
 
-Relative `@context` paths resolve from the source's directory; `@import` may
+Relative `@context` paths resolve from the source's directory. `@import` may
 name another relative context. Every path must stay under the served directory.
-Context files load as source graphs; changing one reloads dependents.
+Context files load as source graphs. Changing one reloads its dependents.
 
 Remote URLs: [vitrify](remote-contexts.md).
 
@@ -50,30 +50,30 @@ Parser limits below apply.
 Term definitions come only from the `@context` member
 ([JSON-LD context processing](https://www.w3.org/TR/json-ld11-api/#context-processing-algorithm)).
 
-{{ source('docs/queries/contexts/self-registering-name.rq') }}
+{{ source('docs/examples/self-registering-context/queries/alpha-centauri.rq') }}
 
-{{ stored_sparql('docs/queries/contexts/self-registering-name.rq') | sparql_table }}
+{{ stored_sparql('docs/examples/self-registering-context/queries/alpha-centauri.rq') | sparql_table }}
 
 ## :material-source-branch: Bootstrap and paths
 
 - Write [`jsonld:Context`](http://www.w3.org/ns/json-ld#Context) and
   [`schema:contentUrl`](http://schema.org/contentUrl) as full IRIs.
-  `sparqld` retries failed sources as registrations appear; filename order does
-  not matter.
+  `sparqld` retries failed sources when registrations appear. Filename order
+  does not matter.
 - Registration dependencies must be acyclic.
 - Include registration sources in `--pattern` selection. Reading a body as a
   context does not load its registration triples.
-- The registered graph is the file that contains the node; `@id` / `@base` do
-  not pick another file.
+- The registered graph is the file that contains the node. Neither `@id` nor
+  `@base` selects another file.
 - Relative references inside a requested context resolve from that context's
   requested URI, so they need their own registrations.
 
 An `@context` array composes in order. `@import` requires an object, not an
 array.
 
-## :material-alert-outline: Current failure limits
+## :material-pause-circle-outline: Current failure limits
 
 With `sparqld` 0.1.6 and `oxjsonld` 0.2.5, a recursive relative self-context
-trips `The remote context stack is invalid`: the process stays up, the HTTP
-endpoint never becomes ready. Treat this layout as restricted until that is
-fixed; regression tests keep the failure as expected.
+triggers `The remote context stack is invalid`. The process stays up, but the
+HTTP endpoint never becomes ready. Keep this layout restricted until an update
+resolves the error. Regression tests preserve the expected failure.
