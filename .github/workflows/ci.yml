@@ -34,7 +34,9 @@ jobs:
           files: >-
             ["README.md", "docs/index.md", "docs/quickstart", "docs/reference",
             "docs/project", "docs/conversations"]
-          fail_on_error: true
+          # Fail only on Vale error-level alerts; warnings/suggestions annotate
+          # but do not block the job.
+          fail_level: error
           filter_mode: file
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
