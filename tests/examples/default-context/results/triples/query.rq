@@ -1,6 +1,6 @@
-SELECT ?subject ?predicate
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+
+SELECT ?comment
 WHERE {
-  <http://dbpedia.org/resource/Alpha_Centauri> ?predicate ?object .
-  BIND(<http://dbpedia.org/resource/Alpha_Centauri> AS ?subject)
+  <http://dbpedia.org/resource/Alpha_Centauri> rdfs:comment ?comment .
 }
-ORDER BY ?predicate
