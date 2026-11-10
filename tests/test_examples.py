@@ -18,7 +18,8 @@ CONTEXT_RELOAD = ROOT / 'docs/examples/context-reload'
 OLD_CONTEXT_RESULTS = CONTEXT_RELOAD / 'results/old'
 RESULTS_DIR = 'results'
 CONTEXT_RELOAD_QUERIES = tuple(
-    (name, CONTEXT_RELOAD / 'queries' / f'{name}.rq') for name in ('alice', 'failures')
+    (name, CONTEXT_RELOAD / 'queries' / f'{name}.rq')
+    for name in ('alpha-centauri', 'failures')
 )
 CONFLICT_QUERIES = CONTEXT_RELOAD_QUERIES + (
     ('dependencies', ROOT / 'docs/queries/context-dependencies.rq'),
