@@ -1,8 +1,0 @@
-SELECT ?subject ?predicate
-WHERE {
-  GRAPH <sparqld:examples/default-context/project/alpha-centauri.yamlld> {
-    <http://dbpedia.org/resource/Alpha_Centauri> ?predicate ?object .
-    BIND(<http://dbpedia.org/resource/Alpha_Centauri> AS ?subject)
-  }
-}
-ORDER BY ?predicate
