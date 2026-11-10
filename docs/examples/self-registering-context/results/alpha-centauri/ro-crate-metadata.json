@@ -1,0 +1,103 @@
+{
+  "@context": "https://w3id.org/ro/crate/1.3/context",
+  "@graph": [
+    {
+      "@id": "ro-crate-metadata.json",
+      "@type": "CreativeWork",
+      "conformsTo": {
+        "@id": "https://w3id.org/ro/crate/1.3"
+      },
+      "about": {
+        "@id": "./"
+      }
+    },
+    {
+      "@id": "./",
+      "@type": "Dataset",
+      "name": "results.json",
+      "description": "SPARQL retrieval materialized by Vitrify.",
+      "datePublished": "2026-11-10T08:53:48.951605673+00:00",
+      "additionalProperty": [
+        {
+          "@id": "#retrieval-duration"
+        }
+      ],
+      "license": "No license asserted by Vitrify; consult the source endpoint's terms of use.",
+      "hasPart": [
+        {
+          "@id": "results.json"
+        },
+        {
+          "@id": "query.rq"
+        }
+      ],
+      "publisher": {
+        "@id": "http://127.0.0.1:41325/"
+      },
+      "author": {
+        "@id": "https://vitrify.iolanta.tech"
+      }
+    },
+    {
+      "@id": "results.json",
+      "@type": "File",
+      "contentSize": "104",
+      "sha256": "2cb2890a17ac4f2958d9dd992a16641ba337df3cf5a66778c8cd0cb20e775a5e",
+      "encodingFormat": "application/sparql-results+json"
+    },
+    {
+      "@id": "query.rq",
+      "@type": "File",
+      "contentSize": "100",
+      "encodingFormat": "application/sparql-query",
+      "sha256": "beafaec0fb418f9564f31c4433b1e3d2e5d6fccb8a18e00ab62d381e0ca142ff"
+    },
+    {
+      "@id": "https://vitrify.iolanta.tech",
+      "@type": "SoftwareApplication",
+      "name": "Vitrify",
+      "url": "https://vitrify.iolanta.tech",
+      "version": "0.1.4"
+    },
+    {
+      "@id": "http://127.0.0.1:41325/",
+      "@type": "Organization"
+    },
+    {
+      "@id": "#retrieval",
+      "@type": "CreateAction",
+      "actionStatus": {
+        "@id": "http://schema.org/CompletedActionStatus"
+      },
+      "startTime": "2026-11-10T08:53:48.931162487+00:00",
+      "endTime": "2026-11-10T08:53:48.951605673+00:00",
+      "instrument": {
+        "@id": "https://vitrify.iolanta.tech"
+      },
+      "agent": {
+        "@id": "https://vitrify.iolanta.tech"
+      },
+      "object": [
+        {
+          "@id": "http://127.0.0.1:41325/"
+        },
+        {
+          "@id": "query.rq"
+        }
+      ],
+      "result": {
+        "@id": "results.json"
+      },
+      "identifier": "http://127.0.0.1:41325/",
+      "description": "HTTP 200; Accept: application/sparql-results+json"
+    },
+    {
+      "@id": "#retrieval-duration",
+      "@type": "PropertyValue",
+      "propertyID": "retrieval-duration",
+      "name": "Retrieval duration",
+      "value": 0.005522375,
+      "unitCode": "SEC"
+    }
+  ]
+}
