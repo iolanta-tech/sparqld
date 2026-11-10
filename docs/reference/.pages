@@ -2,13 +2,13 @@ title: Reference
 nav:
   - Command: index.md
   - HTTP API: api
-  - SPARQL cheat sheet: sparql
   - File formats: formats.md
   - Named graphs: named-graphs.md
   - File catalog: file-catalog.md
+  - SPARQL: sparql
   - Contexts: contexts
   - Vocabulary: vocabulary
+  - Agents: agents
   - Libraries: libraries
   - clients
-  - Agents: agents
   - Integrations: integrations
