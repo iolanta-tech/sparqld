@@ -1,7 +1,7 @@
 """Project automation commands."""
 
 from jeeves.docs import docs as docs
+from jeeves.evolve import evolve as evolve
 from jeeves.formatting import fmt as fmt
-from jeeves.linting import evolve as evolve
 from jeeves.linting import lint as lint
 from jeeves.release import publish_pluglet as publish_pluglet
