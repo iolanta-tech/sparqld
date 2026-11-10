@@ -13,7 +13,7 @@ def _literal(lexical_form: str) -> dict[str, str]:
     return {'type': 'literal', 'value': lexical_form}
 
 
-def test_code_fence_outlasts_nested_markdown_fences() -> None:
+def test_code_fence_outlasts_nested_fences() -> None:
     source = '# Title\n\n```sh\necho hi\n```\n'
     rendered = code_fence(source, 'markdown')
     assert rendered.startswith('````markdown\n')
@@ -47,7 +47,7 @@ def test_decision_page_keeps_a_directory_index() -> None:
 
     nested = (
         'sparqld:project/decisions/'
-        'implement-yaml-ld-and-markdown-ld-lsp-support-with/index.md'
+        + 'implement-yaml-ld-and-markdown-ld-lsp-support-with/index.md'
     )
     flat = 'sparqld:project/decisions/implement-sparqld-in.md'
 

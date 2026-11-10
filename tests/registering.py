@@ -15,6 +15,10 @@ from mkdocs_macros_sparqld.render import SelectResult
 SCENARIO = (
     Path(__file__).resolve().parents[1] / 'docs/examples/self-registering-context'
 )
+GOLDENS = (
+    Path(__file__).resolve().parents[1]
+    / 'tests/examples/self-registering-context/results'
+)
 CANONICAL = 'https://example.org/contexts/combined/person'
 BODY = 'contexts/person.yamlld'
 DOLLAR_BODY = 'contexts/z-dollar.yamlld'

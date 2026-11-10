@@ -1,0 +1,10 @@
+PREFIX jsonld: <http://www.w3.org/ns/json-ld#>
+
+SELECT ?file ?context
+WHERE {
+  GRAPH <sparqld:> {
+    BIND(<sparqld:examples/recursive-context/project/alpha-centauri.jsonld> AS ?file)
+    ?file jsonld:context ?context .
+  }
+}
+ORDER BY ?context

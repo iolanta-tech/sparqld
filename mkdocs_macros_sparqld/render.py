@@ -7,7 +7,7 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, StrictBool, TypeAdapter
 
-from mkdocs_macros_sparqld.table import BindingTable, _table_columns, _table_lines
+from mkdocs_macros_sparqld.table import SelectBindings, render_bindings
 
 _JSON_CONFIG = ConfigDict(extra='ignore')
 
@@ -67,11 +67,16 @@ class SelectResult(BaseModel):
             table.append(row)
         return table
 
+    def bindings(self) -> SelectBindings:
+        """Return projected variables with their binding rows."""
+        return SelectBindings(columns=list(self.head.variables), rows=self.rows())
+
 
 _JSON_RESULT: TypeAdapter[AskResult | SelectResult] = TypeAdapter(
     AskResult | SelectResult,
 )
-QueryOutput = list[dict[str, str]] | bool | str
+BindingRows = list[dict[str, str]]
+QueryOutput = SelectBindings | BindingRows | bool | str
 
 
 def parse_result(content_type: str, body: str) -> QueryOutput:
@@ -82,12 +87,13 @@ def parse_result(content_type: str, body: str) -> QueryOutput:
     parsed = _JSON_RESULT.validate_python(json.loads(body))
     if isinstance(parsed, AskResult):
         return parsed.boolean
-    return parsed.rows()
+    return parsed.bindings()
 
 
-def bindings_table(rows: list[dict[str, str]]) -> str:
+def bindings_table(rows: SelectBindings | list[dict[str, str]]) -> str:
     """Render SELECT bindings as a Markdown table."""
-    binding_rows = BindingTable(rows=rows).rows
-    if not binding_rows:
+    if isinstance(rows, SelectBindings):
+        return render_bindings(list(rows.columns), rows.rows)
+    if not rows:
         return ''
-    return '\n'.join(_table_lines(_table_columns(binding_rows), binding_rows))
+    return render_bindings([], rows)

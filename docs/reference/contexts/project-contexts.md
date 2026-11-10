@@ -50,9 +50,9 @@ Parser limits below apply.
 Term definitions come only from the `@context` member
 ([JSON-LD context processing](https://www.w3.org/TR/json-ld11-api/#context-processing-algorithm)).
 
-{{ example_data('self-registering-context/queries/alpha-centauri.rq') }}
+{{ source('docs/queries/contexts/self-registering-name.rq') }}
 
-{{ source('docs/examples/self-registering-context/results/alpha-centauri.json', title='Expected result') }}
+{{ stored_sparql('docs/queries/contexts/self-registering-name.rq') | sparql_table }}
 
 ## :material-source-branch: Bootstrap and paths
 

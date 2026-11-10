@@ -7,7 +7,7 @@ def client_compatibility() -> str:
     """Render the recorded SPARQL client checks."""
     if not CLIENT_COMPATIBILITY_PATH.is_file():
         raise RuntimeError(
-            'Client compatibility record is missing. Run `j verify-clients` before building the documentation.',
+            'Client compatibility record is missing. Run `j docs verify-clients` before building the documentation.',
         )
     for line in CLIENT_COMPATIBILITY_PATH.read_text().splitlines():
         if line.startswith('summary:'):

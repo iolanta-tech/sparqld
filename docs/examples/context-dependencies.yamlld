@@ -2,5 +2,5 @@
   - https://example.org/ctx
   - name: https://schema.org/name
 
-$id: person
-name: Alice
+$id: http://dbpedia.org/resource/Alpha_Centauri
+name: Alpha Centauri

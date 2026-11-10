@@ -1,0 +1,9 @@
+PREFIX jsonld: <http://www.w3.org/ns/json-ld#>
+PREFIX schema: <http://schema.org/>
+
+ASK {
+  GRAPH <sparqld:contexts/person.yamlld> {
+    [] a jsonld:Context ;
+      schema:contentUrl ?context .
+  }
+}

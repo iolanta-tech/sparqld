@@ -15,7 +15,11 @@ def test_bootstrap(sparqld_binary: Path, tmp_path: Path) -> None:
         sparqld_binary,
         tmp_path / SERVER_LOG_NAME,
     ) as server:
-        _wait_for_queries(server, registering.QUERIES, registering.SCENARIO / 'results')
+        _wait_for_queries(
+            server,
+            registering.QUERIES,
+            registering.GOLDENS,
+        )
 
 
 @pytest.mark.parametrize(

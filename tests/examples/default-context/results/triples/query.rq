@@ -1,0 +1,6 @@
+SELECT ?subject ?predicate
+WHERE {
+  <http://dbpedia.org/resource/Alpha_Centauri> ?predicate ?object .
+  BIND(<http://dbpedia.org/resource/Alpha_Centauri> AS ?subject)
+}
+ORDER BY ?predicate

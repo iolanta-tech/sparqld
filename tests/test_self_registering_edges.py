@@ -93,7 +93,7 @@ def test_http_context_stays_offline(
         assert 'context is not registered' in log.read_text()
 
 
-def test_explicit_base_does_not_move_a_saved_context(
+def test_explicit_base_keeps_saved_context(
     sparqld_binary: Path,
     tmp_path: Path,
 ) -> None:

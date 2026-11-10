@@ -17,19 +17,27 @@ registration supplies its body.
 
 ## :material-file-alert-outline: An unregistered URL fails
 
-{{ example_data('recursive-context/project/alpha-centauri.jsonld') }}
+{{ example_data('recursive-context/unregistered/alpha-centauri.jsonld') }}
 
 === "Dependencies"
 
-{{ source('docs/examples/recursive-context/results/unregistered/dependencies.json', indent=4, title='Expected result') }}
+{{ source('docs/queries/contexts/unregistered-dependencies.rq', indent=4) }}
+
+{{ stored_sparql('docs/queries/contexts/unregistered-dependencies.rq') | sparql_table | indent(4, true) }}
 
 === "Failed sources"
 
-{{ source('docs/examples/recursive-context/results/unregistered/failures.json', indent=4, title='Expected result') }}
+{{ source('docs/queries/contexts/unregistered-failures.rq', indent=4) }}
+
+{{ stored_sparql('docs/queries/contexts/unregistered-failures.rq') | sparql_table | indent(4, true) }}
 
 === "Alpha Centauri"
 
-{{ source('docs/examples/recursive-context/results/unregistered/alpha-centauri.json', indent=4, title='Expected result') }}
+{{ source('docs/queries/contexts/unregistered-alpha-centauri.rq', indent=4) }}
+
+    ```text title="Expected result"
+    {{ stored_sparql('docs/queries/contexts/unregistered-alpha-centauri.rq') }}
+    ```
 
 ## :material-download-outline: Acquire the context with vitrify
 
@@ -48,29 +56,35 @@ tiny offline stand-in URL with the same registration shape:
 
 ## :material-check-circle-outline: After registration
 
+{{ example_data('recursive-context/project/alpha-centauri.jsonld') }}
+
 === "Dependencies"
 
-{{ source('docs/queries/context-dependencies.rq', indent=4) }}
+{{ source('docs/queries/contexts/registered-dependencies.rq', indent=4) }}
 
-{{ source('docs/examples/recursive-context/results/initial/dependencies.json', indent=4, title='Expected result') }}
+{{ stored_sparql('docs/queries/contexts/registered-dependencies.rq') | sparql_table | indent(4, true) }}
 
 === "Declaration"
 
-{{ example_data('recursive-context/queries/declaration.rq', indent=4) }}
+{{ source('docs/queries/contexts/registered-declaration.rq', indent=4) }}
 
-{{ source('docs/examples/recursive-context/results/initial/declaration.json', indent=4, title='Expected result') }}
+    ```text title="Expected result"
+    {{ stored_sparql('docs/queries/contexts/registered-declaration.rq') }}
+    ```
 
 === "Failed sources"
 
-{{ example_data('recursive-context/queries/failures.rq', indent=4) }}
+{{ source('docs/queries/contexts/registered-failures.rq', indent=4) }}
 
-{{ source('docs/examples/recursive-context/results/initial/failures.json', indent=4, title='Expected result') }}
+{{ stored_sparql('docs/queries/contexts/registered-failures.rq') | sparql_table | indent(4, true) }}
 
 === "Alpha Centauri"
 
-{{ example_data('recursive-context/queries/alpha-centauri.rq', indent=4) }}
+{{ source('docs/queries/contexts/registered-alpha-centauri.rq', indent=4) }}
 
-{{ source('docs/examples/recursive-context/results/initial/alpha-centauri.json', indent=4, title='Expected result') }}
+    ```text title="Expected result"
+    {{ stored_sparql('docs/queries/contexts/registered-alpha-centauri.rq') }}
+    ```
 
 Several nodes may share one body. Distinct bodies for one URI are a load error.
 Changing a registered body reloads sources that requested it.

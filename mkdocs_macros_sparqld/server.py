@@ -3,64 +3,12 @@
 from __future__ import annotations
 
 import atexit
-import shutil
-import socket
 import subprocess
-import time
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from urllib.request import Request, urlopen
 
-
-@dataclass
-class ServerState:
-    """Configuration and process shared by the documentation macros."""
-
-    project_directory: Path | None = None
-    directory: Path | None = None
-    binary: str | Path | None = None
-    process: subprocess.Popen | None = None
-    endpoint: str | None = None
-
-    def wait_for_endpoint(self, process: subprocess.Popen, endpoint: str) -> str:
-        """Wait for a ready endpoint or clean up a failed server startup."""
-        deadline = time.monotonic() + _STARTUP_TIMEOUT_SECONDS
-        while time.monotonic() < deadline:
-            self.check_process(process)
-            try:
-                ready = self.endpoint_is_ready(endpoint)
-            except OSError:
-                time.sleep(0.1)
-                continue
-            if ready:
-                return endpoint
-
-        stop_server()
-        raise RuntimeError('Timed out starting sparqld for documentation macros.')
-
-    def check_process(self, process: subprocess.Popen) -> None:
-        """Report a startup failure and clear the stopped process state."""
-        if process.poll() is None:
-            return
-        stdout, stderr = process.communicate()
-        self.process = None
-        self.endpoint = None
-        raise RuntimeError(
-            'Could not start sparqld for documentation macros.\n'
-            + (stderr.strip() or stdout.strip())
-        )
-
-    def endpoint_is_ready(self, endpoint: str) -> bool:
-        """Check whether the landing page responds successfully."""
-        with urlopen(endpoint, timeout=_PROBE_TIMEOUT_SECONDS) as response:
-            return response.status == _HTTP_OK
-
-
-server_state = ServerState()
-_STARTUP_TIMEOUT_SECONDS = 30
-_PROBE_TIMEOUT_SECONDS = 0.25
-_HTTP_OK = 200
-
+from mkdocs_macros_sparqld import process
 
 # @todo(existing-sparqld-endpoint): Query an already running sparqld server.
 # description: >
@@ -106,6 +54,75 @@ _HTTP_OK = 200
 #   - extractor-reload
 #   - riddles-cli
 #   - extractor-registration
+
+
+@dataclass
+class ServerState:
+    """Configuration and processes shared by the documentation macros."""
+
+    project_directory: Path | None = None
+    directory: Path | None = None
+    binary: str | Path | None = None
+    servers: dict[Path, tuple[subprocess.Popen, str]] = field(default_factory=dict)
+
+    def ensure_endpoint_for(self, directory: Path) -> str:
+        """Start sparqld for `directory` if needed and return its endpoint URL."""
+        resolved = directory.resolve()
+        existing = self.servers.get(resolved)
+        if existing is not None and existing[0].poll() is None:
+            return existing[1]
+        if self.project_directory is None or self.binary is None:
+            raise RuntimeError(
+                'mkdocs_macros_sparqld is not configured. Ensure the pluglet is listed under macros.modules.',
+            )
+        if not resolved.is_dir():
+            raise RuntimeError(f'sparqld directory does not exist: {resolved}')
+        binary = process.resolve_binary(self.project_directory, self.binary)
+        started = process.start_sparqld(
+            binary=binary,
+            directory=resolved,
+            project_directory=self.project_directory,
+            port=process.unused_port(),
+        )
+        self.servers[resolved] = started
+        return process.wait_until_ready(
+            started[0],
+            started[1],
+            on_failure=lambda: self.stop_directory(resolved),
+        )
+
+    def ensure_endpoint(self) -> str:
+        """Start sparqld for the configured docs directory if needed."""
+        if self.directory is None:
+            raise RuntimeError(
+                'mkdocs_macros_sparqld is not configured. Ensure the pluglet is listed under macros.modules.',
+            )
+        return self.ensure_endpoint_for(self.directory)
+
+    def stop_all(self) -> None:
+        for running, _endpoint in list(self.servers.values()):
+            process.stop_process(running)
+        self.servers.clear()
+
+    def post_query(self, endpoint: str, query: str) -> tuple[str, str]:
+        request = Request(
+            endpoint,
+            data=query.encode(),
+            headers={'Content-Type': 'application/sparql-query'},
+            method='POST',
+        )
+        with urlopen(request, timeout=10) as response:
+            return response.headers.get_content_type(), response.read().decode()
+
+    def stop_directory(self, directory: Path) -> None:
+        running = self.servers.pop(directory, None)
+        if running is not None:
+            process.stop_process(running[0])
+
+
+server_state = ServerState()
+
+
 def configure(*, project_dir: Path, directory: Path, binary: str | Path) -> None:
     """Store paths used to launch sparqld for this MkDocs project."""
     server_state.project_directory = project_dir
@@ -113,100 +130,39 @@ def configure(*, project_dir: Path, directory: Path, binary: str | Path) -> None
     server_state.binary = binary
 
 
-def _resolve_binary() -> str:
-    if server_state.binary is None or server_state.project_directory is None:
-        raise RuntimeError(
-            'mkdocs_macros_sparqld is not configured. Ensure the pluglet is listed under macros.modules.',
-        )
-    candidate = Path(server_state.binary)
-    if candidate.is_absolute() and candidate.is_file():
-        return str(candidate)
-    relative = (server_state.project_directory / candidate).resolve()
-    if relative.is_file():
-        return str(relative)
-    found = shutil.which(str(server_state.binary))
-    if found:
-        return found
-    raise RuntimeError(
-        f'sparqld binary `{server_state.binary}` was not found. Install sparqld on PATH or set extra.sparqld.binary to an executable path.',
-    )
-
-
-def _unused_port() -> int:
-    with socket.socket() as listener:
-        listener.bind(('127.0.0.1', 0))
-        return listener.getsockname()[1]
+def ensure_endpoint_for(directory: Path) -> str:
+    """Start sparqld for `directory` if needed and return its endpoint URL."""
+    return server_state.ensure_endpoint_for(directory)
 
 
 def ensure_endpoint() -> str:
-    """Start sparqld if needed and return its SPARQL endpoint URL."""
-    if (
-        server_state.process is not None
-        and server_state.process.poll() is None
-        and server_state.endpoint is not None
-    ):
-        return server_state.endpoint
-    if server_state.directory is None or server_state.project_directory is None:
-        raise RuntimeError(
-            'mkdocs_macros_sparqld is not configured. Ensure the pluglet is listed under macros.modules.',
-        )
-    if not server_state.directory.is_dir():
-        raise RuntimeError(
-            f'sparqld directory does not exist: {server_state.directory}'
-        )
-
-    port = _unused_port()
-    endpoint = f'http://127.0.0.1:{port}/'
-    binary = _resolve_binary()
-    server_state.process = subprocess.Popen(
-        [
-            binary,
-            str(server_state.directory),
-            '--host',
-            '127.0.0.1',
-            '--port',
-            str(port),
-            '--no-watch',
-        ],
-        cwd=server_state.project_directory,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        text=True,
-    )
-    server_state.endpoint = endpoint
-
-    return server_state.wait_for_endpoint(server_state.process, endpoint)
+    """Start sparqld for the configured docs directory if needed."""
+    return server_state.ensure_endpoint()
 
 
 def stop_server() -> None:
-    """Terminate the build-time sparqld process if it is running."""
-    if server_state.process is None:
-        return
-    if server_state.process.poll() is None:
-        server_state.process.terminate()
-        try:
-            server_state.process.communicate(timeout=5)
-        except subprocess.TimeoutExpired:
-            server_state.process.kill()
-            server_state.process.communicate()
-    server_state.process = None
-    server_state.endpoint = None
+    """Terminate every build-time sparqld process."""
+    server_state.stop_all()
 
 
 def run_query(query: str) -> tuple[str, str]:
-    """POST a SPARQL query and return `(content_type, body)`."""
+    """POST a SPARQL query to the configured docs endpoint."""
     endpoint = ensure_endpoint()
-    request = Request(
-        endpoint,
-        data=query.encode(),
-        headers={'Content-Type': 'application/sparql-query'},
-        method='POST',
-    )
     try:
-        with urlopen(request, timeout=10) as response:
-            return response.headers.get_content_type(), response.read().decode()
+        return server_state.post_query(endpoint, query)
     except OSError:
         stop_server()
+        raise
+
+
+def run_query_in(directory: Path, query: str) -> tuple[str, str]:
+    """POST a SPARQL query against a specific served directory."""
+    resolved = directory.resolve()
+    endpoint = ensure_endpoint_for(resolved)
+    try:
+        return server_state.post_query(endpoint, query)
+    except OSError:
+        server_state.stop_directory(resolved)
         raise
 
 

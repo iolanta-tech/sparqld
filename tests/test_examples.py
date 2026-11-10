@@ -4,7 +4,6 @@ import json
 import shutil
 from pathlib import Path
 
-import pytest
 from ruamel.yaml import YAML
 from serving import (
     PROJECT_DIR,
@@ -15,15 +14,17 @@ from serving import (
 )
 
 CONTEXT_RELOAD = ROOT / 'docs/examples/context-reload'
-OLD_CONTEXT_RESULTS = CONTEXT_RELOAD / 'results/old'
-RESULTS_DIR = 'results'
+CONTEXT_RELOAD_GOLDENS = ROOT / 'tests/examples/context-reload/results'
+OLD_CONTEXT_RESULTS = CONTEXT_RELOAD_GOLDENS / 'old'
 CONTEXT_RELOAD_QUERIES = tuple(
-    (name, CONTEXT_RELOAD / 'queries' / f'{name}.rq') for name in ('alice', 'failures')
+    (name, CONTEXT_RELOAD / 'queries' / f'{name}.rq')
+    for name in ('alpha-centauri', 'failures')
 )
 CONFLICT_QUERIES = CONTEXT_RELOAD_QUERIES + (
     ('dependencies', ROOT / 'docs/queries/context-dependencies.rq'),
 )
 SCENARIO = ROOT / 'docs/examples/recursive-context'
+RECURSIVE_GOLDENS = ROOT / 'tests/examples/recursive-context/results'
 QUERIES = (
     ('declaration', SCENARIO / 'queries/declaration.rq'),
     ('failures', SCENARIO / 'queries/failures.rq'),
@@ -54,7 +55,7 @@ def test_recursive_context_example(sparqld_binary: Path, tmp_path: Path) -> None
         sparqld_binary,
         tmp_path / SERVER_LOG_NAME,
     ) as server:
-        _wait_for_queries(server, QUERIES, SCENARIO / 'results/initial')
+        _wait_for_queries(server, QUERIES, RECURSIVE_GOLDENS / 'initial')
 
 
 def test_declaration_removal_unregisters_context(
@@ -65,11 +66,11 @@ def test_declaration_removal_unregisters_context(
     project = shutil.copytree(SCENARIO / PROJECT_DIR, tmp_path / PROJECT_DIR)
     body = project / 'example.jsonld'
     with _serve(project, sparqld_binary, tmp_path / SERVER_LOG_NAME) as server:
-        _wait_for_queries(server, QUERIES, SCENARIO / 'results/initial')
+        _wait_for_queries(server, QUERIES, RECURSIVE_GOLDENS / 'initial')
         document = json.loads(body.read_text())
         document.pop('http://schema.org/contentUrl')
         body.write_text(json.dumps(document))
-        _wait_for_queries(server, QUERIES, SCENARIO / 'results/unregistered')
+        _wait_for_queries(server, QUERIES, RECURSIVE_GOLDENS / 'unregistered')
 
 
 def test_default_context_needs_no_request(
@@ -78,12 +79,13 @@ def test_default_context_needs_no_request(
 ) -> None:
     """Expand dollar aliases from the embedded default context with no request."""
     scenario = ROOT / 'docs/examples/default-context'
+    goldens = ROOT / 'tests/examples/default-context/results'
     log = tmp_path.joinpath(SERVER_LOG_NAME)
     with _serve(scenario / PROJECT_DIR, sparqld_binary, log) as server:
         _wait_for_queries(
             server,
             (('triples', scenario / 'queries/triples.rq'),),
-            scenario / RESULTS_DIR,
+            goldens,
         )
 
 
@@ -99,7 +101,7 @@ def test_context_registration_recovery_and_change(
         _wait_for_queries(
             server,
             CONTEXT_RELOAD_QUERIES,
-            CONTEXT_RELOAD / 'results/unregistered',
+            CONTEXT_RELOAD_GOLDENS / 'unregistered',
         )
         _dump_yaml(body, _registered_body('urn:old'))
         _wait_for_queries(server, CONTEXT_RELOAD_QUERIES, OLD_CONTEXT_RESULTS)
@@ -108,13 +110,13 @@ def test_context_registration_recovery_and_change(
         _wait_for_queries(
             server,
             CONTEXT_RELOAD_QUERIES,
-            CONTEXT_RELOAD / 'results/new',
+            CONTEXT_RELOAD_GOLDENS / 'new',
         )
         _dump_yaml(alternate, {'@context': {'name': 'urn:new'}})
         _wait_for_queries(
             server,
             CONTEXT_RELOAD_QUERIES,
-            CONTEXT_RELOAD / 'results/unregistered',
+            CONTEXT_RELOAD_GOLDENS / 'unregistered',
         )
 
 
@@ -133,13 +135,13 @@ def test_conflicting_registration_matches_restart(
         _wait_for_queries(
             server,
             CONFLICT_QUERIES,
-            CONTEXT_RELOAD / 'results/ambiguous',
+            CONTEXT_RELOAD_GOLDENS / 'ambiguous',
         )
     with _serve(project, sparqld_binary, tmp_path / SERVER_LOG_NAME) as server:
         _wait_for_queries(
             server,
             CONFLICT_QUERIES,
-            CONTEXT_RELOAD / 'results/ambiguous',
+            CONTEXT_RELOAD_GOLDENS / 'ambiguous',
         )
         alternate.unlink()
         _wait_for_queries(server, CONTEXT_RELOAD_QUERIES, OLD_CONTEXT_RESULTS)

@@ -1,0 +1,4 @@
+SELECT ?predicate WHERE {
+  <http://dbpedia.org/resource/Alpha_Centauri> ?predicate "Alpha Centauri"
+}
+ORDER BY ?predicate

@@ -1,0 +1,9 @@
+PREFIX jsonld: <http://www.w3.org/ns/json-ld#>
+
+SELECT ?file ?context
+WHERE {
+  GRAPH <sparqld:> {
+    ?file jsonld:context ?context .
+  }
+}
+ORDER BY ?file ?context

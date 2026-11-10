@@ -1,0 +1,9 @@
+PREFIX rlog: <http://persistence.uni-leipzig.org/nlp2rdf/ontologies/rlog#>
+
+SELECT ?file
+WHERE {
+  GRAPH <sparqld:> {
+    BIND(<sparqld:examples/recursive-context/project/alpha-centauri.jsonld> AS ?file)
+    ?error rlog:resource ?file .
+  }
+}

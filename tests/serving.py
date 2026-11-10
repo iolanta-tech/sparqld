@@ -54,7 +54,7 @@ def _wait_for_queries(
         try:
             for name, query in queries:
                 expected = QUERY_RESULT.validate_json(
-                    (result_directory / f'{name}.json').read_bytes(),
+                    (result_directory / name / 'results.json').read_bytes(),
                 )
                 assert _query(server.endpoint, query) == expected, query.name
         except (OSError, AssertionError) as error:
