@@ -7,7 +7,6 @@
 "@id": index.md
 "@type": schema:SoftwareApplication
 icon: material/folder-search-outline
-hide: [toc]
 name: sparqld
 title: sparqld
 description: A live, read-only SPARQL endpoint for linked data stored in files.
@@ -92,7 +91,7 @@ The directory is served at `http://127.0.0.1:7737/`. Query it from your shell or
 application; edit the files to change the data.
 
 [:material-rocket-launch-outline: Starting in CLI](quickstart/cli.md){ .md-button .md-button--primary }
-[:material-book-open-page-variant-outline: Reference](reference/index.md){ .md-button }
+[:material-console-line: Reference](reference/index.md){ .md-button }
 
 </div>
 

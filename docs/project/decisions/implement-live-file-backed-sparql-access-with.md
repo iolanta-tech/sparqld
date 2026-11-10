@@ -7,7 +7,6 @@ status: decided
 date: 2026-08-07
 author: Anatoly Scherbakov
 tags: [decision]
-hide: [toc]
 ---
 
 # Implement live file-backed SPARQL access with `sparqld`
@@ -36,17 +35,17 @@ flowchart LR
     <th>Live reload</th>
     <th>[SPARQL endpoint](https://www.w3.org/TR/sparql11-protocol/)</th>
     <th>[YAML-LD](https://www.w3.org/TR/yaml-ld-10/)</th>
-    <th>[Markdown-LD](/reference/formats/)</th>
+    <th>[Markdown-LD](../../reference/formats.md)</th>
     <th>[GitHub stars](https://docs.github.com/en/get-started/exploring-projects-on-github/saving-repositories-with-stars)</th>
     <th>Latest release</th>
   </tr>
   <tr markdown="span">
     <th class="chosen">[:fontawesome-brands-github: `iolanta-tech/sparqld`](https://github.com/iolanta-tech/sparqld)</th>
-    <td class="chosen">[:white_check_mark:](/ "Reads served files directly")</td>
-    <td class="chosen">[:white_check_mark:](/reference/agents/ "Watches for file changes")</td>
-    <td class="chosen">[:white_check_mark:](/reference/api/ "Provides a SPARQL HTTP endpoint")</td>
-    <td class="chosen">[:white_check_mark:](/reference/formats/ "Supports YAML-LD")</td>
-    <td class="chosen">[:white_check_mark:](/reference/formats/ "Supports Markdown-LD")</td>
+    <td class="chosen">[:white_check_mark:](../../index.md "Reads served files directly")</td>
+    <td class="chosen">[:white_check_mark:](../../reference/agents/index.md "Watches for file changes")</td>
+    <td class="chosen">[:white_check_mark:](../../reference/api/index.md "Provides a SPARQL HTTP endpoint")</td>
+    <td class="chosen">[:white_check_mark:](../../reference/formats.md "Supports YAML-LD")</td>
+    <td class="chosen">[:white_check_mark:](../../reference/formats.md "Supports Markdown-LD")</td>
     <td class="chosen">[0](https://github.com/iolanta-tech/sparqld/stargazers "Observed 2026-08-07")</td>
     <td class="chosen">[0.1.1<br>2026-08-07](https://crates.io/crates/sparqld/0.1.1 "Released 2026-08-07")</td>
   </tr>

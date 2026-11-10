@@ -6,6 +6,7 @@
   description: schema:description
 "@id": project/contributing.md
 "@type": schema:TechArticle
+hide: [toc]
 name: Contributing to sparqld
 title: Contributing
 description: Contributor workflows for sparqld.

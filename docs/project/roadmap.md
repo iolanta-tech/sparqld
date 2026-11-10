@@ -17,7 +17,8 @@ datePublished: 2026-11-07
 # :material-map-marker-path: Roadmap
 
 Arrows point from a blocking outcome to the outcome it enables. The mission is
-an enduring direction rather than a completion criterion.
+an enduring direction rather than a completion criterion. Context download
+records use [RO-Crate](https://www.researchobject.org/ro-crate/).
 
 ```mermaid
 flowchart LR

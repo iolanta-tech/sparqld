@@ -3,7 +3,6 @@ title: "Build on SWLS"
 status: chosen
 date: 2026-08-24
 author: Anatoly Scherbakov
-hide: [toc]
 ---
 
 # Build on SWLS

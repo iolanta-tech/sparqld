@@ -6,6 +6,7 @@
   description: schema:description
 "@id": reference/clients/sq/index.md
 "@type": schema:TechArticle
+hide: [toc]
 name: Using sq with sparqld
 title: sq
 description: Configure the sq command-line client for a sparqld endpoint.
@@ -13,7 +14,7 @@ description: Configure the sq command-line client for a sparqld endpoint.
 
 # :material-database-search-outline: `sq`
 
-[`sq`](https://github.com/ktk/sq) accepts an endpoint URL for a one-off command:
+[:fontawesome-brands-github: `ktk/sq`](https://github.com/ktk/sq) accepts an endpoint URL for a one-off command:
 
 {{ command('sq -e http://127.0.0.1:7737/ graphs') }}
 

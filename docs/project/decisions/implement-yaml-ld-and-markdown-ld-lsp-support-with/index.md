@@ -7,7 +7,6 @@ status: decided
 date: 2026-08-23
 author: Anatoly Scherbakov
 tags: [decision]
-hide: [toc]
 ---
 
 # Implement YAML-LD and Markdown-LD LSP support on SWLS

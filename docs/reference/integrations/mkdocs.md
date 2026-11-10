@@ -6,7 +6,6 @@
   description: schema:description
 "@id": reference/integrations/mkdocs.md
 "@type": schema:TechArticle
-hide: [toc]
 name: MkDocs integration
 title: MkDocs
 description: Build-time sparqld queries for MkDocs through the mkdocs-macros-sparqld pluglet.
@@ -53,6 +52,7 @@ Override defaults under `extra.sparqld` only when you need them:
 | --- | --- | --- |
 | `directory` | `docs` | The RDF tree is not `docs/` (for example `data/`) |
 | `binary` | `sparqld` | The executable is not on `PATH`, or you want a project-local build such as `target/debug/sparqld` |
+
 ## :material-function-variant: Macros and filters
 
 ### `sparql`

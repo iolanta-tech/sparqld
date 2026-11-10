@@ -7,7 +7,6 @@ status: decided
 date: 2026-08-15
 author: Anatoly Scherbakov
 tags: [decision]
-hide: [toc]
 ---
 
 # Serve SPARQL endpoint when its initial dataset is ready

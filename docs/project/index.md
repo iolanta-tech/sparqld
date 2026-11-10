@@ -52,8 +52,8 @@ description: Release, source, licensing, and development information for sparqld
 
     ---
 
-    [Apache-2.0](https://github.com/iolanta-tech/sparqld/blob/main/LICENSE-APACHE)
-    OR [MIT](https://github.com/iolanta-tech/sparqld/blob/main/LICENSE-MIT)
+    [:fontawesome-brands-github: `LICENSE-APACHE`](https://github.com/iolanta-tech/sparqld/blob/main/LICENSE-APACHE)
+    OR [:fontawesome-brands-github: `LICENSE-MIT`](https://github.com/iolanta-tech/sparqld/blob/main/LICENSE-MIT)
 
 -   :material-map-marker-path:{ .lg .middle } **Roadmap**
 
