@@ -32,6 +32,9 @@ step.
   that distinguish each example's results while keeping related subjects
   connected to the page's topic. Do not use source-graph restrictions only to
   separate one example from another.
+- Keep rendered `SELECT` examples to at most 10 rows. Narrow queries to the
+  resources and facts being demonstrated; use `LIMIT` only when teaching
+  pagination.
 
 - State an absence only when it corrects a likely reader expectation and
   materially affects use or understanding; otherwise describe the supported
