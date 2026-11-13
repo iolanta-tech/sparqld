@@ -8,13 +8,13 @@ description: >-
 
 # Update Roadmap
 
-Review first. Edit `docs/project/roadmap.md` only after the user chooses which
+Review first. Edit `docs/project/roadmap/index.md` only after the user chooses which
 proposed outcomes to apply.
 
 ## Read first
 
 Read [AGENTS.md](../../AGENTS.md), [docs/AGENTS.md](../../docs/AGENTS.md), and
-the current [roadmap](../../docs/project/roadmap.md).
+the current [roadmap](../../docs/project/roadmap/index.md).
 
 ## Review
 
@@ -64,7 +64,7 @@ to apply. Do not edit if they select none.
 
 ## Apply selected outcomes
 
-Edit only [docs/project/roadmap.md](../../docs/project/roadmap.md):
+Edit only [docs/project/roadmap/index.md](../../docs/project/roadmap/index.md):
 
 1. Preserve the existing project mission. If it is absent, ask the user to
    provide one; do not invent it from a product backlog.
@@ -90,5 +90,5 @@ overflow at desktop width.
 ## Out of scope
 
 - Implementing roadmap outcomes.
-- Editing ADRs, code, or documentation outside `docs/project/roadmap.md`.
+- Editing ADRs, code, or documentation outside `docs/project/roadmap/index.md`.
 - Publishing releases or opening pull requests.
