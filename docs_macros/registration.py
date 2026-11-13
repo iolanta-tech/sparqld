@@ -30,7 +30,7 @@ __all__ = ['CLIENT_COMPATIBILITY_PATH', 'Decision']
 #     text before inserting it into a node label.
 #   - For `item urn:riddle:blockedBy blocker`, emit `blocker --> item`; dependencies
 #     therefore appear left of the mission without reversing RDF semantics.
-#   - Replace the handwritten graph in docs/project/roadmap.md with the macro;
+#   - Replace the handwritten graph in docs/project/roadmap/index.md with the macro;
 #     it must consume SPARQL results, never source comments directly.
 # acceptance:
 #   - Unit-test macro rendering for a graph with two blockers, a transitive
