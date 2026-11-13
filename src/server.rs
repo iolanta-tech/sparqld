@@ -947,8 +947,7 @@ mod tests {
     /// a triple shared by two named graphs double-counts in the union default
     /// graph that sparqld evaluates every query over.
     #[test]
-    #[ignore = "Oxigraph double-counts shared triples in the union default graph: \
-                https://github.com/oxigraph/oxigraph/issues/1919"]
+    #[should_panic(expected = "a triple present in two source graphs counts once in the merged")]
     fn union_default_graph_counts_a_shared_triple_once() {
         use oxigraph::model::Term;
 
