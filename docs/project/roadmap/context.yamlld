@@ -13,6 +13,12 @@
   subClassOf:
     "@id": rdfs:subClassOf
     "@type": "@id"
+  subjectOf:
+    "@id": schema:subjectOf
+    "@type": "@id"
+  seeAlso:
+    "@id": rdfs:seeAlso
+    "@type": "@id"
 "@type": http://www.w3.org/ns/json-ld#Context
 http://schema.org/contentUrl:
   "@id": urn:sparqld:roadmap
