@@ -1,0 +1,9 @@
+yaml-files:
+  - "*.yaml"
+  - "*.yml"
+  - "*.yamlld"
+rules:
+  quoted-strings:
+    quote-type: double
+    required: only-when-needed
+    check-keys: true
