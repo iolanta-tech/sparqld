@@ -2,28 +2,36 @@
 
 from dataclasses import dataclass
 from hashlib import sha256
-from typing import Literal
+from typing import ClassVar, Literal
 
 
 @dataclass(frozen=True)
 class RoadmapNode:
     iri: str
     title: str
+    mermaid_shape: ClassVar[str]
 
     def declaration(self) -> str:
         label = _escape_label(self.title)
-        suffix = ':::bug' if isinstance(self, Bug) else ''
-        return f'    {_identifier(self.iri)}("{label}"){suffix}'
+        return f'    {_identifier(self.iri)}{self.mermaid_shape.format(label=label)}'
 
 
 @dataclass(frozen=True)
 class Goal(RoadmapNode):
     kind: Literal['goal'] = 'goal'
+    mermaid_shape: ClassVar[str] = '("{label}")'
 
 
 @dataclass(frozen=True)
 class Bug(RoadmapNode):
     kind: Literal['bug'] = 'bug'
+    mermaid_shape: ClassVar[str] = '[{label}]'
+
+
+@dataclass(frozen=True)
+class PrerequisiteState(RoadmapNode):
+    kind: Literal['state'] = 'state'
+    mermaid_shape: ClassVar[str] = '(["{label}"])'
 
 
 @dataclass(frozen=True)
@@ -34,8 +42,6 @@ class Roadmap:
     def render(self) -> str:
         declarations = tuple(node.declaration() for node in self.nodes)
         lines = ('```mermaid', 'flowchart LR', *declarations)
-        if any(isinstance(node, Bug) for node in self.nodes):
-            lines += ('    classDef bug fill:#fee2e2,stroke:#dc2626,color:#7f1d1d',)
         edges = tuple(
             f'    {_identifier(source)} --> {_identifier(target)}'
             for source, target in sorted(self.edges)
