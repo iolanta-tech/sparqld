@@ -6,6 +6,7 @@ centauri
 Comunica
 comunica
 config
+Datalog
 dicts
 frontmatter
 goRDFlib
