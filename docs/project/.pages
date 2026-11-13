@@ -3,5 +3,5 @@ collapse_single_pages: false
 nav:
   - index.md
   - Contributing: contributing.md
-  - Roadmap: roadmap.md
+  - Roadmap: roadmap
   - decisions
