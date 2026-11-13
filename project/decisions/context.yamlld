@@ -1,5 +1,6 @@
 "@context":
   schema: https://schema.org/
+  ibis: https://vocab.methodandstructure.com/ibis#
   xsd: http://www.w3.org/2001/XMLSchema#
   title: schema:name
   status: schema:creativeWorkStatus
@@ -8,3 +9,9 @@
     "@type": xsd:date
   author: schema:author
   tags: schema:keywords
+  decides:
+    "@id": urn:sparqld:vocabulary:decides
+    "@type": "@id"
+"@type": http://www.w3.org/ns/json-ld#Context
+http://schema.org/contentUrl:
+  "@id": urn:sparqld:context:decisions

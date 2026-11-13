@@ -1,0 +1,6 @@
+"@context": urn:sparqld:roadmap
+$id: urn:sparqld:roadmap:reasoning
+$type: pm:Goal
+rdfs:label: Users can opt in to inferred statements while retaining asserted 
+  data unchanged
+contributesTo: urn:sparqld:roadmap:mission

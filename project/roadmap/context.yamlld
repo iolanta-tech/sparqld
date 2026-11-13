@@ -1,0 +1,39 @@
+"@context":
+  rdf: http://www.w3.org/1999/02/22-rdf-syntax-ns#
+  pm: https://vocab.methodandstructure.com/process-model#
+  rdfs: http://www.w3.org/2000/01/rdf-schema#
+  schema: https://schema.org/
+  ibis: https://vocab.methodandstructure.com/ibis#
+  blockedBy:
+    "@id": urn:sparqld:vocabulary:blockedBy
+    "@type": "@id"
+  contributesTo:
+    "@id": urn:sparqld:vocabulary:contributesTo
+    "@type": "@id"
+  subClassOf:
+    "@id": rdfs:subClassOf
+    "@type": "@id"
+  subjectOf:
+    "@id": schema:subjectOf
+    "@type": "@id"
+  seeAlso:
+    "@id": rdfs:seeAlso
+    "@type": "@id"
+"@type": http://www.w3.org/ns/json-ld#Context
+http://schema.org/contentUrl:
+  "@id": urn:sparqld:roadmap
+$included:
+- $id: urn:sparqld:vocabulary:blockedBy
+  $type: rdf:Property
+  rdfs:label: blocked by
+  rdfs:comment: Links an outcome to an outcome that must be achieved before it 
+    can be achieved.
+- $id: urn:sparqld:vocabulary:contributesTo
+  $type: rdf:Property
+  rdfs:label: contributes to
+  rdfs:comment: Links an outcome to the enduring mission it advances.
+- $id: urn:sparqld:vocabulary:Bug
+  $type: rdfs:Class
+  rdfs:label: Bug
+  rdfs:comment: A reported defect in sparqld behavior.
+  subClassOf: ibis:Issue
