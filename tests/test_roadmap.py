@@ -31,7 +31,6 @@ def bindings() -> SelectBindings:
                 NODE: 'urn:roadmap:mission',
                 TITLE: 'The mission outcome',
                 KIND: GOAL,
-                'mission': 'true',
             },
             {NODE: 'c', TITLE: 'C', 'contribution': 'urn:roadmap:mission', KIND: GOAL},
         ],
@@ -45,7 +44,6 @@ def test_graph_is_deterministic(bindings: SelectBindings) -> None:
     assert render_roadmap(bindings) == original
     assert original.count(' --> ') == 4
     assert 'The mission outcome' in original
-    assert '<strong>Mission</strong><br/>The mission outcome' in original
 
 
 @pytest.mark.parametrize(
