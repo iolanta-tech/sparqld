@@ -6,8 +6,10 @@ from pydantic import BaseModel, ConfigDict
 
 from docs_macros.roadmap.nodes import (
     Bug,
+    Decision,
     Goal,
     PrerequisiteState,
+    Position,
     Roadmap,
     RoadmapNode,
 )
@@ -21,7 +23,10 @@ class RoadmapRow(BaseModel):
 
     roadmap_item: str
     title: str
-    kind: Literal['goal', 'bug']
+    kind: Literal['goal', 'bug', 'position', 'decision']
+    status: str | None = None
+    group: str | None = None
+    group_title: str | None = None
     blocker: str | None = None
     blocker_title: str | None = None
     blocker_kind: str | None = None
@@ -29,8 +34,10 @@ class RoadmapRow(BaseModel):
 
 
 def _node(row: RoadmapRow) -> RoadmapNode:
-    node_types = {'goal': Goal, 'bug': Bug}
-    return node_types[row.kind](iri=row.roadmap_item, title=row.title)
+    node_types = {'goal': Goal, 'bug': Bug, 'position': Position}
+    return node_types[row.kind](iri=row.roadmap_item, title=row.title,
+                                status=row.status, group=row.group,
+                                group_title=row.group_title)
 
 
 def _edges(rows: tuple[RoadmapRow, ...]) -> frozenset[tuple[str, str]]:
@@ -46,8 +53,38 @@ def _roadmap(bindings: SelectBindings) -> Roadmap:
     labels = {row.roadmap_item: row.title for row in rows}
     if any(row.title != labels[row.roadmap_item] for row in rows):
         raise ValueError('Conflicting roadmap titles for one IRI')
+    metadata = {
+        row.roadmap_item: (row.kind, row.status, row.group, row.group_title)
+        for row in rows
+    }
+    if any(
+        (row.kind, row.status, row.group, row.group_title) != metadata[row.roadmap_item]
+        for row in rows
+    ):
+        raise ValueError('Conflicting roadmap metadata for one IRI')
+    decision_ids = {row.roadmap_item for row in rows if row.kind == 'decision'}
+    if any(row.group not in decision_ids for row in rows if row.kind == 'position'):
+        raise ValueError('Roadmap positions require a decision')
     edges = _edges(rows)
-    nodes = {row.roadmap_item: _node(row) for row in rows}
+    nodes = {
+        row.roadmap_item: _node(row)
+        for row in rows if row.kind not in ('decision', 'position')
+    }
+    positions = {
+        row.roadmap_item: Position(iri=row.roadmap_item, title=row.title, status=row.status)
+        for row in rows if row.kind == 'position'
+    }
+    decisions = {
+        row.roadmap_item: Decision(
+            iri=row.roadmap_item,
+            title=row.title,
+            positions=tuple(
+                positions[iri] for iri in sorted(positions)
+                if any(item.roadmap_item == iri and item.group == row.roadmap_item for item in rows)
+            ),
+        )
+        for row in rows if row.kind == 'decision'
+    }
     for row in rows:
         if not row.blocker:
             continue
@@ -67,7 +104,7 @@ def _roadmap(bindings: SelectBindings) -> Roadmap:
     if any(endpoint not in labels for edge in edges for endpoint in edge):
         raise ValueError('Roadmap relationships require labeled endpoints')
     return Roadmap(
-        nodes=tuple(nodes[iri] for iri in sorted(nodes)),
+        nodes=tuple(item for _, item in sorted((nodes | decisions).items())),
         edges=edges,
     )
 

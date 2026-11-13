@@ -1,12 +1,26 @@
 PREFIX pm: <https://vocab.methodandstructure.com/process-model#>
 PREFIX ibis: <https://vocab.methodandstructure.com/ibis#>
 PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
-SELECT DISTINCT ?roadmap_item ?title ?blocker ?blocker_title ?blocker_kind ?contribution ?kind WHERE {
+SELECT DISTINCT ?roadmap_item ?title ?blocker ?blocker_title ?blocker_kind ?contribution ?kind ?status ?group ?group_title WHERE {
   GRAPH ?source {
     { ?roadmap_item a pm:Goal . BIND("goal" AS ?kind) }
     UNION { ?roadmap_item a <urn:sparqld:vocabulary:Bug> . BIND("bug" AS ?kind) }
+    UNION {
+      ?roadmap_item a ibis:Position .
+      ?group a ibis:Issue; ibis:response ?roadmap_item; <https://schema.org/headline> ?group_title .
+      VALUES ?group { <urn:sparqld:decision:inference> }
+      BIND("position" AS ?kind)
+    }
+    UNION {
+      ?roadmap_item a ibis:Issue; ibis:response ?position; <https://schema.org/headline> ?decision_title .
+      VALUES ?roadmap_item { <urn:sparqld:decision:inference> }
+      BIND("decision" AS ?kind)
+    }
   }
-  OPTIONAL { ?roadmap_item rdfs:label ?title }
+  OPTIONAL { ?roadmap_item rdfs:label ?label }
+  OPTIONAL { ?roadmap_item <https://schema.org/name> ?position_title }
+  BIND(COALESCE(?label, ?position_title, ?decision_title) AS ?title)
+  OPTIONAL { ?roadmap_item <https://schema.org/creativeWorkStatus> ?status }
   OPTIONAL {
     ?roadmap_item <urn:sparqld:vocabulary:blockedBy> ?blocker .
     OPTIONAL { ?blocker rdfs:label ?blocker_title }

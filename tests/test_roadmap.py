@@ -89,6 +89,48 @@ def test_bugs_use_rectangle_shape() -> None:
     assert '[Bug]' in rendered
 
 
+def test_decision_renders_positions_and_dependency() -> None:
+    """A decision owns its positions and can block a goal."""
+    rows = [
+        {NODE: 'decision', TITLE: 'Choose', KIND: 'decision'},
+        {NODE: 'owl', TITLE: 'OWL', KIND: 'position', 'group': 'decision', 'status': 'undecided'},
+        {NODE: 'datalog', TITLE: 'Datalog', KIND: 'position', 'group': 'decision', 'status': 'undecided'},
+        {NODE: 'goal', TITLE: 'Inference', KIND: GOAL, BLOCKER: 'decision'},
+    ]
+    rendered = render_roadmap(SelectBindings(columns=[], rows=rows))
+    assert rendered.count('subgraph ') == 1
+    assert 'Choose' in rendered and 'OWL' in rendered and 'Datalog' in rendered
+    assert rendered.count(' --> ') == 1
+    assert rendered == render_roadmap(SelectBindings(columns=[], rows=list(reversed(rows))))
+
+
+@pytest.mark.parametrize(
+    'rows',
+    [
+        [{NODE: 'owl', TITLE: 'OWL', KIND: 'position', 'group': 'missing'}],
+        [
+            {NODE: 'owl', TITLE: 'OWL', KIND: 'position', 'status': 'undecided'},
+            {NODE: 'owl', TITLE: 'OWL', KIND: 'position', 'status': 'accepted'},
+        ],
+        [{NODE: 'same', TITLE: 'A', KIND: GOAL}, {NODE: 'same', TITLE: 'A', KIND: 'bug'}],
+    ],
+)
+def test_inconsistent_decisions_fail(rows: list[dict[str, str]]) -> None:
+    """Missing decisions and conflicting metadata fail in either row order."""
+    for ordered in (rows, list(reversed(rows))):
+        with pytest.raises(ValueError):
+            render_roadmap(SelectBindings(columns=[], rows=ordered))
+
+
+def test_unknown_status_cannot_inject_mermaid() -> None:
+    """Unrecognized status text uses the neutral style."""
+    rendered = render_roadmap(SelectBindings(columns=[], rows=[
+        {NODE: FIRST, TITLE: 'A', KIND: GOAL, 'status': 'x\nmalicious --> node'},
+    ]))
+    assert 'malicious' not in rendered
+    assert 'status_unrecorded' in rendered
+
+
 def test_prerequisite_states_use_stadium_shape() -> None:
     """Prerequisite states use a stadium to distinguish their entity type."""
     rendered = render_roadmap(
