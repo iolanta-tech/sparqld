@@ -14,7 +14,7 @@ description: Contributor workflows for sparqld.
 
 # :material-source-pull: Contributing
 
-Contributors work from a local checkout. Review the [Roadmap](roadmap.md) and
+Contributors work from a local checkout. Review the [Roadmap](roadmap/index.md) and
 [architecture decisions](decisions/index.md) before proposing a change.
 
 ## :material-hammer-wrench: Test the Codex plugin locally
