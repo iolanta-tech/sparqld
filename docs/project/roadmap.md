@@ -11,7 +11,7 @@ name: sparqld roadmap
 hide: [toc]
 title: Roadmap
 description: Achievable outcomes that advance sparqld's mission.
-datePublished: 2026-11-10
+datePublished: 2026-11-13
 ---
 
 # :material-map-marker-path: Roadmap
@@ -23,7 +23,6 @@ records use [RO-Crate](https://www.researchobject.org/ro-crate/).
 ```mermaid
 flowchart LR
     fragments("Users can query every embedded graph,<br/>including fragment IRIs, without collisions")
-    exclusions("Users can keep selected paths, including .git,<br/>outside the watched dataset")
     streaming("Users can retrieve large query results<br/>without complete-response buffering")
     configuration("Users can declare reproducible project settings<br/>with documented command-line precedence")
     remote("Users can query local data with cached Linked Data<br/>from explicitly approved remote hosts")
@@ -32,8 +31,6 @@ flowchart LR
     python("MkDocs projects on Python 3.11 and 3.12<br/>can install the pluglet")
     demo("MkDocs users can reproduce the sparql() demo<br/>against documented example data")
     ask("MkDocs authors can render ASK answers<br/>as SPARQL true and false")
-    graphCounts("Readers can identify the data and catalog graphs<br/>included by the graph-count recipe")
-    heading("Readers can navigate the MkDocs integration reference<br/>through its macro-section heading")
     discovery("Standards-aware clients can discover<br/>sparqld's query service from its endpoint")
     obsidian("Users can run SPARQL against a watched directory<br/>from an Obsidian plugin")
     mission("<strong>Mission</strong><br/>Continuously improve the experience of people and agents<br/>querying local Linked Data with sparqld")
@@ -42,15 +39,12 @@ flowchart LR
     reasoning --> crateContexts
 
     fragments --> mission
-    exclusions --> mission
     streaming --> mission
     remote --> mission
     crateContexts --> mission
     python --> mission
     demo --> mission
     ask --> mission
-    graphCounts --> mission
-    heading --> mission
     discovery --> mission
     obsidian --> mission
 ```
