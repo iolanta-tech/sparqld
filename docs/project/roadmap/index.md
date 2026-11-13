@@ -16,7 +16,8 @@ datePublished: 2026-11-13
 
 # :material-map-marker-path: Roadmap
 
-Arrows between outcomes point from a blocker to the outcome it enables. Arrows
-to the mission show contributions to an enduring direction.
+Arrows point from blockers to the outcomes they enable. Stadium-shaped nodes
+mark prerequisite states. Arrows to the mission show contributions to an
+enduring direction.
 
 {{ roadmap_mermaid() }}
