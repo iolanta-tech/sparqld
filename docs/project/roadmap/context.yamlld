@@ -3,11 +3,15 @@
   pm: https://vocab.methodandstructure.com/process-model#
   rdfs: http://www.w3.org/2000/01/rdf-schema#
   schema: https://schema.org/
+  ibis: https://vocab.methodandstructure.com/ibis#
   blockedBy:
     "@id": urn:sparqld:vocabulary:blockedBy
     "@type": "@id"
   contributesTo:
     "@id": urn:sparqld:vocabulary:contributesTo
+    "@type": "@id"
+  subClassOf:
+    "@id": rdfs:subClassOf
     "@type": "@id"
 "@type": http://www.w3.org/ns/json-ld#Context
 http://schema.org/contentUrl:
@@ -22,3 +26,8 @@ $included:
   $type: rdf:Property
   rdfs:label: contributes to
   rdfs:comment: Links an outcome to the enduring mission it advances.
+- $id: urn:sparqld:vocabulary:Bug
+  $type: rdfs:Class
+  rdfs:label: Bug
+  rdfs:comment: A reported defect in sparqld behavior.
+  subClassOf: ibis:Issue
