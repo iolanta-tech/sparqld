@@ -18,6 +18,7 @@ datePublished: 2026-11-13
 
 Arrows point from blockers to the outcomes they enable. Stadium-shaped nodes
 mark prerequisite states. Arrows to the mission show contributions to an
-enduring direction.
+enduring direction. Decision options sit beneath their issue heading. Node
+shape marks entity type; fill color marks recorded status.
 
 {{ roadmap_mermaid() }}
