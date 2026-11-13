@@ -16,6 +16,12 @@
   subjectOf:
     "@id": schema:subjectOf
     "@type": "@id"
+  domain:
+    "@id": rdfs:domain
+    "@type": "@id"
+  range:
+    "@id": rdfs:range
+    "@type": "@id"
   seeAlso:
     "@id": rdfs:seeAlso
     "@type": "@id"
@@ -26,8 +32,10 @@ $included:
 - $id: urn:sparqld:vocabulary:blockedBy
   $type: rdf:Property
   rdfs:label: blocked by
-  rdfs:comment: Links an outcome to an outcome that must be achieved before it 
-    can be achieved.
+  rdfs:comment: Links a roadmap state to a prerequisite state that must be
+    resolved first.
+  domain: ibis:State
+  range: ibis:State
 - $id: urn:sparqld:vocabulary:contributesTo
   $type: rdf:Property
   rdfs:label: contributes to
