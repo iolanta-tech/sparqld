@@ -1,5 +1,5 @@
 "@context": urn:sparqld:roadmap
 $id: urn:sparqld:roadmap:fragments
-$type: pm:Goal
+$type: urn:sparqld:vocabulary:Bug
 rdfs:label: Embedded graph IRIs containing fragments fail to load
 contributesTo: urn:sparqld:roadmap:mission
