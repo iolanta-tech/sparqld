@@ -2853,22 +2853,23 @@
 
 
 <h1 id="roadmap"><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M18 15a3 3 0 0 1 3 3 3 3 0 0 1-3 3 2.99 2.99 0 0 1-2.83-2H14v-2h1.17c.41-1.17 1.52-2 2.83-2m0 2a1 1 0 0 0-1 1 1 1 0 0 0 1 1 1 1 0 0 0 1-1 1 1 0 0 0-1-1m0-9a1.43 1.43 0 0 0 1.43-1.43 1.43 1.43 0 1 0-2.86 0A1.43 1.43 0 0 0 18 8m0-5.43a4 4 0 0 1 4 4C22 9.56 18 14 18 14s-4-4.44-4-7.43a4 4 0 0 1 4-4M8.83 17H10v2H8.83A2.99 2.99 0 0 1 6 21a3 3 0 0 1-3-3c0-1.31.83-2.42 2-2.83V14h2v1.17c.85.3 1.53.98 1.83 1.83M6 17a1 1 0 0 0-1 1 1 1 0 0 0 1 1 1 1 0 0 0 1-1 1 1 0 0 0-1-1M6 3a3 3 0 0 1 3 3c0 1.31-.83 2.42-2 2.83V10H5V8.83A2.99 2.99 0 0 1 3 6a3 3 0 0 1 3-3m0 2a1 1 0 0 0-1 1 1 1 0 0 0 1 1 1 1 0 0 0 1-1 1 1 0 0 0-1-1m5 14v-2h2v2zm-4-6H5v-2h2z"/></svg></span> Roadmap</h1>
-<p>Arrows between outcomes point from a blocker to the outcome it enables. Arrows
-to the mission show contributions to an enduring direction.</p>
+<p>Arrows point from blockers to the outcomes they enable. Stadium-shaped nodes
+mark prerequisite states. Arrows to the mission show contributions to an
+enduring direction.</p>
 <div class="mermaid">flowchart LR
     node_48ddc5d781dc11a7a9526c3ca9ceaca93430026fed19910e983314ccc78f28f3("MkDocs authors can render ASK answers as SPARQL true and false")
     node_ef01fedceda949a363a366465bdb17af91a21b1e464ec33025a99cc8d9326042("Users can declare reproducible project settings with documented command#45;line precedence")
     node_55e130e17d676573462cfc2864c6d762399f5d40fefde2ab7daa57fb625d0b8e("MkDocs users can reproduce the sparql#40;#41; demo against documented example data")
     node_52c428ad438e05e140cce42b86283dff9b157a8fd3f7377a28fbdc3905129667("Standards#45;aware clients can discover sparqld#39;s query service from its endpoint")
-    node_352efff12b49063e2454cf20b172ae47317a0baa50abc0ccca100ffc54304260("Queries count a triple shared by two source graphs twice"):::bug
-    node_5fe241d35262bd5da1ef3d8480fe279d9d220f6cf53333733fc571ec8387ad3c("Embedded graph IRIs containing fragments fail to load"):::bug
+    node_352efff12b49063e2454cf20b172ae47317a0baa50abc0ccca100ffc54304260[Queries count a triple shared by two source graphs twice]
+    node_5fe241d35262bd5da1ef3d8480fe279d9d220f6cf53333733fc571ec8387ad3c[Embedded graph IRIs containing fragments fail to load]
     node_d9e439e927f253801d4c774bf3922d43a2527ed47db9c7193f041425857aee98("Continuously improve the experience of people and agents querying local Linked Data with sparqld")
     node_c342ff3eff799ddaef63d7104cc47836d041e273b33f6b39545932f20440a2e7("Users can run SPARQL against a watched directory from an Obsidian plugin")
+    node_0966393ab46a537269a71715f62f470ece8ee1af708d3fe4b648009f82a66d26(["An Oxigraph release includes the shared#45;triple deduplication fix"])
     node_d462606274777e1134498da65ef02c603b133249c728322bfc3bf99083e656a9("MkDocs projects on Python 3#46;11 and 3#46;12 can install the pluglet")
     node_bf0f3c95d35ea0e075bc5bad37b55cd71c2dda56b4178e29f72891b3e8d4cd99("Users can opt in to inferred statements while retaining asserted data unchanged")
     node_9370262f76cdb8ec2b5a71bc8c3938df3c08ad12949ab7dd5478e2fb79986bce("Users can query local data with cached Linked Data from explicitly approved remote hosts")
     node_1e1ba2cbeaf4dc3d67cbdf935192ee54d79ab7518983e3b26f75ea31b1cb4436("Users can retrieve large query results without complete#45;response buffering")
-    classDef bug fill:#fee2e2,stroke:#dc2626,color:#7f1d1d
     node_48ddc5d781dc11a7a9526c3ca9ceaca93430026fed19910e983314ccc78f28f3 --&gt; node_d9e439e927f253801d4c774bf3922d43a2527ed47db9c7193f041425857aee98
     node_ef01fedceda949a363a366465bdb17af91a21b1e464ec33025a99cc8d9326042 --&gt; node_9370262f76cdb8ec2b5a71bc8c3938df3c08ad12949ab7dd5478e2fb79986bce
     node_55e130e17d676573462cfc2864c6d762399f5d40fefde2ab7daa57fb625d0b8e --&gt; node_d9e439e927f253801d4c774bf3922d43a2527ed47db9c7193f041425857aee98
@@ -2876,6 +2877,7 @@ to the mission show contributions to an enduring direction.</p>
     node_352efff12b49063e2454cf20b172ae47317a0baa50abc0ccca100ffc54304260 --&gt; node_d9e439e927f253801d4c774bf3922d43a2527ed47db9c7193f041425857aee98
     node_5fe241d35262bd5da1ef3d8480fe279d9d220f6cf53333733fc571ec8387ad3c --&gt; node_d9e439e927f253801d4c774bf3922d43a2527ed47db9c7193f041425857aee98
     node_c342ff3eff799ddaef63d7104cc47836d041e273b33f6b39545932f20440a2e7 --&gt; node_d9e439e927f253801d4c774bf3922d43a2527ed47db9c7193f041425857aee98
+    node_0966393ab46a537269a71715f62f470ece8ee1af708d3fe4b648009f82a66d26 --&gt; node_352efff12b49063e2454cf20b172ae47317a0baa50abc0ccca100ffc54304260
     node_d462606274777e1134498da65ef02c603b133249c728322bfc3bf99083e656a9 --&gt; node_d9e439e927f253801d4c774bf3922d43a2527ed47db9c7193f041425857aee98
     node_bf0f3c95d35ea0e075bc5bad37b55cd71c2dda56b4178e29f72891b3e8d4cd99 --&gt; node_d9e439e927f253801d4c774bf3922d43a2527ed47db9c7193f041425857aee98
     node_9370262f76cdb8ec2b5a71bc8c3938df3c08ad12949ab7dd5478e2fb79986bce --&gt; node_d9e439e927f253801d4c774bf3922d43a2527ed47db9c7193f041425857aee98
