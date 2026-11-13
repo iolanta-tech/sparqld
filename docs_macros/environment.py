@@ -36,20 +36,6 @@ class EnvironmentMacros:
             repository_url(self._env),
         )
 
-    def default_prefix_table(self) -> str:
-        """Render SPARQL prefixes from the canonical default context."""
-        context_path = ROOT_DIR / 'docs' / 'contexts' / 'v1.yamlld'
-        document = YAML(typ='safe').load(context_path.read_text())
-        context = document['@context']
-        prefixes = [
-            (prefix, iri)
-            for prefix, iri in context.items()
-            if isinstance(iri, str) and iri.endswith(('#', '/'))
-        ]
-        rows = ['| Prefix | Expanded value |', '| --- | --- |']
-        rows.extend(f'| [`{prefix}:`]({iri}) | `{iri}` |' for prefix, iri in prefixes)
-        return '\n'.join(rows)
-
     def example_data(self, name: str, indent: int = 0, title: str = 'Source') -> str:
         return self.source(Path('docs/examples') / name, indent=indent, title=title)
 
@@ -93,17 +79,44 @@ class EnvironmentMacros:
 
     def directory_tree(self, directory: str | Path) -> str:
         root = (ROOT_DIR / directory).resolve()
-        if not root.is_relative_to(ROOT_DIR):
-            raise ValueError(f'Invalid directory path: {directory}')
-        if not root.is_dir():
-            raise ValueError(f'Directory does not exist: {directory}')
+        _validate_directory(root, directory)
+        return _render_directory_tree(root, repository_url(self._env))
 
-        repo_url = repository_url(self._env)
-        root_relative = root.relative_to(ROOT_DIR)
-        root_url = github_url(root_relative, repo_url, directory=True)
-        lines = [
-            f':material-folder: **[`{root.name}/`]({root_url})**  ',
-        ]
 
-        append_directory(lines, root, 0, repo_url)
-        return '\n'.join(lines)
+def default_prefix_table() -> str:
+    """Render SPARQL prefixes from the canonical default context."""
+    return _render_prefix_table(_default_prefixes())
+
+
+def _default_prefixes() -> list[tuple[str, str]]:
+    context_file = ROOT_DIR / 'docs' / 'contexts' / 'v1.yamlld'
+    document = YAML(typ='safe').load(context_file.read_text())
+    return [
+        (prefix, iri)
+        for prefix, iri in document['@context'].items()
+        if isinstance(iri, str) and iri.endswith(('#', '/'))
+    ]
+
+
+def _render_prefix_table(prefixes: list[tuple[str, str]]) -> str:
+    rows = ['| Prefix | Expanded value |', '| --- | --- |']
+    rows.extend(_prefix_row(prefix, iri) for prefix, iri in prefixes)
+    return '\n'.join(rows)
+
+
+def _prefix_row(prefix: str, iri: str) -> str:
+    return f'| [`{prefix}:`]({iri}) | `{iri}` |'
+
+
+def _validate_directory(root: Path, directory: str | Path) -> None:
+    if not root.is_relative_to(ROOT_DIR):
+        raise ValueError(f'Invalid directory path: {directory}')
+    if not root.is_dir():
+        raise ValueError(f'Directory does not exist: {directory}')
+
+
+def _render_directory_tree(root: Path, repo_url: str) -> str:
+    directory_url = github_url(root.relative_to(ROOT_DIR), repo_url, directory=True)
+    lines = [f':material-folder: **[`{root.name}/`]({directory_url})**  ']
+    append_directory(lines, root, 0, repo_url)
+    return '\n'.join(lines)

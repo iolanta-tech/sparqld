@@ -1,4 +1,4 @@
-"""Row limits for SPARQL query examples rendered by MkDocs."""
+"""SPARQL query examples rendered by MkDocs."""
 
 import json
 import re
@@ -37,9 +37,9 @@ def configured_macros(
     return macros.SparqldMacros(env)
 
 
-@pytest.mark.parametrize('row_count', [10, 11])
+@pytest.mark.parametrize('row_count', [0, 11, 1000])
 @pytest.mark.parametrize('query_method', ['sparql', 'stored_sparql'])
-def test_query_macros_enforce_select_row_limit(
+def test_query_macros_return_all_select_rows(
     configured_macros: macros.SparqldMacros,
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
@@ -61,11 +61,9 @@ def test_query_macros_enforce_select_row_limit(
     query_operation = getattr(configured_macros, query_method)
     query_argument = query if query_method == 'sparql' else 'query.rq'
 
-    if row_count == macros.MAX_SELECT_ROWS:
-        assert len(query_operation(query_argument).rows) == macros.MAX_SELECT_ROWS
-    else:
-        with pytest.raises(ValueError, match='the maximum is 10'):
-            query_operation(query_argument)
+    assert query_operation(query_argument).rows == [
+        {'name': f'name-{index}'} for index in range(row_count)
+    ]
 
 
 def test_documented_limit_only_for_pagination() -> None:
@@ -88,4 +86,4 @@ def test_documented_limit_only_for_pagination() -> None:
             for match in inline_query_pattern.finditer(path.read_text())
         )
     ]
-    assert inline_limit_queries == []
+    assert not inline_limit_queries

@@ -1,12 +1,16 @@
 ---
 name: sparqld
-description: Query a local sparqld knowledge base through MCP and report evidence-backed answers with the SPARQL used.
+description: Query a local sparqld knowledge base or write YAML-LD data for it, validating results through sparqld MCP.
 ---
 
 # `sparqld`
 
 Use the `query` tool from the `sparqld` MCP server for the selected knowledge
 base. It runs read-only SPARQL against the watched files.
+
+Use the query workflow for questions about a knowledge base. Use the write
+workflow for `sparqld write` or requests to create or edit YAML-LD for a
+sparqld knowledge base. MCP queries are read-only; write files locally.
 
 Before any query, establish the intended knowledge-base directory; ask for its
 absolute path if unclear. Verify that the configuration of the server backing
@@ -70,3 +74,56 @@ If the client is not listed, find its MCP add or config mechanism and register
    from recorded facts.
 4. Include every SPARQL query executed, including discovery queries, in the
    answer.
+
+## Write workflow
+
+1. Identify the target file and its served directory. Verify the MCP server
+   watches that directory and includes the file in its source patterns. Inspect
+   existing data and contexts through MCP and local files before editing.
+2. Write YAML-LD that expresses the requested facts. Follow existing project
+   naming and vocabulary conventions. Reuse existing vocabulary terms and
+   namespaces. Mint an HTTP IRI only when its publication route is established;
+   otherwise follow the project's local identifier convention.
+   Use YAML 1.2 semantics; quote ambiguous
+   scalars and raw JSON-LD keywords with double quotes. Leave unambiguous
+   scalars unquoted. Reuse context definitions and YAML anchors
+   where appropriate. Give resource-valued properties IRI coercion with
+   `"@type": "@id"` in their context definitions.
+3. sparqld applies its bundled default context before a source's own context.
+   Use `$id`, `$type`, and other provided dollar aliases in graph bodies without
+   adding a context URL solely for them. Keep `@context` and keywords inside
+   context definitions in standard JSON-LD form. A later context can override
+   or clear the default. For other consumers, declare the context they require.
+4. Save the file locally and run the YAML-LD quote-style check described below.
+5. Validate the loaded data only through the configured sparqld MCP
+   query tool: inspect the catalog for load errors for that source and query
+   its named graph for the expected subjects, types, predicates, literals, and
+   IRI-valued objects. Verify removals as well as additions when editing. For
+   context registration or reload changes, query the affected dependents too.
+   A successful query or absence of an error alone does not prove the expected
+   data loaded. Account for asynchronous reload; if MCP cannot establish the
+   result, report that limitation rather than claiming validation.
+6. Report the changed files, observed results, and SPARQL queries used. Do not
+   substitute a parser, linter, external expansion tool, or test suite for MCP
+   validation.
+
+### Quote-style check
+
+Run yamllint on every file written by this workflow with the bundled
+[quote configuration](yamllint.yaml). Resolve its absolute path from the
+installed skill directory; do not resolve it from the knowledge-base directory.
+
+```sh
+yamllint --strict -c <absolute-skill-directory>/yamllint.yaml <written-files>
+```
+
+The configuration checks keys and values, requires double quotes when quoting
+is needed, and includes `*.yamlld` in directory discovery. When passing a
+directory, verify coverage with `yamllint -c <configuration> --list-files
+<directory>` first.
+
+If yamllint is unavailable, use `uvx --from yamllint yamllint` with the same
+arguments. If neither executable is available, report the prerequisite and
+resolve installation through the environment's package-management workflow
+before completing the write. Fix quote alerts before reporting completion.
+This source-style check supplements the mandatory MCP validation of loaded data.

@@ -16,8 +16,6 @@ from mkdocs_macros_sparqld.server import (
 )
 from mkdocs_macros_sparqld.table import SelectBindings
 
-MAX_SELECT_ROWS = 10
-
 __all__ = [
     'configure',
     'define_env',
@@ -37,22 +35,9 @@ def _project_file(project_dir: Path, relative: str) -> Path:
     return path
 
 
-def _execute(query: str, source: str) -> render.QueryOutput:
+def _execute(query: str) -> render.QueryOutput:
     content_type, body = run_query(query)
-    query_output = render.parse_result(content_type, body)
-    if (
-        isinstance(query_output, SelectBindings)
-        and len(query_output.rows) > MAX_SELECT_ROWS
-    ):
-        message = ' '.join(
-            (
-                f'{source} returned {len(query_output.rows)} SELECT rows;',
-                f'the maximum is {MAX_SELECT_ROWS}.',
-                'Narrow the query to the resources the example demonstrates.',
-            )
-        )
-        raise ValueError(message)
-    return query_output
+    return render.parse_result(content_type, body)
 
 
 class SparqldMacros:
@@ -67,11 +52,11 @@ class SparqldMacros:
 
     def sparql(self, query: str) -> render.QueryOutput:
         """Run a verbatim SPARQL query. SELECT returns bindings for sparql_table."""
-        return _execute(query, 'Inline SPARQL example')
+        return _execute(query)
 
     def stored_sparql(self, path: str) -> render.QueryOutput:
         """Run a `.rq` file relative to the MkDocs project root."""
-        return _execute(_project_file(self._project_dir, path).read_text(), path)
+        return _execute(_project_file(self._project_dir, path).read_text())
 
     def sparql_table(
         self,

@@ -2,6 +2,7 @@
 /node_modules/
 /.tools/
 /dist/
+/opencode.json
 __pycache__/
 # Vale package styles (vale sync); keep project vocab and house styles tracked.
 /styles/**

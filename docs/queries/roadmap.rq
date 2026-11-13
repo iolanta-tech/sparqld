@@ -1,0 +1,12 @@
+PREFIX pm: <https://vocab.methodandstructure.com/process-model#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+SELECT DISTINCT ?roadmap_item ?title ?blocker ?contribution ?kind WHERE {
+  GRAPH ?source {
+    { ?roadmap_item a pm:Goal . BIND("goal" AS ?kind) }
+    UNION { ?roadmap_item a <urn:sparqld:vocabulary:Bug> . BIND("bug" AS ?kind) }
+  }
+  OPTIONAL { ?roadmap_item rdfs:label ?title }
+  OPTIONAL { ?roadmap_item <urn:sparqld:vocabulary:blockedBy> ?blocker }
+  OPTIONAL { ?roadmap_item <urn:sparqld:vocabulary:contributesTo> ?contribution }
+}
+ORDER BY ?roadmap_item ?title ?blocker ?contribution

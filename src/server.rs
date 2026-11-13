@@ -942,4 +942,45 @@ mod tests {
                 .contains("\"boolean\":true")
         );
     }
+
+    /// Reproduces [Oxigraph issue 1919](https://github.com/oxigraph/oxigraph/issues/1919):
+    /// a triple shared by two named graphs double-counts in the union default
+    /// graph that sparqld evaluates every query over.
+    #[test]
+    #[should_panic(expected = "a triple present in two source graphs counts once in the merged")]
+    fn union_default_graph_counts_a_shared_triple_once() {
+        use oxigraph::model::Term;
+
+        let dataset = Store::new().unwrap();
+        let shared = Literal::from(10);
+        for graph in ["urn:g1", "urn:g2"] {
+            dataset
+                .insert(QuadRef::new(
+                    NamedNodeRef::new_unchecked("urn:s"),
+                    NamedNodeRef::new_unchecked("urn:p"),
+                    &shared,
+                    GraphNameRef::NamedNode(NamedNodeRef::new_unchecked(graph)),
+                ))
+                .unwrap();
+        }
+        let execution = QueryPolicy::new(None).begin();
+
+        let results = evaluate_sparql(
+            &dataset,
+            "SELECT (COUNT(*) AS ?count) (SUM(?o) AS ?total) WHERE { ?s <urn:p> ?o }",
+            &execution,
+        )
+        .unwrap_or_else(|error| panic!("query failed: {error}"));
+        let QueryResults::Solutions(mut solutions) = results else {
+            panic!("expected SELECT solutions");
+        };
+        let solution = solutions.next().unwrap().unwrap();
+
+        assert_eq!(
+            solution.get("count"),
+            Some(&Term::from(Literal::from(1))),
+            "a triple present in two source graphs counts once in the merged \
+             default graph",
+        );
+    }
 }

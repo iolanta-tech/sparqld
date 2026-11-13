@@ -8,13 +8,13 @@ description: >-
 
 # Update Roadmap
 
-Review first. Edit `docs/project/roadmap.md` only after the user chooses which
+Review first. Edit roadmap source records only after the user chooses which
 proposed outcomes to apply.
 
 ## Read first
 
 Read [AGENTS.md](../../AGENTS.md), [docs/AGENTS.md](../../docs/AGENTS.md), and
-the current [roadmap](../../docs/project/roadmap.md).
+the current [roadmap](../../docs/project/roadmap/index.md).
 
 ## Review
 
@@ -64,23 +64,22 @@ to apply. Do not edit if they select none.
 
 ## Apply selected outcomes
 
-Edit only [docs/project/roadmap.md](../../docs/project/roadmap.md):
+Edit the YAML-LD records under `docs/project/roadmap/` using the
+`sparqld write` workflow and the shared `urn:sparqld:roadmap` context.
+The page renders these records through the `roadmap_mermaid` macro, which queries and renders internally.
 
-1. Preserve the existing project mission. If it is absent, ask the user to
-   provide one; do not invent it from a product backlog.
-2. Maintain a single `flowchart LR` Mermaid diagram immediately after the
-   roadmap's one-sentence arrow explanation. Use rounded nodes (`goal("…")`),
-   make the rightmost mission node begin with `<strong>Mission</strong>`, and
-   point arrows from blockers on the left toward outcomes they enable.
-3. Add each selected outcome as its own rounded node. Connect it directly to
-   the mission unless a real intermediate dependency is evidenced. The mission
-   is an enduring direction, not a completion criterion.
-4. Remove completed, superseded, or duplicate outcome nodes when the evidence
-   supports doing so. Do not add a checklist, priority sections, synthetic
-   aggregate nodes, or explanatory implementation backlog beneath the diagram.
-5. Update `datePublished` to today (`YYYY-MM-DD`). Preserve unrelated
-   frontmatter and page structure.
-6. Do not commit unless the user asks.
+1. Preserve `mission.yamlld`, the enduring project direction. If it is absent,
+   ask the user to provide it; do not invent it from a product backlog.
+2. Add each selected outcome in a separate `.yamlld` file with an identifier,
+   type, and label. Reuse the existing identifier and context conventions.
+3. Record evidenced blockers with `blockedBy` and contributions to the mission
+   with `contributesTo`. Do not invent dependencies to arrange the diagram.
+4. Remove completed, superseded, or duplicate records when the evidence
+   supports doing so. Update references to removed records.
+5. Update `datePublished` on `index.md` to today (`YYYY-MM-DD`). Run `date -u`
+   first. Preserve the macro invocation and unrelated frontmatter.
+6. Validate changed and removed records through sparqld MCP, including affected
+   dependents. Do not commit unless the user asks.
 
 After editing, build the documentation and validate the rendered roadmap in
 Chromium through Playwright. Confirm that Mermaid rendered, every node is a
@@ -90,5 +89,5 @@ overflow at desktop width.
 ## Out of scope
 
 - Implementing roadmap outcomes.
-- Editing ADRs, code, or documentation outside `docs/project/roadmap.md`.
+- Editing ADRs, code, or documentation outside `docs/project/roadmap/`.
 - Publishing releases or opening pull requests.
