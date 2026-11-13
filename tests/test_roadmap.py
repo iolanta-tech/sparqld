@@ -78,16 +78,35 @@ def test_labels_cannot_inject_mermaid() -> None:
     assert rendered.count('```') == 2
 
 
-def test_bugs_get_red_mermaid_class() -> None:
-    """Bug nodes use the diagram's red bug style."""
+def test_bugs_use_rectangle_shape() -> None:
+    """Bug nodes use a rectangle to distinguish their entity type."""
     rendered = render_roadmap(
         SelectBindings(
             columns=[],
             rows=[{NODE: FIRST, TITLE: 'Bug', KIND: 'bug'}],
         )
     )
-    assert ':::bug' in rendered
-    assert 'classDef bug fill:#fee2e2,stroke:#dc2626,color:#7f1d1d' in rendered
+    assert '[Bug]' in rendered
+
+
+def test_prerequisite_states_use_stadium_shape() -> None:
+    """Prerequisite states use a stadium to distinguish their entity type."""
+    rendered = render_roadmap(
+        SelectBindings(
+            columns=[],
+            rows=[
+                {
+                    NODE: 'urn:roadmap:bug',
+                    TITLE: 'Bug',
+                    KIND: 'bug',
+                    BLOCKER: 'urn:roadmap:release',
+                    'blocker_title': 'Release fixes the issue',
+                    'blocker_kind': 'state',
+                },
+            ],
+        )
+    )
+    assert '(["Release fixes the issue"])' in rendered
 
 
 @pytest.mark.parametrize(
