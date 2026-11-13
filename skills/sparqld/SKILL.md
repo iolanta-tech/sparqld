@@ -81,7 +81,10 @@ If the client is not listed, find its MCP add or config mechanism and register
    watches that directory and includes the file in its source patterns. Inspect
    existing data and contexts through MCP and local files before editing.
 2. Write YAML-LD that expresses the requested facts. Follow existing project
-   naming and vocabulary conventions. Use YAML 1.2 semantics; quote ambiguous
+   naming and vocabulary conventions. Reuse existing vocabulary terms and
+   namespaces. Mint an HTTP IRI only when its publication route is established;
+   otherwise follow the project's local identifier convention.
+   Use YAML 1.2 semantics; quote ambiguous
    scalars and raw JSON-LD keywords with double quotes. Leave unambiguous
    scalars unquoted. Reuse context definitions and YAML anchors
    where appropriate. Give resource-valued properties IRI coercion with
