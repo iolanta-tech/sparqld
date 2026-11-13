@@ -1,6 +1,6 @@
 ---
 name: sparqld
-description: Query a local sparqld knowledge base or write YAML-LD data for it, validating results through sparqld MCP.
+description: Query a local sparqld knowledge base or write or review its YAML-LD data using sparqld MCP.
 ---
 
 # `sparqld`
@@ -8,7 +8,8 @@ description: Query a local sparqld knowledge base or write YAML-LD data for it, 
 Use the `query` tool from the `sparqld` MCP server for the selected knowledge
 base. It runs read-only SPARQL against the watched files.
 
-Use the query workflow for questions about a knowledge base. Use the write
+Use the query workflow for questions about a knowledge base. Use the review
+workflow to assess YAML-LD, including Markdown frontmatter. Use the write
 workflow for `sparqld write` or requests to create or edit YAML-LD for a
 sparqld knowledge base. MCP queries are read-only; write files locally.
 
@@ -77,23 +78,13 @@ If the client is not listed, find its MCP add or config mechanism and register
 
 ## Write workflow
 
+Read and apply the shared [YAML-LD rules](yaml-ld-rules.md).
+
 1. Identify the target file and its served directory. Verify the MCP server
    watches that directory and includes the file in its source patterns. Inspect
    existing data and contexts through MCP and local files before editing.
-2. Write YAML-LD that expresses the requested facts. Follow existing project
-   naming and vocabulary conventions. Reuse existing vocabulary terms and
-   namespaces. Mint an HTTP IRI only when its publication route is established;
-   otherwise follow the project's local identifier convention.
-   Use YAML 1.2 semantics; quote ambiguous
-   scalars and raw JSON-LD keywords with double quotes. Leave unambiguous
-   scalars unquoted. Reuse context definitions and YAML anchors
-   where appropriate. Give resource-valued properties IRI coercion with
-   `"@type": "@id"` in their context definitions.
-3. sparqld applies its bundled default context before a source's own context.
-   Use `$id`, `$type`, and other provided dollar aliases in graph bodies without
-   adding a context URL solely for them. Keep `@context` and keywords inside
-   context definitions in standard JSON-LD form. A later context can override
-   or clear the default. For other consumers, declare the context they require.
+2. Write YAML-LD that expresses the requested facts using the shared rules.
+3. Check the effective context and intended consumers as described there.
 4. Save the file locally and run the YAML-LD quote-style check described below.
 5. Validate the loaded data only through the configured sparqld MCP
    query tool: inspect the catalog for load errors for that source and query
@@ -106,6 +97,23 @@ If the client is not listed, find its MCP add or config mechanism and register
 6. Report the changed files, observed results, and SPARQL queries used. Do not
    substitute a parser, linter, external expansion tool, or test suite for MCP
    validation.
+
+## Review workflow
+
+1. Read the target source and the shared [YAML-LD rules](yaml-ld-rules.md).
+   Identify its intended facts, consumers, served directory, and source graph.
+2. Verify the configured MCP watches the directory and includes the source.
+   Inspect catalog load errors and query the source graph for actual subjects,
+   types, predicates, literals, and IRI-valued objects. Compare the results with
+   the source and intended meaning; check relationships in both directions
+   where needed. Account for asynchronous reload.
+3. Review the source against the shared rules, including stable entity identity,
+   vocabulary, context, and YAML syntax. For Markdown, inspect its YAML-LD
+   frontmatter without treating the rest of the document as YAML.
+4. Report numbered, actionable findings with source locations and evidence.
+   Distinguish confirmed defects from uncertainty and report validation gaps.
+   Include every SPARQL query executed. Do not edit the reviewed content unless
+   asked to fix it.
 
 ### Quote-style check
 
