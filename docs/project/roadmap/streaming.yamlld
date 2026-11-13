@@ -1,0 +1,6 @@
+"@context": urn:sparqld:roadmap
+$id: urn:sparqld:roadmap:streaming
+$type: pm:Goal
+rdfs:label: Users can retrieve large query results without complete-response 
+  buffering
+contributesTo: urn:sparqld:roadmap:mission
