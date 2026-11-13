@@ -9,11 +9,20 @@ from typing import ClassVar, Literal
 class RoadmapNode:
     iri: str
     title: str
+    status: str | None = None
+    group: str | None = None
+    group_title: str | None = None
     mermaid_shape: ClassVar[str]
 
     def declaration(self) -> str:
         label = _escape_label(self.title)
         return f'    {_identifier(self.iri)}{self.mermaid_shape.format(label=label)}'
+
+    def status_class(self) -> str:
+        return f'status_{_safe_status(self.status)}'
+
+    def styled_nodes(self) -> tuple['RoadmapNode', ...]:
+        return (self,)
 
 
 @dataclass(frozen=True)
@@ -35,8 +44,36 @@ class PrerequisiteState(RoadmapNode):
 
 
 @dataclass(frozen=True)
+class Position(RoadmapNode):
+    kind: Literal['position'] = 'position'
+    mermaid_shape: ClassVar[str] = '["{label}"]'
+
+
+@dataclass(frozen=True)
+class Decision:
+    iri: str
+    title: str
+    positions: tuple[Position, ...]
+
+    def styled_nodes(self) -> tuple[RoadmapNode, ...]:
+        return self.positions
+
+    def declaration(self) -> str:
+        lines = [
+            f'    subgraph {_identifier(self.iri)}["{_escape_label(self.title)}"]',
+            '        direction TB',
+        ]
+        lines.extend(f'        {position.declaration().strip()}' for position in self.positions)
+        lines.extend(
+            f'        {_identifier(first.iri)} ~~~ {_identifier(second.iri)}'
+            for first, second in zip(self.positions, self.positions[1:])
+        )
+        return '\n'.join((*lines, '    end'))
+
+
+@dataclass(frozen=True)
 class Roadmap:
-    nodes: tuple[RoadmapNode, ...]
+    nodes: tuple[RoadmapNode | Decision, ...]
     edges: frozenset[tuple[str, str]]
 
     def render(self) -> str:
@@ -46,7 +83,20 @@ class Roadmap:
             f'    {_identifier(source)} --> {_identifier(target)}'
             for source, target in sorted(self.edges)
         )
-        return '\n'.join((*lines, *edges, '```'))
+        styled_nodes = tuple(member for node in self.nodes for member in node.styled_nodes())
+        statuses = sorted({node.status_class() for node in styled_nodes})
+        colors = {'undecided': '#fff2cc', 'accepted': '#d9ead3', 'rejected': '#f4cccc', 'unrecorded': '#eeeeee'}
+        styles = tuple(
+            f'    classDef {name} fill:{colors.get(name.removeprefix("status_"), "#eeeeee")},color:#222,stroke:#888'
+            for name in statuses
+        )
+        assignments = tuple(f'    class {_identifier(node.iri)} {node.status_class()}' for node in styled_nodes)
+        return '\n'.join((*lines, *edges, *styles, *assignments, '```'))
+
+
+def _safe_status(status: str | None) -> str:
+    normalized = status.lower() if status else 'unrecorded'
+    return normalized if normalized in {'undecided', 'accepted', 'rejected'} else 'unrecorded'
 
 
 def _identifier(iri: str) -> str:
