@@ -1,0 +1,6 @@
+"@context": urn:sparqld:roadmap
+$id: urn:sparqld:roadmap:obsidian
+$type: pm:Goal
+rdfs:label: Users can run SPARQL against a watched directory from an Obsidian 
+  plugin
+contributesTo: urn:sparqld:roadmap:mission
