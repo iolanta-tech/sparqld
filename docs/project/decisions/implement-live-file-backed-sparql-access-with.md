@@ -143,5 +143,5 @@ comparison and bump `date`.
 - Work proceeds on `sparqld` as the selected product for turning authoritative
   files into a live queryable graph.
 - Revisit this comparison when new alternatives appear.
-- Obsidian query UX is tracked on the [Roadmap](../roadmap.md), not settled
+- Obsidian query UX is tracked on the [Roadmap](../roadmap/index.md), not settled
   here.
