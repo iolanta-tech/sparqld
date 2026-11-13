@@ -1,0 +1,6 @@
+"@context": urn:sparqld:roadmap
+$id: urn:sparqld:roadmap:demo
+$type: pm:Goal
+rdfs:label: MkDocs users can reproduce the sparql() demo against documented 
+  example data
+contributesTo: urn:sparqld:roadmap:mission
