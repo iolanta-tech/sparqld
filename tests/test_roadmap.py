@@ -50,6 +50,50 @@ def test_graph_is_deterministic(bindings: SelectBindings) -> None:
     assert 'The mission outcome' in original
 
 
+def test_target_renders_only_transitive_blockers(bindings: SelectBindings) -> None:
+    """A target graph contains its full blocker chain and excludes unrelated outcomes."""
+    rendered = render_roadmap(bindings, 'c')
+    assert all(label in rendered for label in ('A', 'B', 'C'))
+    assert 'The mission outcome' not in rendered
+    assert rendered.count(' --> ') == 3
+
+
+def test_target_includes_options_for_a_blocking_decision() -> None:
+    """A selected decision retains its position nodes as its options."""
+    rows = [
+        {NODE: 'decision', TITLE: 'Choose', KIND: 'decision'},
+        {NODE: 'owl', TITLE: 'OWL', KIND: 'position', 'group': 'decision', 'status': 'undecided'},
+        {NODE: 'datalog', TITLE: 'Datalog', KIND: 'position', 'group': 'decision', 'status': 'undecided'},
+        {NODE: 'goal', TITLE: 'Inference', KIND: GOAL, BLOCKER: 'decision'},
+        {NODE: 'unrelated', TITLE: 'Unrelated', KIND: GOAL},
+    ]
+    rendered = render_roadmap(SelectBindings(columns=[], rows=rows), 'goal')
+    assert 'Choose' in rendered and 'OWL' in rendered and 'Datalog' in rendered
+    assert 'Unrelated' not in rendered
+
+
+def test_position_prerequisite_includes_its_decision_and_options() -> None:
+    """A blocking decision position keeps its group and sibling options in scope."""
+    rows = [
+        {NODE: 'decision', TITLE: 'Choose', KIND: 'decision'},
+        {NODE: 'owl', TITLE: 'OWL', KIND: 'position', 'group': 'decision', 'status': 'undecided',
+         'contribution': 'outside'},
+        {NODE: 'datalog', TITLE: 'Datalog', KIND: 'position', 'group': 'decision', 'status': 'undecided'},
+        {NODE: 'goal', TITLE: 'Inference', KIND: GOAL, BLOCKER: 'owl', 'blocker_kind': 'position'},
+        {NODE: 'outside', TITLE: 'Outside scope', KIND: GOAL},
+    ]
+    rendered = render_roadmap(SelectBindings(columns=[], rows=rows), 'goal')
+    assert 'Choose' in rendered and 'OWL' in rendered and 'Datalog' in rendered
+    assert 'Outside scope' not in rendered
+    assert rendered.count(' --> ') == 1
+
+
+def test_unknown_target_fails(bindings: SelectBindings) -> None:
+    """A misspelled target does not silently render an empty graph."""
+    with pytest.raises(ValueError, match='Unknown roadmap target'):
+        render_roadmap(bindings, 'missing')
+
+
 @pytest.mark.parametrize(
     'rows',
     [
@@ -78,15 +122,41 @@ def test_labels_cannot_inject_mermaid() -> None:
     assert rendered.count('```') == 2
 
 
-def test_bugs_use_rectangle_shape() -> None:
-    """Bug nodes use a rectangle to distinguish their entity type."""
+@pytest.mark.parametrize('kind', ['goal', 'bug', 'task'])
+def test_work_items_share_a_shape(kind: str) -> None:
+    """Goals, bugs, and GitHub issues use the same shape."""
     rendered = render_roadmap(
         SelectBindings(
             columns=[],
-            rows=[{NODE: FIRST, TITLE: 'Bug', KIND: 'bug'}],
+            rows=[{NODE: FIRST, TITLE: 'Work item', KIND: kind}],
         )
     )
-    assert '[Bug]' in rendered
+    assert '("Work item")' in rendered
+
+
+def test_task_can_block_a_goal() -> None:
+    """A roadmap task can appear as a prerequisite for an outcome."""
+    rendered = render_roadmap(SelectBindings(columns=[], rows=[
+        {NODE: 'task', TITLE: 'GitHub issue', KIND: 'task'},
+        {NODE: 'goal', TITLE: 'Outcome', KIND: GOAL, BLOCKER: 'task', 'blocker_kind': 'task'},
+    ]))
+    assert 'GitHub issue' in rendered and 'Outcome' in rendered
+    assert rendered.count(' --> ') == 1
+
+
+def test_mission_target_retains_contributors() -> None:
+    """A mission target includes contributors and their blocker prerequisites."""
+    rows = [
+        {NODE: 'mission', TITLE: 'Mission', KIND: GOAL},
+        {NODE: 'feature', TITLE: 'Feature', KIND: GOAL, 'contribution': 'mission'},
+        {NODE: 'prerequisite', TITLE: 'Prerequisite', KIND: GOAL},
+        {NODE: 'feature', TITLE: 'Feature', KIND: GOAL, BLOCKER: 'prerequisite',
+         'contribution': 'mission'},
+        {NODE: 'other', TITLE: 'Other', KIND: GOAL},
+    ]
+    rendered = render_roadmap(SelectBindings(columns=[], rows=rows), 'mission')
+    assert all(label in rendered for label in ('Mission', 'Feature', 'Prerequisite'))
+    assert 'Other' not in rendered
 
 
 def test_decision_renders_positions_and_dependency() -> None:
@@ -154,8 +224,8 @@ def test_prerequisite_states_use_stadium_shape() -> None:
 @pytest.mark.parametrize(
     'render',
     [
-        roadmap,
-        lambda query: RoadmapMacro(Mock(macros={'stored_sparql': query})).render(),
+        lambda query: roadmap(query, 'urn:roadmap:mission'),
+        lambda query: RoadmapMacro(Mock(macros={'stored_sparql': query})).render('urn:roadmap:mission'),
     ],
     ids=['helper', 'macro'],
 )
@@ -166,7 +236,7 @@ def test_queries_before_rendering(
     """Roadmap entry points execute their stored query internally."""
 
     query = Mock(return_value=bindings)
-    assert render(query) == render_roadmap(bindings)
+    assert render(query) == render_roadmap(bindings, 'urn:roadmap:mission')
     query.assert_called_once_with(ROADMAP_QUERY)
 
 
@@ -175,3 +245,12 @@ def test_helper_requires_select_bindings() -> None:
 
     with pytest.raises(TypeError):
         roadmap(Mock(return_value='ASK bindings'))
+
+
+def test_macro_accepts_target_iri(bindings: SelectBindings) -> None:
+    """The MkDocs macro forwards its target IRI to the scoped renderer."""
+    query = Mock(return_value=bindings)
+    macro = RoadmapMacro(Mock(macros={'stored_sparql': query}))
+    rendered = macro.render('c')
+    assert 'The mission outcome' not in rendered
+    query.assert_called_once_with(ROADMAP_QUERY)
