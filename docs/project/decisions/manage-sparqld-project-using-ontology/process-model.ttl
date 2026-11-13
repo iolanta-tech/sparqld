@@ -1,0 +1,428 @@
+@prefix bibo: <http://purl.org/ontology/bibo/> .
+@prefix dct: <http://purl.org/dc/terms/> .
+@prefix ev: <http://purl.org/NET/c4dm/event.owl#> .
+@prefix foaf: <http://xmlns.com/foaf/0.1/> .
+@prefix ibis: <https://vocab.methodandstructure.com/ibis#> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix pm: <https://vocab.methodandstructure.com/process-model#> .
+@prefix prov: <http://www.w3.org/ns/prov#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfa: <http://www.w3.org/ns/rdfa#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix sh: <http://www.w3.org/ns/shacl#> .
+@prefix skos: <http://www.w3.org/2004/02/skos/core#> .
+@prefix vann: <http://purl.org/vocab/vann/> .
+@prefix xhv: <http://www.w3.org/1999/xhtml/vocab#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+<https://vocab.methodandstructure.com/process-model> a bibo:Specification;
+  xhv:contents <https://vocab.methodandstructure.com/>;
+  xhv:index <https://vocab.methodandstructure.com/>;
+  xhv:top <https://vocab.methodandstructure.com/>;
+  xhv:up <https://vocab.methodandstructure.com/>;
+  rdfa:usesVocabulary xhv: .
+
+pm:ABORTED a ibis:State;
+  rdfs:label "ABORTED"@en;
+  rdfs:comment "The task is aborted."@en;
+  rdfs:isDefinedBy pm: .
+
+pm:COMPLETE a ibis:State;
+  rdfs:label "COMPLETE"@en;
+  rdfs:comment "The task is complete."@en;
+  rdfs:isDefinedBy pm: .
+
+pm:IN-PROGRESS a ibis:State;
+  rdfs:label "IN-PROGRESS"@en;
+  rdfs:comment "The task is in progress."@en;
+  rdfs:isDefinedBy pm: .
+
+pm:STALLED a ibis:State;
+  rdfs:label "STALLED"@en;
+  rdfs:comment "The task is stalled."@en;
+  rdfs:isDefinedBy pm: .
+
+pm:budget a owl:DatatypeProperty;
+  rdfs:label "budget"^^xsd:token;
+  rdfs:comment "Every pm:Target has to have a quantitative budget of resources assigned to it. It need not be denominated in currency (e.g. it could be person-hours)."@en;
+  rdfs:domain pm:Target;
+  rdfs:isDefinedBy pm:;
+  rdfs:range xsd:decimal;
+  rdfs:seeAlso pm:ARQ,
+    <https://www.youtube.com/watch?v=fiSjxr8xG6A>;
+  rdfs:subPropertyOf pm:valuation;
+  owl:cardinality 1 .
+
+pm:ch-classes dct:references <https://www.w3.org/TR/prov-o/#Activity>,
+    <http://motools.sourceforge.net/event/event.html#term_Event> .
+
+pm:due a owl:DatatypeProperty;
+  rdfs:label "due"@en;
+  rdfs:comment "The due date of a pm:Target is a conventional deadline."^^xsd:token;
+  rdfs:domain pm:Target;
+  rdfs:isDefinedBy pm:;
+  rdfs:range xsd:dateTime;
+  rdfs:seeAlso <https://www.youtube.com/watch?v=fiSjxr8xG6A>;
+  rdfs:subPropertyOf pm:expires;
+  owl:cardinality 1;
+  skos:editorialNote "I am contemplating changing this to pm:expires to refer to the value-based process model."@en .
+
+pm:performer a owl:ObjectProperty;
+  rdfs:label "performer"^^xsd:token;
+  rdfs:comment "A performer is a real, live (at the time of performance) person who performs a task."@en;
+  rdfs:domain pm:Action;
+  rdfs:isDefinedBy pm:;
+  rdfs:range foaf:Person;
+  rdfs:subPropertyOf pm:involves,
+    prov:wasAttributedTo,
+    ev:agent;
+  owl:inverseOf pm:performs .
+
+pm:process a owl:ObjectProperty;
+  rdfs:label "process"^^xsd:token;
+  rdfs:comment "When an ibis:State is the outcome of a pm:Action."@en;
+  rdfs:domain ibis:State;
+  rdfs:isDefinedBy pm:;
+  rdfs:range pm:Action;
+  rdfs:subPropertyOf prov:wasGeneratedBy;
+  owl:inverseOf pm:outcome .
+
+pm:recipient-of a owl:ObjectProperty;
+  rdfs:label "recipient-of"^^xsd:token;
+  rdfs:comment ""@en;
+  rdfs:domain foaf:Person;
+  rdfs:isDefinedBy pm:;
+  rdfs:range pm:Task;
+  owl:inverseOf pm:recipient .
+
+pm:status a owl:ObjectProperty;
+  rdfs:label "status"^^xsd:token;
+  rdfs:comment "The status of a Task at any instant is a State."@en;
+  rdfs:domain pm:Task;
+  rdfs:isDefinedBy pm:;
+  rdfs:range ibis:State .
+
+pm:variant a owl:ObjectProperty,
+    owl:SymmetricProperty;
+  rdfs:label "variant"^^xsd:token;
+  rdfs:comment "A variant is an alternate method of performing the same action."@en;
+  rdfs:domain pm:Action;
+  rdfs:isDefinedBy pm:;
+  rdfs:range pm:Action;
+  rdfs:subPropertyOf skos:related .
+
+<http://doriantaylor.com/person/dorian-taylor#me> foaf:name "Dorian Taylor"@en .
+
+pm:achieved-by a owl:ObjectProperty;
+  rdfs:label "achieved-by"^^xsd:token;
+  rdfs:comment "A pm:Goal is achieved by at least one candidate pm:Task."@en;
+  rdfs:domain pm:Goal;
+  rdfs:isDefinedBy pm:;
+  rdfs:range pm:Task;
+  rdfs:subPropertyOf skos:semanticRelation;
+  owl:inverseOf pm:achieves .
+
+pm:achieves a owl:ObjectProperty;
+  rdfs:label "achieves"^^xsd:token;
+  rdfs:comment "The purpose of a task is to achieve a goal. Every pm:Task specified in this vocabulary must also specify the pm:Goal they are intended to achieve."@en;
+  rdfs:domain pm:Task;
+  rdfs:isDefinedBy pm:;
+  rdfs:range pm:Goal;
+  rdfs:subPropertyOf skos:semanticRelation,
+    pm:outcome;
+  owl:inverseOf pm:achieved-by .
+
+pm:anchored-by a owl:ObjectProperty;
+  rdfs:label "anchored-by"^^xsd:token;
+  rdfs:comment "A pm:Goal is anchored to reality by a pm:Target."@en;
+  rdfs:domain pm:Goal;
+  rdfs:isDefinedBy pm:;
+  rdfs:range pm:Task;
+  rdfs:subPropertyOf ibis:generalizes;
+  owl:inverseOf pm:anchors .
+
+pm:anchors a owl:ObjectProperty;
+  rdfs:label "anchors"^^xsd:token;
+  rdfs:comment "By anchoring a pm:Goal to a pm:Target, we give it a concrete budget and deadline."@en;
+  rdfs:domain pm:Target,
+    pm:Task;
+  rdfs:isDefinedBy pm:;
+  rdfs:range pm:Goal;
+  rdfs:subPropertyOf ibis:specializes;
+  owl:inverseOf pm:anchored-by .
+
+pm:context a owl:ObjectProperty;
+  rdfs:label "context"^^xsd:token;
+  rdfs:comment "A pm:Action may have an ibis:State as a context."@en;
+  rdfs:domain pm:Action;
+  rdfs:isDefinedBy pm:;
+  rdfs:range ibis:State;
+  rdfs:subPropertyOf skos:semanticRelation,
+    prov:used,
+    ev:factor;
+  owl:inverseOf pm:contextualizes;
+  skos:usageNote "The pm:context and pm:outcome properties can be used to chain one pm:Action to another."@en .
+
+pm:contextualizes a owl:ObjectProperty;
+  rdfs:label "contextualizes"^^xsd:token;
+  rdfs:comment "An ibis:State lends context to a pm:Action."@en;
+  rdfs:domain ibis:State;
+  rdfs:isDefinedBy pm:;
+  rdfs:range pm:Action;
+  owl:inverseOf pm:context .
+
+pm:dependency a owl:ObjectProperty;
+  rdfs:label "dependency"^^xsd:token;
+  rdfs:comment "Any ibis:Entity (and thus pm:Goal, pm:Task) may depend on the resolution of an ibis:Issue the pm:Action depends on to be actionable."@en;
+  rdfs:domain pm:Action,
+    ibis:Entity;
+  rdfs:isDefinedBy pm:;
+  rdfs:range ibis:State;
+  rdfs:subPropertyOf ibis:implies;
+  owl:inverseOf pm:dependency-of .
+
+pm:dependency-of a owl:ObjectProperty;
+  rdfs:label "dependency-of"^^xsd:token;
+  rdfs:comment "The object ibis:Entity depends on the resolution of the subject ibis:State to be resolved, or otherwise proceed."@en;
+  rdfs:domain ibis:State;
+  rdfs:isDefinedBy pm:;
+  rdfs:range ibis:Entity;
+  rdfs:subPropertyOf ibis:implied-by;
+  owl:inverseOf pm:dependency .
+
+pm:expires a owl:DatatypeProperty;
+  rdfs:label "expires"@en;
+  rdfs:comment "This serves as a hard expiry date for a given pm:Goal, such that after it elapses, any valuation ascribed to the goal goes to zero."^^xsd:token;
+  rdfs:domain pm:Goal;
+  rdfs:isDefinedBy pm:;
+  rdfs:range xsd:dateTime;
+  rdfs:seeAlso <https://www.youtube.com/watch?v=fiSjxr8xG6A>;
+  owl:cardinality 1;
+  skos:usageNote "You would use pm:expires (ideally in conjunction with pm:valuation) to express a window of opportunity."@en .
+
+pm:initiated-by a owl:ObjectProperty,
+    owl:InverseFunctionalProperty;
+  rdfs:label "initiated-by"^^xsd:token;
+  rdfs:comment "This connects a selected pm:Task to the pm:Target that initiated it."@en;
+  rdfs:domain pm:Task;
+  rdfs:isDefinedBy pm:;
+  rdfs:range pm:Target;
+  rdfs:subPropertyOf ibis:responds-to;
+  owl:inverseOf pm:initiates .
+
+pm:initiates a owl:ObjectProperty,
+    owl:FunctionalProperty;
+  rdfs:label "initiates"^^xsd:token;
+  rdfs:comment "A valid pm:Target must initiate exactly one pm:Task to carry it out."@en;
+  rdfs:domain pm:Target;
+  rdfs:isDefinedBy pm:;
+  rdfs:range pm:Task;
+  rdfs:subPropertyOf ibis:response;
+  owl:cardinality 1;
+  owl:inverseOf pm:initiated-by .
+
+pm:instance a owl:ObjectProperty;
+  rdfs:label "instance"^^xsd:token;
+  rdfs:comment "A pm:Action is an instance of a pm:Method."@en;
+  rdfs:domain pm:Method;
+  rdfs:isDefinedBy pm:;
+  rdfs:range pm:Action;
+  owl:inverseOf pm:method .
+
+pm:involved-in a owl:ObjectProperty;
+  rdfs:label "involved-in"^^xsd:token;
+  rdfs:comment "A foaf:Agent may be involved in a pm:Task"@en;
+  rdfs:domain pm:Task;
+  rdfs:isDefinedBy pm:;
+  rdfs:range foaf:Agent .
+
+pm:involves a owl:ObjectProperty;
+  rdfs:label "involves"^^xsd:token;
+  rdfs:comment "A pm:Action may involve one or more foaf:Agent."@en;
+  rdfs:domain pm:Action;
+  rdfs:isDefinedBy pm:;
+  rdfs:range foaf:Agent;
+  owl:inverseOf pm:involved-in .
+
+pm:method a owl:ObjectProperty;
+  rdfs:label "method"^^xsd:token;
+  rdfs:comment "A pm:Action can identify an associated pm:Method which will be used to complete it."@en;
+  rdfs:domain pm:Task,
+    pm:Action;
+  rdfs:isDefinedBy pm:;
+  rdfs:range pm:Method;
+  owl:inverseOf pm:instance .
+
+pm:performs a owl:ObjectProperty;
+  rdfs:label "performs"^^xsd:token;
+  rdfs:comment ""@en;
+  rdfs:domain foaf:Person;
+  rdfs:isDefinedBy pm:;
+  rdfs:range pm:Action .
+
+pm:recipient a owl:ObjectProperty;
+  rdfs:label "recipient"^^xsd:token;
+  rdfs:comment "A recipient of a task is a (real, live at the time of receipt) person who receives and approves its product or products."@en;
+  rdfs:domain pm:Task;
+  rdfs:isDefinedBy pm:;
+  rdfs:range foaf:Person;
+  rdfs:subPropertyOf ibis:principal .
+
+pm:responsible a owl:ObjectProperty;
+  rdfs:label "responsible"^^xsd:token;
+  rdfs:comment "The person responsible for a task may not be the one performing it, but they are the one accountable for its completion."@en;
+  rdfs:domain pm:Task;
+  rdfs:isDefinedBy pm:;
+  rdfs:range foaf:Person;
+  rdfs:subPropertyOf ev:agent;
+  owl:inverseOf pm:responsible-for .
+
+pm:responsible-for a owl:ObjectProperty;
+  rdfs:label "responsible-for"^^xsd:token;
+  rdfs:comment ""@en;
+  rdfs:domain foaf:Person;
+  rdfs:isDefinedBy pm:;
+  rdfs:range pm:Task;
+  owl:inverseOf pm:responsible .
+
+pm:subtask a owl:ObjectProperty;
+  rdfs:label "subtask"^^xsd:token;
+  rdfs:comment "This property narrows the domain and range of ev:sub_event to pm:Task."@en;
+  rdfs:domain pm:Task;
+  rdfs:isDefinedBy pm:;
+  rdfs:range pm:Task;
+  rdfs:subPropertyOf ibis:generalizes,
+    ev:sub_event;
+  owl:inverseOf pm:supertask .
+
+pm:supertask a owl:ObjectProperty;
+  rdfs:label "supertask"^^xsd:token;
+  rdfs:comment ""@en;
+  rdfs:domain pm:Task;
+  rdfs:isDefinedBy pm:;
+  rdfs:range pm:Task;
+  rdfs:subPropertyOf ibis:specializes;
+  owl:inverseOf pm:subtask .
+
+pm:valuation a owl:DatatypeProperty;
+  rdfs:label "valuation"^^xsd:token;
+  rdfs:comment "A pm:Goal can be ascribed a quantity that represents, in some unspecified unit, the marginal, potentially discounted value of achieving the goal."@en;
+  rdfs:domain pm:Goal;
+  rdfs:isDefinedBy pm:;
+  rdfs:range xsd:decimal;
+  rdfs:seeAlso pm:ARQ,
+    <https://www.youtube.com/watch?v=fiSjxr8xG6A>;
+  owl:cardinality 1;
+  skos:editorialNote "This property is provisional, and if it remains, will be relegated to a computed outcome from some depreciation function, which has yet to be defined."@en .
+
+pm:wanted-by a owl:ObjectProperty;
+  rdfs:label "wanted-by"^^xsd:token;
+  rdfs:comment "The identifying feature of a pm:Goal is that somebody wants it to happen."@en;
+  rdfs:domain pm:Goal;
+  rdfs:isDefinedBy pm:;
+  rdfs:range foaf:Agent;
+  rdfs:subPropertyOf ibis:endorsed-by;
+  owl:inverseOf pm:wants .
+
+pm:wants a owl:ObjectProperty;
+  rdfs:label "wants"^^xsd:token;
+  rdfs:comment "A foaf:Agent may want a pm:Goal."@en;
+  rdfs:domain foaf:Agent;
+  rdfs:isDefinedBy pm:;
+  rdfs:range pm:Goal;
+  rdfs:subPropertyOf ibis:endorses;
+  owl:inverseOf pm:wanted-by .
+
+pm:ARQ a rdfs:Datatype;
+  rdfs:label "ARQ"^^xsd:token;
+  rdfs:comment "This is a stand-in datatype for an abstract resource quantity. Its purpose is to differentiate from xsd:decimal, which is indistinguishable from other real numbers."@en;
+  rdfs:isDefinedBy pm:;
+  rdfs:seeAlso <https://en.wikipedia.org/wiki/Unidade_real_de_valor>;
+  rdfs:subClassOf xsd:decimal .
+
+pm:Method a owl:Class;
+  rdfs:label "Method"^^xsd:token;
+  rdfs:comment "A method specifies an abstract sequence of events."@en;
+  rdfs:isDefinedBy pm:;
+  rdfs:subClassOf pm:Action;
+  owl:disjointWith ibis:State;
+  skos:editorialNote "This class is provisional. It isn't entirely clear that we need a distinct pm:Method class, since pm:Tasks and the like could be appropriated as prototypes of methods."@en .
+
+pm:outcome a owl:ObjectProperty;
+  rdfs:label "outcome"^^xsd:token;
+  rdfs:comment "Every pm:Action has an outcome, which is some kind of ibis:State."@en;
+  rdfs:domain pm:Action;
+  rdfs:isDefinedBy pm:;
+  rdfs:range ibis:State;
+  rdfs:subPropertyOf prov:generated,
+    ev:product;
+  owl:inverseOf pm:outcome .
+
+pm:Target a owl:Class;
+  rdfs:label "Target"^^xsd:token;
+  rdfs:comment "A pm:Target connects a qualitative pm:Goal to a specific pm:Task, and a concrete, quantitative allocation of resources."@en;
+  rdfs:isDefinedBy pm:;
+  rdfs:subClassOf pm:Goal;
+  skos:note "The reason why pm:Target is distinct from pm:Goal is because we can imagine more than one competing candidate pm:Task with different cost and effort profiles. Without this information, any goal—or target, for that matter—is merely aspirational. A target is therefore intended to marry a particular goal to a particular concrete strategy for achieving it."@en .
+
+pm:Goal a owl:Class;
+  rdfs:label "Goal"^^xsd:token;
+  rdfs:comment "A pm:Goal extends an ibis:Issue by way of being explicitly desired by a foaf:Agent."@en;
+  rdfs:isDefinedBy pm:;
+  rdfs:subClassOf ibis:Issue;
+  skos:note "A pm:Goal is not actionable itself, although a pm:Task, which is a pm:Action, must achieve at least one pm:Goal. At the time of observation, pm:Goal, like its superclass, ibis:Issue, is binary: either resolved or unresolved. This entails that a pm:Goal is not expressed in terms of quantitative results or deadlines. That is the job of a pm:Target."@en .
+
+pm:Action a owl:Class;
+  rdfs:label "Action"^^xsd:token;
+  rdfs:comment "A pm:Action specializes an ev:Event in that it is performed by (at least one) real, living foaf:Person."@en;
+  rdfs:isDefinedBy pm:;
+  rdfs:subClassOf prov:Activity,
+    ev:Event;
+  owl:disjointWith ibis:State .
+
+pm:Task a owl:Class;
+  rdfs:label "Task"^^xsd:token;
+  rdfs:comment "A pm:Task specializes a pm:Action in that it has one or more pm:Goal, and connects a pm:Method of execution with a responsible foaf:Person who will carry it out."@en;
+  rdfs:isDefinedBy pm:;
+  rdfs:subClassOf pm:Action,
+    ibis:Position;
+  skos:usageNote "Since pm:Task is a descendant of ev:Event, we can use the ev:time relation to specify a time:Interval to record the time taken to complete a task."@en .
+
+pm: a owl:Ontology;
+  dct:title "A Process Model Ontology"@en;
+  dct:created "2009-07-23T00:56:12Z"^^xsd:dateTime;
+  dct:creator <http://doriantaylor.com/person/dorian-taylor#me>;
+  dct:modified "2014-02-06T22:26:21Z"^^xsd:dateTime,
+    "2017-04-06T22:24:06Z"^^xsd:dateTime,
+    "2020-03-08T18:58:53Z"^^xsd:dateTime,
+    "2025-04-09T23:18:53Z"^^xsd:dateTime,
+    "2025-06-11T03:15:09Z"^^xsd:dateTime,
+    "2025-10-31T22:26:31Z"^^xsd:dateTime;
+  bibo:uri pm:;
+  vann:preferredNamespacePrefix "pm"^^xsd:token;
+  vann:preferredNamespaceUri pm:;
+  rdfs:comment "This vocabulary encodes a model for expressing generic business processes. Its purpose is to provide a language and exchange format for software applications designed to facilitate project management."@en;
+  rdfs:isDefinedBy pm:;
+  owl:imports ibis:,
+    prov:,
+    ev:,
+    skos:;
+  owl:versionInfo "0.3";
+  sh:namespace pm:;
+  sh:prefix "pm"^^xsd:token .
+
+ [xhv:role xhv:note] .
+
+ [xhv:role xhv:note] .
+
+ [xhv:role xhv:note] .
+
+ [xhv:role xhv:note] .
+
+ [xhv:role xhv:note] .
+
+ [xhv:role xhv:note] .
+
+ [xhv:role xhv:note] .
+
+ [xhv:role xhv:note] .
