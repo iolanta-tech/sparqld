@@ -1,0 +1,5 @@
+"@context": urn:sparqld:roadmap
+$id: urn:sparqld:roadmap:mission
+$type: schema:CreativeWork
+rdfs:label: Continuously improve the experience of people and agents querying 
+  local Linked Data with sparqld
