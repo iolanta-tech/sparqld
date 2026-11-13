@@ -6,38 +6,24 @@ from docs_macros.adr import adr_metadata, example_code, universe_metadata
 from docs_macros.commands import command, shell
 from docs_macros.compatibility import client_compatibility
 from docs_macros.decisions import Decision, decision_log
-from docs_macros.environment import EnvironmentMacros
+from docs_macros.environment import EnvironmentMacros, default_prefix_table
 from docs_macros.locations import CLIENT_COMPATIBILITY_PATH
+from docs_macros.roadmap import RoadmapMacro
 
 __all__ = ['CLIENT_COMPATIBILITY_PATH', 'Decision']
 
 
-# @todo(generated-roadmap): Render the roadmap from the sparqld dataset.
+# @todo(roadmap-extracted-contributions): Include code-owned roadmap outcomes.
 # description: >
-#   Configure the documentation build with `extra.sparqld.endpoint` pointing to
-#   an already running sparqld server over the repository root. That server
-#   loads native documents and Riddles contributions; the pluglet only queries
-#   it and does not own its process lifecycle.
-#
-#   Add docs/project/mission.yamlld declaring `sparqld:mission`, the enduring
-#   project mission, and any roadmap outcome that is not owned by a code
-#   annotation. Add docs/queries/roadmap.rq, a SELECT query returning each
-#   roadmap item, title, and optional urn:riddle:blockedBy item. Add
-#   `roadmap_mermaid('docs/queries/roadmap.rq')`; it
-#   runs that stored query and returns a deterministic `flowchart LR` block.
-# rendering:
-#   - Give each IRI a deterministic Mermaid-safe node ID and HTML-escape title
-#     text before inserting it into a node label.
-#   - For `item urn:riddle:blockedBy blocker`, emit `blocker --> item`; dependencies
-#     therefore appear left of the mission without reversing RDF semantics.
-#   - Replace the handwritten graph in docs/project/roadmap/index.md with the macro;
-#     it must consume SPARQL results, never source comments directly.
+#   Extend docs/queries/roadmap.rq to include Riddles contributions from an
+#   externally managed sparqld endpoint over the repository root. Preserve
+#   native roadmap records, mission contributions, and blocker direction.
+#   Configure extra.sparqld.endpoint so the pluglet queries that endpoint
+#   without owning its process lifecycle. Adapt Riddles headline and
+#   urn:riddle:blockedBy predicates into the roadmap result columns.
 # acceptance:
-#   - Unit-test macro rendering for a graph with two blockers, a transitive
-#     blocker, titles requiring escaping, and a mission node.
-#   - Build the documentation against an externally managed endpoint.
-#   - Validate the rendered roadmap in Chromium through Playwright after the
-#     documentation change.
+#   - Render native and extracted outcomes together from real endpoint results.
+#   - Test cross-file dependencies between code annotations and native records.
 # blocked-by:
 #   - riddles-integration
 #   - existing-sparqld-endpoint
@@ -45,7 +31,7 @@ __all__ = ['CLIENT_COMPATIBILITY_PATH', 'Decision']
 
 def _register_source_macros(env: Any, macros: EnvironmentMacros) -> None:
     env.macro(macros.source)
-    env.macro(macros.default_prefix_table)
+    env.macro(default_prefix_table)
     env.macro(macros.example_data)
     env.macro(example_code)
     env.macro(macros.result_data)
@@ -53,6 +39,7 @@ def _register_source_macros(env: Any, macros: EnvironmentMacros) -> None:
 
 
 def _register_page_macros(env: Any, macros: EnvironmentMacros) -> None:
+    env.macro(RoadmapMacro(env).render, name='roadmap_mermaid')
     env.macro(adr_metadata)
     env.macro(universe_metadata)
     env.macro(decision_log)
