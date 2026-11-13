@@ -5,8 +5,12 @@ from unittest.mock import Mock
 
 import pytest
 
-from docs_macros.roadmap import render_roadmap
-from docs_macros.roadmap_macro import ROADMAP_QUERY, RoadmapMacro, roadmap
+from docs_macros.roadmap import (
+    ROADMAP_QUERY,
+    RoadmapMacro,
+    render_roadmap,
+    roadmap,
+)
 from mkdocs_macros_sparqld.table import SelectBindings
 
 NODE = 'roadmap_item'
