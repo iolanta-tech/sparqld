@@ -1,0 +1,15 @@
+"@context":
+  rdf: http://www.w3.org/1999/02/22-rdf-syntax-ns#
+  rdfs: http://www.w3.org/2000/01/rdf-schema#
+  ibis: https://vocab.methodandstructure.com/ibis#
+  rdfs:domain: &iri
+    "@type": "@id"
+  rdfs:range: *iri
+  rdfs:subPropertyOf: *iri
+$id: urn:sparqld:vocabulary:decides
+$type: rdf:Property
+rdfs:label: decides
+rdfs:comment: Links an issue to a position chosen as an outcome.
+rdfs:domain: ibis:Issue
+rdfs:range: ibis:Position
+rdfs:subPropertyOf: ibis:response
