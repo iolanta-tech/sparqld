@@ -107,8 +107,11 @@ def issue_document(
     }
 
 
-def mission_blockers(issues: list[Issue], dependencies: dict[str, list[Issue]]) -> set[str]:
-    """Anchor each terminal dependency component to the visible mission graph."""
+def downstream_graph(
+    issues: list[Issue],
+    dependencies: dict[str, list[Issue]],
+) -> dict[str, set[str]]:
+    """Map each blocker to the visible issues that depend on it."""
     local = {issue.html_url: issue for issue in issues}
     downstream = {url: set() for url in local}
     for blocked_url, blockers in dependencies.items():
@@ -118,9 +121,13 @@ def mission_blockers(issues: list[Issue], dependencies: dict[str, list[Issue]]) 
         for blocker in blockers:
             if blocker.html_url in local:
                 downstream[blocker.html_url].add(blocked_url)
+    return downstream
 
+
+def reachable_set(downstream: dict[str, set[str]]) -> dict[str, set[str]]:
+    """Collect every URL transitively reachable from each issue."""
     reachable = {}
-    for url in local:
+    for url in downstream:
         visited = {url}
         pending = [url]
         while pending:
@@ -128,48 +135,73 @@ def mission_blockers(issues: list[Issue], dependencies: dict[str, list[Issue]]) 
                 visited.add(target)
                 pending.append(target)
         reachable[url] = visited
-
-    anchors = set()
-    for url, targets in reachable.items():
-        component = {target for target in targets if url in reachable[target]}
-        if targets == component:
-            anchors.add(min(component))
-    return anchors
+    return reachable
 
 
-def is_generated_issue_file(path: Path) -> bool:
-    """Identify a prior issue record before deleting a stale generated file."""
+def mission_blockers(issues: list[Issue], dependencies: dict[str, list[Issue]]) -> set[str]:
+    """Anchor each terminal dependency component to the visible mission graph."""
+    reachable = reachable_set(downstream_graph(issues, dependencies))
+    return {
+        min(component)
+        for url, component in reachable.items()
+        if component == {target for target in component if url in reachable[target]}
+    }
+
+
+def markdown_frontmatter(contents: str) -> str:
+    """Extract YAML between the leading and closing --- delimiters."""
+    lines = contents.splitlines(keepends=True)
+    if not lines or lines[0].strip() != '---':
+        raise ValueError('Missing leading frontmatter delimiter')
+    closing = next(
+        (index for index, line in enumerate(lines[1:], 1) if line.strip() == '---'),
+        None,
+    )
+    if closing is None:
+        raise ValueError('Missing closing frontmatter delimiter')
+    return ''.join(lines[1:closing])
+
+
+def file_document(path: Path) -> dict | None:
+    """Parse a generated page or record into its YAML document."""
     try:
         contents = path.read_text()
         if path.suffix == '.md':
-            lines = contents.splitlines(keepends=True)
-            if not lines or lines[0].strip() != '---':
-                return False
-            closing = next(
-                (index for index, line in enumerate(lines[1:], 1) if line.strip() == '---'),
-                None,
-            )
-            if closing is None:
-                return False
-            contents = ''.join(lines[1:closing])
+            contents = markdown_frontmatter(contents)
         document = YAML(typ='safe').load(contents)
     except (OSError, KeyError, TypeError, ValueError, YAMLError):
-        return False
-    if not isinstance(document, dict):
-        return False
+        return None
+    return document if isinstance(document, dict) else None
+
+
+def single_record(document: dict) -> dict | None:
+    """Return the sole record of a document graph."""
     graph = document.get('$graph', [document])
     if not isinstance(graph, list):
-        return False
+        return None
     if len(graph) != 1 or not isinstance(graph[0], dict):
-        return False
-    record = graph[0]
+        return None
+    return graph[0]
+
+
+def is_local_issue_record(record: dict, number: str) -> bool:
+    """Recognize a generated record by its issue URL and task type."""
     return (
-        record.get('$id') == f'https://github.com/{REPOSITORY}/issues/{path.stem}'
+        record.get('$id') == f'https://github.com/{REPOSITORY}/issues/{number}'
         and (
             has_type(record, 'pm:Task')
             or has_type(record, 'urn:sparqld:vocabulary:GitHubIssue')
         )
     )
+
+
+def is_generated_issue_file(path: Path) -> bool:
+    """Identify a prior issue record before deleting a stale generated file."""
+    document = file_document(path)
+    if document is None:
+        return False
+    record = single_record(document)
+    return record is not None and is_local_issue_record(record, path.stem)
 
 
 def is_generated_legacy_file() -> bool:
@@ -190,57 +222,75 @@ def is_generated_legacy_file() -> bool:
     )
 
 
-def main() -> None:
-    """Fetch the complete projection, then replace generated issue files."""
+def projection_documents() -> list[tuple[Issue, dict]]:
+    """Fetch every issue and dependency before building the projection."""
     issues = [
         item for item in fetch(f'repos/{REPOSITORY}/issues?state=all&per_page=100')
         if item.pull_request is None
     ]
-    dependencies = {}
-    for issue in sorted(issues, key=lambda item: item.number):
-        blockers = fetch(
+    dependencies = {
+        issue.html_url: fetch(
             f'repos/{REPOSITORY}/issues/{issue.number}/dependencies/blocked_by?per_page=100'
         )
-        dependencies[issue.html_url] = blockers
+        for issue in sorted(issues, key=lambda item: item.number)
+    }
     anchors = mission_blockers(issues, dependencies)
-    documents = [
+    return [
         (issue, issue_document(
             issue, dependencies[issue.html_url], blocks_mission=issue.html_url in anchors,
         ))
         for issue in sorted(issues, key=lambda item: item.number)
     ]
 
-    DESTINATION_DIR.mkdir(parents=True, exist_ok=True)
-    yaml = YAML()
-    yaml.Emitter = DoubleQuoteEmitter
-    yaml.width = 100
-    for issue, document in documents:
+
+def check_destinations(documents: list[tuple[Issue, dict]]) -> None:
+    """Check every destination before replacing any generated record."""
+    for issue, _ in documents:
         for suffix in ('.md', '.yamlld'):
             destination = DESTINATION_DIR / f'{issue.number}{suffix}'
             if destination.exists() and not is_generated_issue_file(destination):
                 raise ValueError(f'Refusing to overwrite non-generated file: {destination}')
-    for issue, document in documents:
-        destination = DESTINATION_DIR / f'{issue.number}.md'
-        temporary = None
-        try:
-            with tempfile.NamedTemporaryFile(mode='w', dir=DESTINATION_DIR, delete=False) as stream:
-                temporary = Path(stream.name)
-                stream.write('---\n')
-                yaml.dump(document, stream)
-                stream.write('---\n\n')
-                stream.write(issue.body or '')
-            temporary.replace(destination)
-        finally:
-            if temporary is not None:
-                temporary.unlink(missing_ok=True)
 
+
+def write_issue(issue: Issue, document: dict, yaml: YAML) -> None:
+    """Atomically replace one issue page and remove its temporary file."""
+    destination = DESTINATION_DIR / f'{issue.number}.md'
+    temporary = None
+    try:
+        with tempfile.NamedTemporaryFile(mode='w', dir=DESTINATION_DIR, delete=False) as stream:
+            temporary = Path(stream.name)
+            stream.write('---\n')
+            yaml.dump(document, stream)
+            stream.write('---\n\n')
+            stream.write(issue.body or '')
+        temporary.replace(destination)
+    finally:
+        if temporary is not None:
+            temporary.unlink(missing_ok=True)
+
+
+def remove_stale_documents(documents: list[tuple[Issue, dict]]) -> None:
+    """Remove recognized generated records absent from the new projection."""
     active_names = {f'{issue.number}.md' for issue, _ in documents}
     for path in (*DESTINATION_DIR.glob('*.yamlld'), *DESTINATION_DIR.glob('*.md')):
         if path.name not in active_names and path.stem.isdecimal() and is_generated_issue_file(path):
             path.unlink()
     if is_generated_legacy_file():
         LEGACY_DESTINATION.unlink()
-    print(f'Synchronized {len(issues)} issues into {DESTINATION_DIR.relative_to(ROOT)}')
+
+
+def main() -> None:
+    """Fetch the complete projection, then replace generated issue files."""
+    documents = projection_documents()
+    DESTINATION_DIR.mkdir(parents=True, exist_ok=True)
+    check_destinations(documents)
+    yaml = YAML()
+    yaml.Emitter = DoubleQuoteEmitter
+    yaml.width = 100
+    for issue, document in documents:
+        write_issue(issue, document, yaml)
+    remove_stale_documents(documents)
+    print(f'Synchronized {len(documents)} issues into {DESTINATION_DIR.relative_to(ROOT)}')
 
 
 if __name__ == '__main__':
