@@ -13,13 +13,15 @@ class RoadmapNode:
     group: str | None = None
     group_title: str | None = None
     mermaid_shape: ClassVar[str]
+    default_status: ClassVar[str] = 'unrecorded'
 
     def declaration(self) -> str:
         label = _escape_label(self.title)
         return f'    {_identifier(self.iri)}{self.mermaid_shape.format(label=label)}'
 
     def status_class(self) -> str:
-        return f'status_{_safe_status(self.status)}'
+        status = self.status or self.default_status
+        return f'status_{_safe_status(status)}'
 
     def styled_nodes(self) -> tuple['RoadmapNode', ...]:
         return (self,)
@@ -29,12 +31,26 @@ class RoadmapNode:
 class Goal(RoadmapNode):
     kind: Literal['goal'] = 'goal'
     mermaid_shape: ClassVar[str] = '("{label}")'
+    default_status: ClassVar[str] = 'open'
 
 
 @dataclass(frozen=True)
 class Bug(RoadmapNode):
     kind: Literal['bug'] = 'bug'
-    mermaid_shape: ClassVar[str] = '[{label}]'
+    mermaid_shape: ClassVar[str] = '("{label}")'
+    default_status: ClassVar[str] = 'open'
+
+    def status_class(self) -> str:
+        if not self.status or self.status.lower() == 'open':
+            return 'status_open_bug'
+        return super().status_class()
+
+
+@dataclass(frozen=True)
+class Task(RoadmapNode):
+    kind: Literal['task'] = 'task'
+    mermaid_shape: ClassVar[str] = '("{label}")'
+    default_status: ClassVar[str] = 'open'
 
 
 @dataclass(frozen=True)
@@ -85,7 +101,7 @@ class Roadmap:
         )
         styled_nodes = tuple(member for node in self.nodes for member in node.styled_nodes())
         statuses = sorted({node.status_class() for node in styled_nodes})
-        colors = {'undecided': '#fff2cc', 'accepted': '#d9ead3', 'rejected': '#f4cccc', 'unrecorded': '#eeeeee'}
+        colors = {'undecided': '#fff2cc', 'accepted': '#d9ead3', 'rejected': '#f4cccc', 'open': '#d9eaf7', 'open_bug': '#f4cccc', 'closed': '#d9ead3', 'cancelled': '#f4cccc', 'unrecorded': '#eeeeee'}
         styles = tuple(
             f'    classDef {name} fill:{colors.get(name.removeprefix("status_"), "#eeeeee")},color:#222,stroke:#888'
             for name in statuses
@@ -96,7 +112,7 @@ class Roadmap:
 
 def _safe_status(status: str | None) -> str:
     normalized = status.lower() if status else 'unrecorded'
-    return normalized if normalized in {'undecided', 'accepted', 'rejected'} else 'unrecorded'
+    return normalized if normalized in {'undecided', 'accepted', 'rejected', 'open', 'closed', 'cancelled'} else 'unrecorded'
 
 
 def _identifier(iri: str) -> str:
