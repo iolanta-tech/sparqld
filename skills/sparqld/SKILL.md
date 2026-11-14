@@ -73,8 +73,7 @@ If the client is not listed, find its MCP add or config mechanism and register
 2. Run a focused `SELECT`, `ASK`, `CONSTRUCT`, or `DESCRIBE` query.
 3. State only what the result establishes. Distinguish inferred conclusions
    from recorded facts.
-4. Include every SPARQL query executed, including discovery queries, in the
-   answer.
+4. Report the findings. Include SPARQL queries only when requested.
 
 ## Write workflow
 
@@ -94,7 +93,8 @@ Read and apply the shared [YAML-LD rules](yaml-ld-rules.md).
    A successful query or absence of an error alone does not prove the expected
    data loaded. Account for asynchronous reload; if MCP cannot establish the
    result, report that limitation rather than claiming validation.
-6. Report the changed files, observed results, and SPARQL queries used. Do not
+6. Report the changed files and observed results. Include SPARQL queries only
+   when requested. Do not
    substitute a parser, linter, external expansion tool, or test suite for MCP
    validation.
 
@@ -112,8 +112,8 @@ Read and apply the shared [YAML-LD rules](yaml-ld-rules.md).
    frontmatter without treating the rest of the document as YAML.
 4. Report numbered, actionable findings with source locations and evidence.
    Distinguish confirmed defects from uncertainty and report validation gaps.
-   Include every SPARQL query executed. Do not edit the reviewed content unless
-   asked to fix it.
+   Include SPARQL queries only when requested. Do not edit the reviewed content
+   unless asked to fix it.
 
 ### Quote-style check
 

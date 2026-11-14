@@ -1,5 +1,5 @@
 "@context": urn:sparqld:roadmap
 $id: urn:sparqld:roadmap:mission
 $type: pm:Goal
-rdfs:label: Continuously improve the experience of people and agents querying 
+title: Continuously improve the experience of people and agents querying
   local Linked Data with sparqld

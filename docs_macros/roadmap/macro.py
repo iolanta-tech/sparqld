@@ -9,12 +9,12 @@ from mkdocs_macros_sparqld.table import SelectBindings
 ROADMAP_QUERY = 'docs/queries/roadmap.rq'
 
 
-def roadmap(query: Callable[[str], SelectBindings]) -> str:
+def roadmap(query: Callable[[str], SelectBindings], target_iri: str | None = None) -> str:
     """Query the stored roadmap and render its Mermaid graph."""
     bindings = query(ROADMAP_QUERY)
     if not isinstance(bindings, SelectBindings):
         raise TypeError('The roadmap query must return SELECT bindings')
-    return render_roadmap(bindings)
+    return render_roadmap(bindings, target_iri)
 
 
 class RoadmapMacro:
@@ -23,6 +23,6 @@ class RoadmapMacro:
     def __init__(self, env: Any) -> None:
         self._env = env
 
-    def render(self) -> str:
+    def render(self, target_iri: str) -> str:
         """Query the roadmap and render its Mermaid graph."""
-        return roadmap(self._env.macros['stored_sparql'])
+        return roadmap(self._env.macros['stored_sparql'], target_iri)

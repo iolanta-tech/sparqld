@@ -3,6 +3,9 @@
 - Express the intended facts with correct types, predicates, relationship
   directions, and literal or IRI object kinds. Reuse established vocabulary,
   contexts, and project naming conventions.
+- Prefer nested nodes over `@graph` or `$graph` when one root can express the
+  data.
+- Prefer compact terms expanded by the context for reusable vocabulary values.
 - Give domain entities stable identifiers independent of source filenames and
   locations. A document identifier may identify the document itself. Mint an
   HTTP IRI only when its publication route is established; otherwise follow the

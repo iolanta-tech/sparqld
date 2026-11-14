@@ -2,33 +2,57 @@ PREFIX pm: <https://vocab.methodandstructure.com/process-model#>
 PREFIX ibis: <https://vocab.methodandstructure.com/ibis#>
 PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
 SELECT DISTINCT ?roadmap_item ?title ?blocker ?blocker_title ?blocker_kind ?contribution ?kind ?status ?group ?group_title WHERE {
-  GRAPH ?source {
+  {
     { ?roadmap_item a pm:Goal . BIND("goal" AS ?kind) }
     UNION { ?roadmap_item a <urn:sparqld:vocabulary:Bug> . BIND("bug" AS ?kind) }
+    UNION { ?roadmap_item a pm:Task . FILTER NOT EXISTS { ?roadmap_item a <urn:sparqld:vocabulary:Bug> } BIND("task" AS ?kind) }
     UNION {
       ?roadmap_item a ibis:Position .
       ?group a ibis:Issue; ibis:response ?roadmap_item; <https://schema.org/headline> ?group_title .
-      VALUES ?group { <urn:sparqld:decision:inference> }
       BIND("position" AS ?kind)
     }
     UNION {
       ?roadmap_item a ibis:Issue; ibis:response ?position; <https://schema.org/headline> ?decision_title .
-      VALUES ?roadmap_item { <urn:sparqld:decision:inference> }
       BIND("decision" AS ?kind)
     }
+  }
+  FILTER NOT EXISTS {
+    VALUES ?completed_type { pm:Task <urn:sparqld:vocabulary:Bug> }
+    ?roadmap_item a ?completed_type; (pm:status|<https://schema.org/creativeWorkStatus>) ?completed_status .
+    FILTER(?completed_status = <urn:roadmap:status:closed> || LCASE(STR(?completed_status)) = "closed")
   }
   OPTIONAL { ?roadmap_item rdfs:label ?label }
   OPTIONAL { ?roadmap_item <https://schema.org/name> ?position_title }
   BIND(COALESCE(?label, ?position_title, ?decision_title) AS ?title)
-  OPTIONAL { ?roadmap_item <https://schema.org/creativeWorkStatus> ?status }
   OPTIONAL {
-    ?roadmap_item <urn:sparqld:vocabulary:blockedBy> ?blocker .
+    ?roadmap_item (pm:status|<https://schema.org/creativeWorkStatus>) ?recorded_status .
+    BIND(IF(?recorded_status = <urn:roadmap:status:open>, "open",
+         IF(?recorded_status = <urn:roadmap:status:closed>, "closed",
+         IF(?recorded_status = <urn:roadmap:status:cancelled>, "cancelled", STR(?recorded_status)))) AS ?mapped_status)
+  }
+  BIND(COALESCE(?mapped_status, IF(?kind IN ("goal", "task", "bug"), "open", ?mapped_status)) AS ?status)
+  OPTIONAL {
+    ?roadmap_item ^<urn:sparqld:vocabulary:blocks> ?blocker .
+    FILTER NOT EXISTS {
+      VALUES ?blocker_type { pm:Task <urn:sparqld:vocabulary:Bug> }
+      ?blocker a ?blocker_type; (pm:status|<https://schema.org/creativeWorkStatus>) ?blocker_status .
+      FILTER(?blocker_status = <urn:roadmap:status:closed> || LCASE(STR(?blocker_status)) = "closed")
+    }
     OPTIONAL { ?blocker rdfs:label ?blocker_title }
     OPTIONAL {
       { ?blocker a pm:Goal . BIND("goal" AS ?blocker_kind) }
+      UNION { ?blocker a <urn:sparqld:vocabulary:Bug> . BIND("bug" AS ?blocker_kind) }
+      UNION { ?blocker a pm:Task . FILTER NOT EXISTS { ?blocker a <urn:sparqld:vocabulary:Bug> } BIND("task" AS ?blocker_kind) }
       UNION { ?blocker a ibis:State . BIND("state" AS ?blocker_kind) }
     }
   }
-  OPTIONAL { ?roadmap_item <urn:sparqld:vocabulary:contributesTo> ?contribution }
+  OPTIONAL {
+    ?roadmap_item <urn:sparqld:vocabulary:contributesTo> ?contribution .
+    FILTER NOT EXISTS {
+      VALUES ?contribution_type { pm:Task <urn:sparqld:vocabulary:Bug> }
+      ?contribution a ?contribution_type; (pm:status|<https://schema.org/creativeWorkStatus>) ?contribution_status .
+      FILTER(?contribution_status = <urn:roadmap:status:closed> || LCASE(STR(?contribution_status)) = "closed")
+    }
+  }
 }
 ORDER BY ?roadmap_item ?title ?blocker ?contribution
