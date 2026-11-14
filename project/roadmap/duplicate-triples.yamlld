@@ -1,8 +1,0 @@
-"@context": urn:sparqld:roadmap
-$id: urn:sparqld:roadmap:duplicate-triples
-$type: urn:sparqld:vocabulary:Bug
-rdfs:label: Queries count a triple shared by two source graphs twice
-contributesTo: urn:sparqld:roadmap:mission
-blockedBy: urn:sparqld:roadmap:oxigraph-fix-available
-subjectOf: sparqld:src/server.rs#union_default_graph_counts_a_shared_triple_once
-seeAlso: https://github.com/oxigraph/oxigraph/issues/1919

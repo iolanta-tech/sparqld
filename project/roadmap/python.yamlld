@@ -1,5 +1,0 @@
-"@context": urn:sparqld:roadmap
-$id: urn:sparqld:roadmap:python
-$type: pm:Goal
-rdfs:label: MkDocs projects on Python 3.11 and 3.12 can install the pluglet
-contributesTo: urn:sparqld:roadmap:mission

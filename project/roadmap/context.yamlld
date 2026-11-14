@@ -2,10 +2,19 @@
   rdf: http://www.w3.org/1999/02/22-rdf-syntax-ns#
   pm: https://vocab.methodandstructure.com/process-model#
   rdfs: http://www.w3.org/2000/01/rdf-schema#
+  title: rdfs:label
   schema: https://schema.org/
   ibis: https://vocab.methodandstructure.com/ibis#
+  status:
+    "@id": pm:status
+    "@type": "@vocab"
+    "@context":
+      "@vocab": "urn:roadmap:status:"
   blockedBy:
-    "@id": urn:sparqld:vocabulary:blockedBy
+    "@reverse": urn:sparqld:vocabulary:blocks
+    "@type": "@id"
+  blocks:
+    "@id": urn:sparqld:vocabulary:blocks
     "@type": "@id"
   contributesTo:
     "@id": urn:sparqld:vocabulary:contributesTo
@@ -29,13 +38,19 @@
 http://schema.org/contentUrl:
   "@id": urn:sparqld:roadmap
 $included:
-- $id: urn:sparqld:vocabulary:blockedBy
+- $id: urn:roadmap:status:open
+  $type: ibis:State
+  rdfs:label: open
+- $id: urn:roadmap:status:closed
+  $type: ibis:State
+  rdfs:label: closed
+- $id: urn:roadmap:status:cancelled
+  $type: ibis:State
+  rdfs:label: cancelled
+- $id: urn:sparqld:vocabulary:blocks
   $type: rdf:Property
-  rdfs:label: blocked by
-  rdfs:comment: Links a roadmap state to a prerequisite state that must be
-    resolved first.
-  domain: ibis:State
-  range: ibis:State
+  rdfs:label: blocks
+  rdfs:comment: Links a prerequisite to the roadmap item that it blocks.
 - $id: urn:sparqld:vocabulary:contributesTo
   $type: rdf:Property
   rdfs:label: contributes to
@@ -44,4 +59,4 @@ $included:
   $type: rdfs:Class
   rdfs:label: Bug
   rdfs:comment: A reported defect in sparqld behavior.
-  subClassOf: ibis:Issue
+  subClassOf: pm:Task
