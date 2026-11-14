@@ -1,0 +1,38 @@
+# Conservative audit of the active roadmap's normalized dependency graph.
+# cycle rows require review; redundant rows identify a removable direct edge.
+PREFIX roadmap: <urn:sparqld:vocabulary:>
+PREFIX pm: <https://vocab.methodandstructure.com/process-model#>
+PREFIX schema: <https://schema.org/>
+SELECT DISTINCT ?finding ?source ?target ?via WHERE {
+  ?source (roadmap:blocks|roadmap:contributesTo) ?target .
+  FILTER NOT EXISTS {
+    VALUES ?completed_type { pm:Task roadmap:Bug }
+    ?completed a ?completed_type; (pm:status|schema:creativeWorkStatus) ?status .
+    FILTER(?status = <urn:roadmap:status:closed> || LCASE(STR(?status)) = "closed")
+    FILTER(?completed = ?source || ?completed = ?target)
+  }
+  # A property path cannot restrict intermediate vertices to active nodes.
+  # Skip corridors containing completed work rather than report a false positive.
+  FILTER NOT EXISTS {
+    VALUES ?completed_type { pm:Task roadmap:Bug }
+    ?completed a ?completed_type; (pm:status|schema:creativeWorkStatus) ?status .
+    FILTER(?status = <urn:roadmap:status:closed> || LCASE(STR(?status)) = "closed")
+    ?source (roadmap:blocks|roadmap:contributesTo)* ?completed .
+    ?completed (roadmap:blocks|roadmap:contributesTo)* ?target .
+  }
+  {
+    ?source (roadmap:blocks|roadmap:contributesTo) ?via .
+    FILTER(?via != ?source && ?via != ?target)
+    ?via (roadmap:blocks|roadmap:contributesTo)+ ?target .
+    # The alternative path must not reuse the direct edge through its source.
+    FILTER NOT EXISTS {
+      ?via (roadmap:blocks|roadmap:contributesTo)+ ?source .
+    }
+    BIND("redundant" AS ?finding)
+  }
+  UNION {
+    ?target (roadmap:blocks|roadmap:contributesTo)* ?source .
+    BIND("cycle" AS ?finding)
+  }
+}
+ORDER BY ?finding ?source ?target ?via
