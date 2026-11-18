@@ -22,7 +22,7 @@ ROOT = (
     PROJECT_ROOT
     / 'docs/project/decisions/implement-live-file-backed-sparql-access-with/examples'
 )
-SCENARIOS = ('wiki-link', 'wiki-literal', 'vocabulary', 'explicit-terms')
+SCENARIOS = ('wiki-link', 'wiki-literal', 'vocabulary')
 
 
 class ContextDocument(BaseModel):
