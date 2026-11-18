@@ -1,0 +1,94 @@
+{
+  "vault_ld_revision": "025e71be8d810e387dc451c920e05472d1c47170",
+  "rdflib_version": "7.6.0",
+  "vault_ld": [
+    [
+      {
+        "value": "https://dbpedia.org/resource/Alpha_Centauri",
+        "kind": "iri"
+      },
+      {
+        "value": "http://dbpedia.org/property/component",
+        "kind": "iri"
+      },
+      {
+        "value": "https://dbpedia.org/resource/Proxima_Centauri",
+        "kind": "iri"
+      }
+    ],
+    [
+      {
+        "value": "https://dbpedia.org/resource/Alpha_Centauri",
+        "kind": "iri"
+      },
+      {
+        "value": "http://www.w3.org/1999/02/22-rdf-syntax-ns#type",
+        "kind": "iri"
+      },
+      {
+        "value": "https://dbpedia.org/ontology/Star",
+        "kind": "iri"
+      }
+    ],
+    [
+      {
+        "value": "https://dbpedia.org/resource/Alpha_Centauri",
+        "kind": "iri"
+      },
+      {
+        "value": "https://schema.org/name",
+        "kind": "iri"
+      },
+      {
+        "value": "Alpha Centauri",
+        "kind": "literal"
+      }
+    ]
+  ],
+  "json_ld": [
+    [
+      {
+        "value": "https://dbpedia.org/resource/Alpha_Centauri",
+        "kind": "iri"
+      },
+      {
+        "value": "http://dbpedia.org/property/component",
+        "kind": "iri"
+      },
+      {
+        "value": "https://dbpedia.org/resource/Proxima_Centauri",
+        "kind": "iri"
+      }
+    ],
+    [
+      {
+        "value": "https://dbpedia.org/resource/Alpha_Centauri",
+        "kind": "iri"
+      },
+      {
+        "value": "http://www.w3.org/1999/02/22-rdf-syntax-ns#type",
+        "kind": "iri"
+      },
+      {
+        "value": "https://dbpedia.org/ontology/Star",
+        "kind": "iri"
+      }
+    ],
+    [
+      {
+        "value": "https://dbpedia.org/resource/Alpha_Centauri",
+        "kind": "iri"
+      },
+      {
+        "value": "https://schema.org/name",
+        "kind": "iri"
+      },
+      {
+        "value": "Alpha Centauri",
+        "kind": "literal"
+      }
+    ]
+  ],
+  "same_triples": true,
+  "vault_ld_stderr": ""
+}
