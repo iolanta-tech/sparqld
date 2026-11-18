@@ -1,0 +1,8 @@
+{
+  "@context": {
+    "@base": "urn:centauri:",
+    "id": "@id",
+    "companion": "http://dbpedia.org/property/component",
+    "type": "@type"
+  }
+}

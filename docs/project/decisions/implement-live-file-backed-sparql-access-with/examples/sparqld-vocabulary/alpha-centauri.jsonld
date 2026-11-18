@@ -1,0 +1,11 @@
+{
+  "@context": {
+    "@base": "urn:centauri:",
+    "@vocab": "https://dbpedia.org/ontology/",
+    "id": "@id",
+    "type": "@type"
+  },
+  "id": "https://dbpedia.org/resource/Alpha_Centauri",
+  "type": "Star",
+  "name": "Alpha Centauri"
+}

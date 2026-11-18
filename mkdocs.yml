@@ -3,6 +3,7 @@ repo_url: https://github.com/iolanta-tech/sparqld
 
 exclude_docs: |
   **/AGENTS.md
+  project/decisions/implement-live-file-backed-sparql-access-with/examples/**/*.md
 
 theme:
   name: material
@@ -39,6 +40,7 @@ extra_javascript:
 
 markdown_extensions:
   - admonition
+  - pymdownx.details
   - attr_list
   - md_in_html
   - pymdownx.tabbed:
@@ -51,6 +53,7 @@ markdown_extensions:
   - pymdownx.tasklist:
       custom_checkbox: true
   - pymdownx.emoji:
+      title: none
       emoji_index: !!python/name:material.extensions.emoji.twemoji
       emoji_generator: !!python/name:material.extensions.emoji.to_svg
 

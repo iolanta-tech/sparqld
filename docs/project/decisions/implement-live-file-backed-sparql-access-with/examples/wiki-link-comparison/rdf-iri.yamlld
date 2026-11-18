@@ -1,0 +1,7 @@
+"@context":
+  companion:
+    "@id": http://dbpedia.org/property/component
+    "@type": "@id"
+"@type": https://dbpedia.org/ontology/Star
+"@id": https://dbpedia.org/resource/Alpha_Centauri
+companion: https://dbpedia.org/resource/Proxima_Centauri

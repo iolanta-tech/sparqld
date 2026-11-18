@@ -1,0 +1,8 @@
+SELECT DISTINCT ?predicate ?object WHERE {
+  VALUES ?predicate {
+    <http://www.w3.org/1999/02/22-rdf-syntax-ns#type>
+    <https://dbpedia.org/ontology/name>
+  }
+  <https://dbpedia.org/resource/Alpha_Centauri> ?predicate ?object
+}
+ORDER BY ?predicate

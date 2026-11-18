@@ -1,10 +1,10 @@
 ---
-"@context": context.yamlld
-"@id": project/decisions/implement-live-file-backed-sparql-access-with.md
-"@type": schema:TechArticle
+"@context": urn:sparqld:context:decisions
+$id: urn:sparqld:decision:live-file-backed-sparql-access
+$type: schema:TechArticle
 title: Turn a bunch of files into a queryable graph with sparqld
-status: living
-date: 2026-11-10
+status: decided
+date: 2026-11-17
 author: Anatoly Scherbakov
 tags: [decision]
 hide: [toc]
@@ -37,17 +37,17 @@ flowchart LR
     <th>Live reload</th>
     <th>Query access</th>
     <th>[YAML-LD](https://www.w3.org/TR/yaml-ld-10/)</th>
-    <th>[Markdown-LD](../../reference/formats.md)</th>
+    <th>[Markdown-LD](../../../reference/formats.md)</th>
     <th>[GitHub stars](https://docs.github.com/en/get-started/exploring-projects-on-github/saving-repositories-with-stars)</th>
     <th>Latest release</th>
   </tr>
   <tr markdown="span">
     <th class="chosen">[:fontawesome-brands-github: `iolanta-tech/sparqld`](https://github.com/iolanta-tech/sparqld)</th>
-    <td class="chosen">[:white_check_mark:](../../index.md "Reads served files directly")</td>
-    <td class="chosen">[:white_check_mark:](../../reference/agents/index.md "Watches for file changes")</td>
-    <td class="chosen">[SPARQL Protocol](../../reference/api/index.md "SPARQL 1.1 Protocol HTTP endpoint")</td>
-    <td class="chosen">[:white_check_mark:](../../reference/formats.md "Supports YAML-LD")</td>
-    <td class="chosen">[:white_check_mark:](../../reference/formats.md "Supports Markdown-LD")</td>
+    <td class="chosen">[:white_check_mark:](../../../index.md "Reads served files directly")</td>
+    <td class="chosen">[:white_check_mark:](../../../reference/agents/index.md "Watches for file changes")</td>
+    <td class="chosen">[SPARQL Protocol](../../../reference/api/index.md "SPARQL 1.1 Protocol HTTP endpoint")</td>
+    <td class="chosen">[:white_check_mark:](../../../reference/formats.md "Supports YAML-LD")</td>
+    <td class="chosen">[:white_check_mark:](../../../reference/formats.md "Supports Markdown-LD")</td>
     <td class="chosen">[0](https://github.com/iolanta-tech/sparqld/stargazers "Observed 2026-08-07")</td>
     <td class="chosen">[0.1.1<br>2026-08-07](https://crates.io/crates/sparqld/0.1.1 "Released 2026-08-07")</td>
   </tr>
@@ -131,17 +131,25 @@ flowchart LR
     <td class="excl">[15](https://github.com/Volland/typedgraph/stargazers "Observed 2026-11-10")</td>
     <td class="excl">[0.25.0<br>2026-11-09](https://github.com/Volland/typedgraph/releases/tag/0.25.0 "Released 2026-11-09")</td>
   </tr>
+  <tr markdown="span">
+    <th class="excl">[Vault-LD reference exporter](vault-ld.md)</th>
+    <td class="excl">[:white_check_mark:](https://github.com/The-Knowledge-Graph-Guys/vault-ld/blob/main/scripts/EXPORT.md "Reads Markdown vault files for export")</td>
+    <td class="excl hot">[:x:](https://github.com/The-Knowledge-Graph-Guys/vault-ld/blob/main/scripts/EXPORT.md#usage "Batch export must be rerun after edits")</td>
+    <td class="excl hot">[Turtle export](https://github.com/The-Knowledge-Graph-Guys/vault-ld/blob/main/scripts/EXPORT.md "Produces RDF files for a separate query engine")</td>
+    <td class="excl">[:warning:](https://github.com/The-Knowledge-Graph-Guys/vault-ld/blob/025e71be8d810e387dc451c920e05472d1c47170/scripts/vault_to_rdf.py#L244-L282 "Incomplete JSON-LD implementation: ignores @vocab; wiki links need Vault-LD preprocessing")</td>
+    <td class="excl">[:warning:](https://github.com/The-Knowledge-Graph-Guys/vault-ld/blob/025e71be8d810e387dc451c920e05472d1c47170/scripts/vault_to_rdf.py#L649-L654 "Frontmatter export inherits incomplete JSON-LD support; wiki links need Vault-LD preprocessing")</td>
+    <td class="excl">[254](https://github.com/The-Knowledge-Graph-Guys/vault-ld/stargazers "Observed 2026-11-17")</td>
+    <td class="excl">[v0.5.0<br>2026-07-14](https://github.com/The-Knowledge-Graph-Guys/vault-ld/releases/tag/v0.5.0 "Released 2026-07-14")</td>
+  </tr>
 </table>
 
 Green row: chosen. Red row: excluded; stronger-red cells are the disqualifying
-capability. :warning: re-querying reflects a changed file but there is no
-watcher. This ADR is living: when a new alternative appears, re-open the
-comparison and bump `date`.
+capability. :warning: marks a partial match; hover over it for the limitation.
 
 ## :material-arrow-right-bold-outline: Consequences
 
 - Work proceeds on `sparqld` as the selected product for turning authoritative
   files into a live queryable graph.
 - Revisit this comparison when new alternatives appear.
-- Obsidian query UX is tracked on the [Roadmap](../roadmap/index.md), not settled
+- Obsidian query UX is tracked on the [Roadmap](../../roadmap/index.md), not settled
   here.

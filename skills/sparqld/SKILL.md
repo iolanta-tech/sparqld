@@ -77,7 +77,7 @@ If the client is not listed, find its MCP add or config mechanism and register
 
 ## Write workflow
 
-Read and apply the shared [YAML-LD rules](yaml-ld-rules.md).
+Read and apply the shared [YAML-LD rules](rules.md).
 
 1. Identify the target file and its served directory. Verify the MCP server
    watches that directory and includes the file in its source patterns. Inspect
@@ -100,7 +100,7 @@ Read and apply the shared [YAML-LD rules](yaml-ld-rules.md).
 
 ## Review workflow
 
-1. Read the target source and the shared [YAML-LD rules](yaml-ld-rules.md).
+1. Read the target source and the shared [YAML-LD rules](rules.md).
    Identify its intended facts, consumers, served directory, and source graph.
 2. Verify the configured MCP watches the directory and includes the source.
    Inspect catalog load errors and query the source graph for actual subjects,
@@ -110,7 +110,7 @@ Read and apply the shared [YAML-LD rules](yaml-ld-rules.md).
 3. Review the source against the shared rules, including stable entity identity,
    vocabulary, context, and YAML syntax. For Markdown, inspect its YAML-LD
    frontmatter without treating the rest of the document as YAML.
-4. Report numbered, actionable findings with source locations and evidence.
+4. Report numbered, actionable findings with rule IDs, source locations, and evidence.
    Distinguish confirmed defects from uncertainty and report validation gaps.
    Include SPARQL queries only when requested. Do not edit the reviewed content
    unless asked to fix it.

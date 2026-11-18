@@ -1,0 +1,5 @@
+@prefix dbo: <https://dbpedia.org/ontology/> .
+@prefix dbr: <https://dbpedia.org/resource/> .
+
+dbr:Alpha_Centauri a dbo:Star ;
+    dbo:name "Alpha Centauri" .

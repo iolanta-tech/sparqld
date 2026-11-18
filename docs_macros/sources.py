@@ -15,6 +15,7 @@ EXAMPLE_SYNTAXES = MappingProxyType(
         '.rq': 'sparql',
         '.sh': 'console',
         '.toml': 'toml',
+        '.ttl': 'turtle',
         '.yaml': 'yaml',
         '.yamlld': 'yaml',
         '.yml': 'yaml',
