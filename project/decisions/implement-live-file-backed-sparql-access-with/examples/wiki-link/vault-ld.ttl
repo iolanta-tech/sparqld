@@ -1,0 +1,8 @@
+@prefix dbo: <https://dbpedia.org/ontology/> .
+@prefix dbp: <http://dbpedia.org/property/> .
+@prefix dbr: <https://dbpedia.org/resource/> .
+
+dbr:Alpha_Centauri a dbo:Star ;
+    dbp:component dbr:Proxima_Centauri .
+
+dbr:Proxima_Centauri a dbo:Star .

@@ -14,7 +14,7 @@
         <link rel="prev" href="../implement-sparqld-in/">
       
       
-        <link rel="next" href="../implement-yaml-ld-and-markdown-ld-lsp-support-with/">
+        <link rel="next" href="../implement-live-file-backed-sparql-access-with/">
       
       
         
@@ -1854,6 +1854,8 @@
       
         
       
+        
+      
     
     
     
@@ -2198,6 +2200,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../../roadmap/skill-versioning/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    sparqld skill is not versioned
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../roadmap/streaming/" class="md-nav__link">
         
   
@@ -2265,10 +2295,10 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_3_13" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_3_14" >
         
           
-          <label class="md-nav__link" for="__nav_3_3_13" id="__nav_3_3_13_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_3_3_14" id="__nav_3_3_14_label" tabindex="0">
             
   
   
@@ -2286,8 +2316,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_3_3_13_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_3_3_13">
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_3_3_14_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_3_14">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -2861,41 +2891,6 @@
   
   
     <li class="md-nav__item">
-      <a href="../implement-live-file-backed-sparql-access-with/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Turn a bunch of files into a queryable graph with sparqld
-  
-
-    
-  </span>
-  
-  
-    
-  
-  
-    <span class="md-status md-status--living"></span>
-  
-
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
       <a href="../implement-sparqld-in/" class="md-nav__link">
         
   
@@ -3057,6 +3052,118 @@
     </ul>
   
 </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_4_5" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../implement-live-file-backed-sparql-access-with/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Implement live file backed sparql access with
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--decided"></span>
+  
+
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_3_4_5" id="__nav_3_4_5_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_3_4_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_4_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Implement live file backed sparql access with
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../implement-live-file-backed-sparql-access-with/vault-ld/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Vault-LD
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
       
     </li>
   
@@ -3934,72 +4041,72 @@ clients an endpoint-level startup contract.</p>
   </tr>
 <tr>
     <th>Parse shared dataset once</th>
-    <td class="chosen"><img alt="✅" class="twemoji" src="https://cdn.jsdelivr.net/gh/jdecked/twemoji@16.0.1/assets/svg/2705.svg" title=":white_check_mark:" /> <a href="https://github.com/iolanta-tech/sparqld/blob/f3b935f/src/lib.rs#L115-L128">One initial load serves every request</a>.</td>
-    <td class="not-selected"><img alt="✅" class="twemoji" src="https://cdn.jsdelivr.net/gh/jdecked/twemoji@16.0.1/assets/svg/2705.svg" title=":white_check_mark:" /> <a href="https://github.com/iolanta-tech/sparqld/blob/f3b935f/src/lib.rs#L115-L128">One initial load serves every request</a>.</td>
-    <td class="excl"><img alt="✅" class="twemoji" src="https://cdn.jsdelivr.net/gh/jdecked/twemoji@16.0.1/assets/svg/2705.svg" title=":white_check_mark:" /> <a href="https://github.com/iolanta-tech/sparqld/blob/f3b935f/src/lib.rs#L76-L100">One loaded store serves later requests</a>.</td>
-    <td class="excl"><img alt="✅" class="twemoji" src="https://cdn.jsdelivr.net/gh/jdecked/twemoji@16.0.1/assets/svg/2705.svg" title=":white_check_mark:" /> <a href="https://github.com/iolanta-tech/sparqld/blob/f3b935f/src/lib.rs#L76-L100">One loaded store serves later requests</a>.</td>
-    <td class="excl"><img alt="✅" class="twemoji" src="https://cdn.jsdelivr.net/gh/jdecked/twemoji@16.0.1/assets/svg/2705.svg" title=":white_check_mark:" /> Could reuse one load within a new batch interface.</td>
+    <td class="chosen"><img alt="✅" class="twemoji" src="https://cdn.jsdelivr.net/gh/jdecked/twemoji@16.0.1/assets/svg/2705.svg" /> <a href="https://github.com/iolanta-tech/sparqld/blob/f3b935f/src/lib.rs#L115-L128">One initial load serves every request</a>.</td>
+    <td class="not-selected"><img alt="✅" class="twemoji" src="https://cdn.jsdelivr.net/gh/jdecked/twemoji@16.0.1/assets/svg/2705.svg" /> <a href="https://github.com/iolanta-tech/sparqld/blob/f3b935f/src/lib.rs#L115-L128">One initial load serves every request</a>.</td>
+    <td class="excl"><img alt="✅" class="twemoji" src="https://cdn.jsdelivr.net/gh/jdecked/twemoji@16.0.1/assets/svg/2705.svg" /> <a href="https://github.com/iolanta-tech/sparqld/blob/f3b935f/src/lib.rs#L76-L100">One loaded store serves later requests</a>.</td>
+    <td class="excl"><img alt="✅" class="twemoji" src="https://cdn.jsdelivr.net/gh/jdecked/twemoji@16.0.1/assets/svg/2705.svg" /> <a href="https://github.com/iolanta-tech/sparqld/blob/f3b935f/src/lib.rs#L76-L100">One loaded store serves later requests</a>.</td>
+    <td class="excl"><img alt="✅" class="twemoji" src="https://cdn.jsdelivr.net/gh/jdecked/twemoji@16.0.1/assets/svg/2705.svg" /> Could reuse one load within a new batch interface.</td>
   </tr>
 <tr>
     <th>Correct results while loading</th>
-    <td class="chosen"><img alt="✅" class="twemoji" src="https://cdn.jsdelivr.net/gh/jdecked/twemoji@16.0.1/assets/svg/2705.svg" title=":white_check_mark:" /> <a href="https://github.com/iolanta-tech/sparqld/blob/f3b935f/src/lib.rs#L120-L128">Dispatch follows atomic first publication</a>.</td>
-    <td class="not-selected"><img alt="✅" class="twemoji" src="https://cdn.jsdelivr.net/gh/jdecked/twemoji@16.0.1/assets/svg/2705.svg" title=":white_check_mark:" /> <a href="https://www.rfc-editor.org/rfc/rfc9110#section-15.6.4">503 explicitly declines service while unavailable</a>.</td>
-    <td class="excl"><img alt="✅" class="twemoji" src="https://cdn.jsdelivr.net/gh/jdecked/twemoji@16.0.1/assets/svg/2705.svg" title=":white_check_mark:" /> <a href="https://github.com/iolanta-tech/sparqld/blob/f3b935f/src/lib.rs#L76-L100">No request can arrive before binding</a>.</td>
-    <td class="excl"><img alt="✅" class="twemoji" src="https://cdn.jsdelivr.net/gh/jdecked/twemoji@16.0.1/assets/svg/2705.svg" title=":white_check_mark:" /> <a href="https://github.com/iolanta-tech/sparqld/blob/f3b935f/src/lib.rs#L76-L100">No request can arrive before binding</a>.</td>
-    <td class="excl"><img alt="✅" class="twemoji" src="https://cdn.jsdelivr.net/gh/jdecked/twemoji@16.0.1/assets/svg/2705.svg" title=":white_check_mark:" /> A process-local batch could query after its load.</td>
+    <td class="chosen"><img alt="✅" class="twemoji" src="https://cdn.jsdelivr.net/gh/jdecked/twemoji@16.0.1/assets/svg/2705.svg" /> <a href="https://github.com/iolanta-tech/sparqld/blob/f3b935f/src/lib.rs#L120-L128">Dispatch follows atomic first publication</a>.</td>
+    <td class="not-selected"><img alt="✅" class="twemoji" src="https://cdn.jsdelivr.net/gh/jdecked/twemoji@16.0.1/assets/svg/2705.svg" /> <a href="https://www.rfc-editor.org/rfc/rfc9110#section-15.6.4">503 explicitly declines service while unavailable</a>.</td>
+    <td class="excl"><img alt="✅" class="twemoji" src="https://cdn.jsdelivr.net/gh/jdecked/twemoji@16.0.1/assets/svg/2705.svg" /> <a href="https://github.com/iolanta-tech/sparqld/blob/f3b935f/src/lib.rs#L76-L100">No request can arrive before binding</a>.</td>
+    <td class="excl"><img alt="✅" class="twemoji" src="https://cdn.jsdelivr.net/gh/jdecked/twemoji@16.0.1/assets/svg/2705.svg" /> <a href="https://github.com/iolanta-tech/sparqld/blob/f3b935f/src/lib.rs#L76-L100">No request can arrive before binding</a>.</td>
+    <td class="excl"><img alt="✅" class="twemoji" src="https://cdn.jsdelivr.net/gh/jdecked/twemoji@16.0.1/assets/svg/2705.svg" /> A process-local batch could query after its load.</td>
   </tr>
 <tr>
     <th>CI and deployment ergonomics</th>
-    <td class="chosen"><img alt="✅" class="twemoji" src="https://cdn.jsdelivr.net/gh/jdecked/twemoji@16.0.1/assets/svg/2705.svg" title=":white_check_mark:" /> The first normal query is the readiness wait.</td>
-    <td class="not-selected"><img alt="⚠" class="twemoji" src="https://cdn.jsdelivr.net/gh/jdecked/twemoji@16.0.1/assets/svg/26a0.svg" title=":warning:" /> Requires a client retry or polling policy after <code>503</code>.</td>
-    <td class="excl hot"><img alt="❌" class="twemoji" src="https://cdn.jsdelivr.net/gh/jdecked/twemoji@16.0.1/assets/svg/274c.svg" title=":x:" /> <a href="https://github.com/iolanta-tech/sparqld/blob/f3b935f/src/lib.rs#L97-L100">Clients need an out-of-band availability check</a>.</td>
-    <td class="excl hot"><img alt="⚠" class="twemoji" src="https://cdn.jsdelivr.net/gh/jdecked/twemoji@16.0.1/assets/svg/26a0.svg" title=":warning:" /> Requires defining a separate process-signal contract.</td>
-    <td class="excl hot"><img alt="❌" class="twemoji" src="https://cdn.jsdelivr.net/gh/jdecked/twemoji@16.0.1/assets/svg/274c.svg" title=":x:" /> Does not start the existing HTTP service.</td>
+    <td class="chosen"><img alt="✅" class="twemoji" src="https://cdn.jsdelivr.net/gh/jdecked/twemoji@16.0.1/assets/svg/2705.svg" /> The first normal query is the readiness wait.</td>
+    <td class="not-selected"><img alt="⚠" class="twemoji" src="https://cdn.jsdelivr.net/gh/jdecked/twemoji@16.0.1/assets/svg/26a0.svg" /> Requires a client retry or polling policy after <code>503</code>.</td>
+    <td class="excl hot"><img alt="❌" class="twemoji" src="https://cdn.jsdelivr.net/gh/jdecked/twemoji@16.0.1/assets/svg/274c.svg" /> <a href="https://github.com/iolanta-tech/sparqld/blob/f3b935f/src/lib.rs#L97-L100">Clients need an out-of-band availability check</a>.</td>
+    <td class="excl hot"><img alt="⚠" class="twemoji" src="https://cdn.jsdelivr.net/gh/jdecked/twemoji@16.0.1/assets/svg/26a0.svg" /> Requires defining a separate process-signal contract.</td>
+    <td class="excl hot"><img alt="❌" class="twemoji" src="https://cdn.jsdelivr.net/gh/jdecked/twemoji@16.0.1/assets/svg/274c.svg" /> Does not start the existing HTTP service.</td>
   </tr>
 <tr>
     <th>Health, readiness, and liveness</th>
-    <td class="chosen"><img alt="⚠" class="twemoji" src="https://cdn.jsdelivr.net/gh/jdecked/twemoji@16.0.1/assets/svg/26a0.svg" title=":warning:" /> Readiness is expressed by the normal endpoint, not a probe route.</td>
-    <td class="not-selected"><img alt="✅" class="twemoji" src="https://cdn.jsdelivr.net/gh/jdecked/twemoji@16.0.1/assets/svg/2705.svg" title=":white_check_mark:" /> <a href="https://kubernetes.io/docs/concepts/configuration/liveness-readiness-startup-probes/">A readiness probe can remove an unready service from traffic</a>.</td>
-    <td class="excl"><img alt="⚠" class="twemoji" src="https://cdn.jsdelivr.net/gh/jdecked/twemoji@16.0.1/assets/svg/26a0.svg" title=":warning:" /> <a href="https://github.com/iolanta-tech/sparqld/blob/f3b935f/src/lib.rs#L76-L100">A listening port implies only post-load availability</a>.</td>
-    <td class="excl"><img alt="⚠" class="twemoji" src="https://cdn.jsdelivr.net/gh/jdecked/twemoji@16.0.1/assets/svg/26a0.svg" title=":warning:" /> A signal needs its own health-semantics contract.</td>
-    <td class="excl"><img alt="❌" class="twemoji" src="https://cdn.jsdelivr.net/gh/jdecked/twemoji@16.0.1/assets/svg/274c.svg" title=":x:" /> Provides no long-running endpoint for probes.</td>
+    <td class="chosen"><img alt="⚠" class="twemoji" src="https://cdn.jsdelivr.net/gh/jdecked/twemoji@16.0.1/assets/svg/26a0.svg" /> Readiness is expressed by the normal endpoint, not a probe route.</td>
+    <td class="not-selected"><img alt="✅" class="twemoji" src="https://cdn.jsdelivr.net/gh/jdecked/twemoji@16.0.1/assets/svg/2705.svg" /> <a href="https://kubernetes.io/docs/concepts/configuration/liveness-readiness-startup-probes/">A readiness probe can remove an unready service from traffic</a>.</td>
+    <td class="excl"><img alt="⚠" class="twemoji" src="https://cdn.jsdelivr.net/gh/jdecked/twemoji@16.0.1/assets/svg/26a0.svg" /> <a href="https://github.com/iolanta-tech/sparqld/blob/f3b935f/src/lib.rs#L76-L100">A listening port implies only post-load availability</a>.</td>
+    <td class="excl"><img alt="⚠" class="twemoji" src="https://cdn.jsdelivr.net/gh/jdecked/twemoji@16.0.1/assets/svg/26a0.svg" /> A signal needs its own health-semantics contract.</td>
+    <td class="excl"><img alt="❌" class="twemoji" src="https://cdn.jsdelivr.net/gh/jdecked/twemoji@16.0.1/assets/svg/274c.svg" /> Provides no long-running endpoint for probes.</td>
   </tr>
 <tr>
     <th>Timeout, cancellation, and failure</th>
-    <td class="chosen"><img alt="✅" class="twemoji" src="https://cdn.jsdelivr.net/gh/jdecked/twemoji@16.0.1/assets/svg/2705.svg" title=":white_check_mark:" /> Each client keeps its HTTP deadline; shared loading remains independent.</td>
-    <td class="not-selected"><img alt="✅" class="twemoji" src="https://cdn.jsdelivr.net/gh/jdecked/twemoji@16.0.1/assets/svg/2705.svg" title=":white_check_mark:" /> <a href="https://www.rfc-editor.org/rfc/rfc9110#section-15.6.4">503 communicates temporary unavailability</a>.</td>
-    <td class="excl"><img alt="⚠" class="twemoji" src="https://cdn.jsdelivr.net/gh/jdecked/twemoji@16.0.1/assets/svg/26a0.svg" title=":warning:" /> <a href="https://github.com/iolanta-tech/sparqld/blob/f3b935f/src/lib.rs#L88-L100">Connection failures reveal no initialization outcome</a>.</td>
-    <td class="excl"><img alt="⚠" class="twemoji" src="https://cdn.jsdelivr.net/gh/jdecked/twemoji@16.0.1/assets/svg/26a0.svg" title=":warning:" /> Signal consumers need a defined failure and timeout protocol.</td>
-    <td class="excl"><img alt="⚠" class="twemoji" src="https://cdn.jsdelivr.net/gh/jdecked/twemoji@16.0.1/assets/svg/26a0.svg" title=":warning:" /> A separate input protocol must define batch cancellation and errors.</td>
+    <td class="chosen"><img alt="✅" class="twemoji" src="https://cdn.jsdelivr.net/gh/jdecked/twemoji@16.0.1/assets/svg/2705.svg" /> Each client keeps its HTTP deadline; shared loading remains independent.</td>
+    <td class="not-selected"><img alt="✅" class="twemoji" src="https://cdn.jsdelivr.net/gh/jdecked/twemoji@16.0.1/assets/svg/2705.svg" /> <a href="https://www.rfc-editor.org/rfc/rfc9110#section-15.6.4">503 communicates temporary unavailability</a>.</td>
+    <td class="excl"><img alt="⚠" class="twemoji" src="https://cdn.jsdelivr.net/gh/jdecked/twemoji@16.0.1/assets/svg/26a0.svg" /> <a href="https://github.com/iolanta-tech/sparqld/blob/f3b935f/src/lib.rs#L88-L100">Connection failures reveal no initialization outcome</a>.</td>
+    <td class="excl"><img alt="⚠" class="twemoji" src="https://cdn.jsdelivr.net/gh/jdecked/twemoji@16.0.1/assets/svg/26a0.svg" /> Signal consumers need a defined failure and timeout protocol.</td>
+    <td class="excl"><img alt="⚠" class="twemoji" src="https://cdn.jsdelivr.net/gh/jdecked/twemoji@16.0.1/assets/svg/26a0.svg" /> A separate input protocol must define batch cancellation and errors.</td>
   </tr>
 <tr>
     <th>Live reload and atomic replacement</th>
-    <td class="chosen"><img alt="✅" class="twemoji" src="https://cdn.jsdelivr.net/gh/jdecked/twemoji@16.0.1/assets/svg/2705.svg" title=":white_check_mark:" /> <a href="https://github.com/iolanta-tech/sparqld/blob/f3b935f/src/watcher.rs#L95-L126">Retains pre-load watch registration and atomic replacement</a>.</td>
-    <td class="not-selected"><img alt="✅" class="twemoji" src="https://cdn.jsdelivr.net/gh/jdecked/twemoji@16.0.1/assets/svg/2705.svg" title=":white_check_mark:" /> <a href="https://github.com/iolanta-tech/sparqld/blob/f3b935f/src/watcher.rs#L95-L126">Can retain the same watcher and replacement model</a>.</td>
-    <td class="excl"><img alt="✅" class="twemoji" src="https://cdn.jsdelivr.net/gh/jdecked/twemoji@16.0.1/assets/svg/2705.svg" title=":white_check_mark:" /> <a href="https://github.com/iolanta-tech/sparqld/blob/f3b935f/src/watcher.rs#L95-L126">Current model already preserves both</a>.</td>
-    <td class="excl"><img alt="✅" class="twemoji" src="https://cdn.jsdelivr.net/gh/jdecked/twemoji@16.0.1/assets/svg/2705.svg" title=":white_check_mark:" /> <a href="https://github.com/iolanta-tech/sparqld/blob/f3b935f/src/watcher.rs#L95-L126">Current model already preserves both</a>.</td>
-    <td class="excl hot"><img alt="❌" class="twemoji" src="https://cdn.jsdelivr.net/gh/jdecked/twemoji@16.0.1/assets/svg/274c.svg" title=":x:" /> <a href="https://github.com/iolanta-tech/sparqld/blob/f3b935f/src/main.rs#L46-L48">A one-shot mode cannot supply live reload</a>.</td>
+    <td class="chosen"><img alt="✅" class="twemoji" src="https://cdn.jsdelivr.net/gh/jdecked/twemoji@16.0.1/assets/svg/2705.svg" /> <a href="https://github.com/iolanta-tech/sparqld/blob/f3b935f/src/watcher.rs#L95-L126">Retains pre-load watch registration and atomic replacement</a>.</td>
+    <td class="not-selected"><img alt="✅" class="twemoji" src="https://cdn.jsdelivr.net/gh/jdecked/twemoji@16.0.1/assets/svg/2705.svg" /> <a href="https://github.com/iolanta-tech/sparqld/blob/f3b935f/src/watcher.rs#L95-L126">Can retain the same watcher and replacement model</a>.</td>
+    <td class="excl"><img alt="✅" class="twemoji" src="https://cdn.jsdelivr.net/gh/jdecked/twemoji@16.0.1/assets/svg/2705.svg" /> <a href="https://github.com/iolanta-tech/sparqld/blob/f3b935f/src/watcher.rs#L95-L126">Current model already preserves both</a>.</td>
+    <td class="excl"><img alt="✅" class="twemoji" src="https://cdn.jsdelivr.net/gh/jdecked/twemoji@16.0.1/assets/svg/2705.svg" /> <a href="https://github.com/iolanta-tech/sparqld/blob/f3b935f/src/watcher.rs#L95-L126">Current model already preserves both</a>.</td>
+    <td class="excl hot"><img alt="❌" class="twemoji" src="https://cdn.jsdelivr.net/gh/jdecked/twemoji@16.0.1/assets/svg/274c.svg" /> <a href="https://github.com/iolanta-tech/sparqld/blob/f3b935f/src/main.rs#L46-L48">A one-shot mode cannot supply live reload</a>.</td>
   </tr>
 <tr>
     <th>Implementation complexity and API stability</th>
-    <td class="chosen"><img alt="✅" class="twemoji" src="https://cdn.jsdelivr.net/gh/jdecked/twemoji@16.0.1/assets/svg/2705.svg" title=":white_check_mark:" /> Adds one internal readiness gate while retaining <code>/</code>.</td>
-    <td class="not-selected"><img alt="⚠" class="twemoji" src="https://cdn.jsdelivr.net/gh/jdecked/twemoji@16.0.1/assets/svg/26a0.svg" title=":warning:" /> <a href="https://github.com/iolanta-tech/sparqld/blob/f3b935f/docs/reference/api/index.md#L13-L30">Adds endpoint and retry contract beyond the existing <code>/</code> API</a>.</td>
-    <td class="excl"><img alt="✅" class="twemoji" src="https://cdn.jsdelivr.net/gh/jdecked/twemoji@16.0.1/assets/svg/2705.svg" title=":white_check_mark:" /> <a href="https://github.com/iolanta-tech/sparqld/blob/f3b935f/src/lib.rs#L76-L100">Preserves the current startup order</a>.</td>
-    <td class="excl"><img alt="⚠" class="twemoji" src="https://cdn.jsdelivr.net/gh/jdecked/twemoji@16.0.1/assets/svg/26a0.svg" title=":warning:" /> Adds a separate readiness-output contract.</td>
-    <td class="excl"><img alt="⚠" class="twemoji" src="https://cdn.jsdelivr.net/gh/jdecked/twemoji@16.0.1/assets/svg/26a0.svg" title=":warning:" /> Adds a second query-supply interface.</td>
+    <td class="chosen"><img alt="✅" class="twemoji" src="https://cdn.jsdelivr.net/gh/jdecked/twemoji@16.0.1/assets/svg/2705.svg" /> Adds one internal readiness gate while retaining <code>/</code>.</td>
+    <td class="not-selected"><img alt="⚠" class="twemoji" src="https://cdn.jsdelivr.net/gh/jdecked/twemoji@16.0.1/assets/svg/26a0.svg" /> <a href="https://github.com/iolanta-tech/sparqld/blob/f3b935f/docs/reference/api/index.md#L13-L30">Adds endpoint and retry contract beyond the existing <code>/</code> API</a>.</td>
+    <td class="excl"><img alt="✅" class="twemoji" src="https://cdn.jsdelivr.net/gh/jdecked/twemoji@16.0.1/assets/svg/2705.svg" /> <a href="https://github.com/iolanta-tech/sparqld/blob/f3b935f/src/lib.rs#L76-L100">Preserves the current startup order</a>.</td>
+    <td class="excl"><img alt="⚠" class="twemoji" src="https://cdn.jsdelivr.net/gh/jdecked/twemoji@16.0.1/assets/svg/26a0.svg" /> Adds a separate readiness-output contract.</td>
+    <td class="excl"><img alt="⚠" class="twemoji" src="https://cdn.jsdelivr.net/gh/jdecked/twemoji@16.0.1/assets/svg/26a0.svg" /> Adds a second query-supply interface.</td>
   </tr>
 <tr>
     <th>Outcome</th>
-    <td class="chosen"><img alt="✅" class="twemoji" src="https://cdn.jsdelivr.net/gh/jdecked/twemoji@16.0.1/assets/svg/2705.svg" title=":white_check_mark:" /> Chosen</td>
+    <td class="chosen"><img alt="✅" class="twemoji" src="https://cdn.jsdelivr.net/gh/jdecked/twemoji@16.0.1/assets/svg/2705.svg" /> Chosen</td>
     <td class="not-selected"><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 20c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8m0-18A10 10 0 0 0 2 12a10 10 0 0 0 10 10 10 10 0 0 0 10-10A10 10 0 0 0 12 2M7 13h10v-2H7"/></svg></span> Not selected</td>
-    <td class="excl"><img alt="❌" class="twemoji" src="https://cdn.jsdelivr.net/gh/jdecked/twemoji@16.0.1/assets/svg/274c.svg" title=":x:" /> Excluded—preserves log-coupled startup</td>
-    <td class="excl"><img alt="❌" class="twemoji" src="https://cdn.jsdelivr.net/gh/jdecked/twemoji@16.0.1/assets/svg/274c.svg" title=":x:" /> Excluded—adds out-of-band coordination</td>
-    <td class="excl"><img alt="❌" class="twemoji" src="https://cdn.jsdelivr.net/gh/jdecked/twemoji@16.0.1/assets/svg/274c.svg" title=":x:" /> Excluded—does not improve server startup</td>
+    <td class="excl"><img alt="❌" class="twemoji" src="https://cdn.jsdelivr.net/gh/jdecked/twemoji@16.0.1/assets/svg/274c.svg" /> Excluded—preserves log-coupled startup</td>
+    <td class="excl"><img alt="❌" class="twemoji" src="https://cdn.jsdelivr.net/gh/jdecked/twemoji@16.0.1/assets/svg/274c.svg" /> Excluded—adds out-of-band coordination</td>
+    <td class="excl"><img alt="❌" class="twemoji" src="https://cdn.jsdelivr.net/gh/jdecked/twemoji@16.0.1/assets/svg/274c.svg" /> Excluded—does not improve server startup</td>
   </tr>
 </table>
 <p>Green column: chosen. Yellow column: satisfies the core constraints but was
 not selected. Red columns: excluded; stronger-red cells identify the decisive
-shortcoming. <img alt="⚠" class="twemoji" src="https://cdn.jsdelivr.net/gh/jdecked/twemoji@16.0.1/assets/svg/26a0.svg" title=":warning:" /> denotes a trade-off. The HTTP <a href="https://www.w3.org/TR/sparql11-protocol/">SPARQL Protocol</a>
+shortcoming. <img alt="⚠" class="twemoji" src="https://cdn.jsdelivr.net/gh/jdecked/twemoji@16.0.1/assets/svg/26a0.svg" /> denotes a trade-off. The HTTP <a href="https://www.w3.org/TR/sparql11-protocol/">SPARQL Protocol</a>
 defines query request forms, while <a href="https://kubernetes.io/docs/concepts/configuration/liveness-readiness-startup-probes/">Kubernetes probes</a>
 distinguish traffic readiness from liveness; <code>sparqld</code> deliberately adds neither
 <code>/readyz</code> nor <code>/livez</code>, so both continue to be ordinary unknown paths (<code>404</code>)
