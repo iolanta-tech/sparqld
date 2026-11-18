@@ -1,0 +1,2 @@
+warnings:
+  - alpha-centauri.md: field 'name' not in context -> skipped
