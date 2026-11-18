@@ -1,8 +1,0 @@
-Vault-LD
-  dbr:Alpha_Centauri dbp:component dbr:Proxima_Centauri
-  dbr:Alpha_Centauri rdf:type dbo:Star
-  dbr:Alpha_Centauri schema:name "Alpha Centauri"
-JSON-LD (RDFLib)
-  dbr:Alpha_Centauri dbp:component dbr:Proxima_Centauri
-  dbr:Alpha_Centauri rdf:type dbo:Star
-  dbr:Alpha_Centauri schema:name "Alpha Centauri"
