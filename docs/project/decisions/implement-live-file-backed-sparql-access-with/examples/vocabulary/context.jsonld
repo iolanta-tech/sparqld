@@ -1,0 +1,8 @@
+{
+  "@context": {
+    "@base": "urn:centauri:",
+    "@vocab": "https://dbpedia.org/ontology/",
+    "id": "@id",
+    "type": "@type"
+  }
+}
