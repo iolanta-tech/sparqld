@@ -87,34 +87,33 @@ def rows(graph: rdflib.Graph):
     return sorted(triples, key=lambda row: json.dumps(row, sort_keys=True))
 
 
-def summary(result: Result):
-    prefixes = {
-        'https://dbpedia.org/resource/': 'dbr:',
-        'https://dbpedia.org/ontology/': 'dbo:',
-        'http://dbpedia.org/property/': 'dbp:',
-        'urn:centauri:': 'centauri:',
-        'https://schema.org/': 'schema:',
-        'http://www.w3.org/1999/02/22-rdf-syntax-ns#type': 'rdf:type',
-    }
-    lines = []
-    for key, heading in [('vault_ld', 'Vault-LD'), ('json_ld', 'JSON-LD (RDFLib)')]:
-        lines.append(heading)
-        for row in getattr(result, key):
-            terms = []
-            for term in row:
-                value = term['value']
-                if term['kind'] == 'literal':
-                    value = json.dumps(value)
-                else:
-                    for namespace, prefix in prefixes.items():
-                        if value.startswith(namespace):
-                            value = prefix + value[len(namespace) :]
-                            break
-                terms.append(value)
-            lines.append('  ' + ' '.join(terms))
-    if result.vault_ld_stderr:
-        lines.extend(['', result.vault_ld_stderr])
+def turtle(graph: rdflib.Graph):
+    """Render the graph with the same vocabulary prefixes in each result."""
+    graph.bind('dbr', 'https://dbpedia.org/resource/')
+    graph.bind('dbo', 'https://dbpedia.org/ontology/')
+    graph.bind('dbp', 'http://dbpedia.org/property/')
+    graph.bind('centauri', 'urn:centauri:')
+    return graph.serialize(format='turtle').rstrip() + '\n'
+
+
+def raw_terms(graph: rdflib.Graph):
+    """Capture RDFLib terms whose values cannot all be serialized as Turtle."""
+    lines = (
+        ' '.join(
+            json.dumps(term['value']) if term['kind'] == 'literal' else term['value']
+            for term in triple
+        )
+        for triple in rows(graph)
+    )
     return '\n'.join(lines) + '\n'
+
+
+def save_result(path: Path, content: str, check: bool):
+    """Write an output or compare it with the saved fixture."""
+    if check:
+        assert path.read_text() == content, path
+    else:
+        path.write_text(content)
 
 
 def vault_ld(
@@ -194,13 +193,18 @@ def vault_ld(
                 'vault_ld_stderr': process.stderr.strip(),
             }
         )
-        results.append((scenario, project, result))
-    for scenario, project, result in results:
-        expected = project / 'result.json'
-        if not check:
-            expected.write_text(result.model_dump_json(indent=2) + '\n')
-            (project / 'result.txt').write_text(summary(result))
+        artifacts = {
+            'result.json': result.model_dump_json(indent=2) + '\n',
+            'vault-ld.ttl': turtle(exported),
+        }
+        if scenario == 'wiki-link':
+            artifacts['rdflib.txt'] = raw_terms(baseline)
         else:
-            assert result == Result.model_validate_json(expected.read_text()), scenario
-            assert summary(result) == (project / 'result.txt').read_text(), scenario
-        print(f'{scenario}: same_triples={result.same_triples}')
+            artifacts['rdflib.ttl'] = turtle(baseline)
+        if result.vault_ld_stderr:
+            artifacts['exporter-warnings.txt'] = result.vault_ld_stderr + '\n'
+        results.append((project, result.same_triples, artifacts))
+    for project, same_triples, artifacts in results:
+        for filename, content in artifacts.items():
+            save_result(project / filename, content, check)
+        print(f'{project.name}: same_triples={same_triples}')
