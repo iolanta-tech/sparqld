@@ -1,0 +1,4 @@
+@prefix centauri: <urn:centauri:> .
+@prefix dbr: <https://dbpedia.org/resource/> .
+
+dbr:Alpha_Centauri a centauri:Star .
