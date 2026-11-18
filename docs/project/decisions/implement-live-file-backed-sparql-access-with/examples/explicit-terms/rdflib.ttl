@@ -1,0 +1,8 @@
+@prefix dbo: <https://dbpedia.org/ontology/> .
+@prefix dbp: <http://dbpedia.org/property/> .
+@prefix dbr: <https://dbpedia.org/resource/> .
+@prefix schema: <https://schema.org/> .
+
+dbr:Alpha_Centauri a dbo:Star ;
+    dbp:component dbr:Proxima_Centauri ;
+    schema:name "Alpha Centauri" .
