@@ -1,0 +1,32 @@
+{
+  "head": {
+    "vars": [
+      "predicate",
+      "object"
+    ]
+  },
+  "results": {
+    "bindings": [
+      {
+        "object": {
+          "type": "uri",
+          "value": "https://dbpedia.org/ontology/Star"
+        },
+        "predicate": {
+          "type": "uri",
+          "value": "http://www.w3.org/1999/02/22-rdf-syntax-ns#type"
+        }
+      },
+      {
+        "object": {
+          "type": "literal",
+          "value": "Alpha Centauri"
+        },
+        "predicate": {
+          "type": "uri",
+          "value": "https://dbpedia.org/ontology/name"
+        }
+      }
+    ]
+  }
+}
