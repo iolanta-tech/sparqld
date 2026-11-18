@@ -1,0 +1,6 @@
+Vault-LD
+  dbr:Alpha_Centauri dbp:component "[[proxima-centauri]]"
+  dbr:Alpha_Centauri rdf:type dbo:Star
+JSON-LD (RDFLib)
+  dbr:Alpha_Centauri dbp:component "[[proxima-centauri]]"
+  dbr:Alpha_Centauri rdf:type dbo:Star
