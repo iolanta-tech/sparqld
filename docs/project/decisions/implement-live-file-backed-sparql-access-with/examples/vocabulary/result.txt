@@ -1,0 +1,8 @@
+Vault-LD
+  dbr:Alpha_Centauri rdf:type centauri:Star
+JSON-LD (RDFLib)
+  dbr:Alpha_Centauri rdf:type dbo:Star
+  dbr:Alpha_Centauri dbo:name "Alpha Centauri"
+
+warnings:
+  - alpha-centauri.md: field 'name' not in context -> skipped
