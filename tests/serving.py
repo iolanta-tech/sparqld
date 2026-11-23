@@ -72,19 +72,35 @@ def _serve(
     output_path: Path,
     arguments: tuple[str, ...] = (),
 ) -> Generator[Server]:
+    port = _available_port()
+    with _launch(
+        binary,
+        output_path,
+        port,
+        (str(directory), '--port', str(port), *arguments),
+    ) as server:
+        yield server
+
+
+def _available_port() -> int:
     with socket.socket() as listener:
         listener.bind(('127.0.0.1', 0))
-        port = listener.getsockname()[1]
+        return listener.getsockname()[1]
+
+
+@contextmanager
+def _launch(
+    binary: Path,
+    output_path: Path,
+    port: int,
+    arguments: tuple[str, ...],
+    working_directory: Path | None = None,
+) -> Generator[Server]:
     endpoint = f'http://127.0.0.1:{port}/'
     with output_path.open('w+') as output:
         process = subprocess.Popen(
-            [
-                str(binary),
-                str(directory),
-                '--port',
-                str(port),
-                *arguments,
-            ],
+            [str(binary), *arguments],
+            cwd=working_directory,
             stdout=output,
             stderr=output,
             text=True,
