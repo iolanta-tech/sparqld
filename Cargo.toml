@@ -132,7 +132,7 @@
 # blocked-by:
 #   - sparqld-language-server
 name = "sparqld"
-version = "0.1.8"
+version = "0.1.9"
 edition = "2024"
 rust-version = "1.89"
 description = "A live, read-only SPARQL server for RDF files"
@@ -161,6 +161,7 @@ serde-saphyr = "1"
 serde_json = "1"
 tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
 tokio-util = "0.7"
+toml = "0.9"
 
 [lints.rust]
 missing_docs = "deny"
