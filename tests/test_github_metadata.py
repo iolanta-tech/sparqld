@@ -1,5 +1,7 @@
 """Exercise graph discovery and offline GitHub snapshot refreshes."""
 
+# flake8: noqa: WPS202
+
 import json
 from email.message import Message
 from http import HTTPStatus
@@ -17,6 +19,8 @@ from jeeves import github_api, github_metadata
 _API_ROOT = 'https://api.github.com/repos'
 _IDENTIFIER = '@id'
 _HTML_URL = 'html_url'
+_LATEST_COMMIT = 'latestCommit'
+_URL = 'url'
 _RELEASE_PATH = '/releases/latest'
 _COMMITS_PATH = '/commits?per_page=1'
 _EMPTY_RELEASE = HTTPError('', HTTPStatus.NOT_FOUND, 'No releases', Message(), None)
@@ -145,10 +149,21 @@ def test_refresh_continues_after_incomplete_read(
     assert (old_snapshots / 'older.yamlld').read_text() == _OLD_RECORD
     new = YAML(typ='safe').load(old_snapshots / 'newer.yamlld')
     assert (new[_IDENTIFIER], new['stars']) == ('https://github.com/owner/newer', 0)
-    assert new.keys().isdisjoint({'latestRelease', 'latestCommit'})
+    assert new.keys().isdisjoint({'latestRelease', _LATEST_COMMIT})
 
 
 _CANONICAL_REPOSITORY = 'https://github.com/Owner/Repo'
+
+
+def test_snapshot_keeps_long_url_on_one_line(tmp_path: Path) -> None:
+    path = tmp_path / 'repo.yamlld'
+    url = f'{_CANONICAL_REPOSITORY}/commit/0123456789abcdef0123456789abcdef01234567'
+    url = url.replace('/Repo/', '/long-repository-name-for-line-wrapping/')
+
+    github_metadata._write_snapshot(path, {_LATEST_COMMIT: {_URL: url}})
+
+    assert f'  url: {url}' in path.read_text().splitlines()
+    assert YAML(typ='safe').load(path)[_LATEST_COMMIT][_URL] == url
 
 
 def test_capture_keeps_release_and_commit_data(
@@ -193,11 +208,11 @@ def test_capture_keeps_release_and_commit_data(
     assert (snapshot[_IDENTIFIER], snapshot['stars']) == (_CANONICAL_REPOSITORY, 4)
     assert snapshot['latestRelease'] == {
         'tag': '1.2',
-        'url': release,
+        _URL: release,
         'publishedAt': '2026-11-17T14:00:00Z',
     }
-    assert snapshot['latestCommit'] == {
+    assert snapshot[_LATEST_COMMIT] == {
         'sha': sha,
-        'url': commit,
+        _URL: commit,
         'committedAt': '2026-11-18T12:00:00Z',
     }
