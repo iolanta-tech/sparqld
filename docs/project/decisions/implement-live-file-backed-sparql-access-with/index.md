@@ -4,7 +4,7 @@ $id: urn:sparqld:decision:live-file-backed-sparql-access
 $type: schema:TechArticle
 title: Turn a bunch of files into a queryable graph with sparqld
 status: decided
-date: 2026-11-17
+date: 2026-11-19
 author: Anatoly Scherbakov
 tags: [decision]
 hide: [toc]
@@ -48,7 +48,7 @@ flowchart LR
     <td class="chosen">[SPARQL Protocol](../../../reference/api/index.md "SPARQL 1.1 Protocol HTTP endpoint")</td>
     <td class="chosen">[:white_check_mark:](../../../reference/formats.md "Supports YAML-LD")</td>
     <td class="chosen">[:white_check_mark:](../../../reference/formats.md "Supports Markdown-LD")</td>
-    <td class="chosen">[0](https://github.com/iolanta-tech/sparqld/stargazers "Observed 2026-08-07")</td>
+    <td class="chosen">{{ github_stars('iolanta-tech/sparqld') }}</td>
     <td class="chosen">[0.1.1<br>2026-08-07](https://crates.io/crates/sparqld/0.1.1 "Released 2026-08-07")</td>
   </tr>
   <tr markdown="span">
@@ -58,8 +58,8 @@ flowchart LR
     <td class="excl">[SPARQL Protocol](https://sparql-anything.readthedocs.io/stable/ "SPARQL over local files via an HTTP endpoint")</td>
     <td class="excl hot">[:x:](https://sparql-anything.readthedocs.io/stable/formats/YAML/ "YAML support is not YAML-LD")</td>
     <td class="excl hot">[:x:](https://sparql-anything.readthedocs.io/stable/formats/Markdown/ "Markdown support is not Markdown-LD")</td>
-    <td class="excl">[302](https://github.com/SPARQL-Anything/sparql.anything/stargazers "Observed 2026-08-07")</td>
-    <td class="excl">[v1.2.0<br>2026-07-24](https://github.com/SPARQL-Anything/sparql.anything/releases/tag/v1.2.0 "Released 2026-07-24")</td>
+    <td class="excl">{{ github_stars('SPARQL-Anything/sparql.anything') }}</td>
+    <td class="excl">{{ github_latest_release('SPARQL-Anything/sparql.anything') }}</td>
   </tr>
   <tr markdown="span">
     <th class="excl">[Apache Jena Fuseki](https://jena.apache.org/documentation/fuseki2/)</th>
@@ -68,7 +68,7 @@ flowchart LR
     <td class="excl">[SPARQL Protocol](https://jena.apache.org/documentation/fuseki2/fuseki-server.html "Provides a SPARQL HTTP endpoint")</td>
     <td class="excl">[:x:](https://jena.apache.org/documentation/fuseki2/fuseki-server.html "YAML-LD input is not documented")</td>
     <td class="excl">[:x:](https://jena.apache.org/documentation/fuseki2/fuseki-server.html "Markdown-LD input is not documented")</td>
-    <td class="excl">[1,398](https://github.com/apache/jena/stargazers "Observed 2026-08-07")</td>
+    <td class="excl">{{ github_stars('apache/jena') }}</td>
     <td class="excl">[6.1.0<br>2026-05-03](https://central.sonatype.com/artifact/org.apache.jena/jena-fuseki-main/6.1.0 "Released 2026-05-03")</td>
   </tr>
   <tr markdown="span">
@@ -78,8 +78,8 @@ flowchart LR
     <td class="excl">[SPARQL Protocol](https://docs.rs/crate/oxigraph_server/0.3.4 "Provides a SPARQL HTTP endpoint")</td>
     <td class="excl">[:x:](https://docs.rs/oxigraph/latest/oxigraph/io/ "YAML-LD is not an RDF format")</td>
     <td class="excl">[:x:](https://docs.rs/oxigraph/latest/oxigraph/io/ "Markdown-LD is not an RDF format")</td>
-    <td class="excl">[1,801](https://github.com/oxigraph/oxigraph/stargazers "Observed 2026-08-07")</td>
-    <td class="excl">[v0.5.9<br>2026-06-18](https://github.com/oxigraph/oxigraph/releases/tag/v0.5.9 "Released 2026-06-18")</td>
+    <td class="excl">{{ github_stars('oxigraph/oxigraph') }}</td>
+    <td class="excl">{{ github_latest_release('oxigraph/oxigraph') }}</td>
   </tr>
   <tr markdown="span">
     <th class="excl">[RDF4J Server](https://rdf4j.org/documentation/tools/server-workbench/)</th>
@@ -88,8 +88,8 @@ flowchart LR
     <td class="excl">[SPARQL Protocol](https://rdf4j.org/documentation/tools/server-workbench/ "Provides a SPARQL HTTP endpoint")</td>
     <td class="excl">[:x:](https://rdf4j.org/documentation/tools/server-workbench/ "YAML-LD input is not documented")</td>
     <td class="excl">[:x:](https://rdf4j.org/documentation/tools/server-workbench/ "Markdown-LD input is not documented")</td>
-    <td class="excl">[409](https://github.com/eclipse-rdf4j/rdf4j/stargazers "Observed 2026-08-07")</td>
-    <td class="excl">[5.3.2<br>2026-06-29](https://github.com/eclipse-rdf4j/rdf4j/releases/tag/5.3.2 "Released 2026-06-29")</td>
+    <td class="excl">{{ github_stars('eclipse-rdf4j/rdf4j') }}</td>
+    <td class="excl">{{ github_latest_release('eclipse-rdf4j/rdf4j') }}</td>
   </tr>
   <tr markdown="span">
     <th class="excl">[Comunica over local RDF files](https://comunica.dev/)</th>
@@ -98,8 +98,8 @@ flowchart LR
     <td class="excl">[SPARQL Protocol](https://comunica.dev/docs/query/getting_started/setup_endpoint/ "SPARQL over local RDF files via an HTTP endpoint")</td>
     <td class="excl hot">[:x:](https://comunica.dev/docs/query/getting_started/query_cli_file/ "YAML-LD input is not documented")</td>
     <td class="excl hot">[:x:](https://comunica.dev/docs/query/getting_started/query_cli_file/ "Markdown-LD input is not documented")</td>
-    <td class="excl">[577](https://github.com/comunica/comunica/stargazers "Observed 2026-08-07")</td>
-    <td class="excl">[v5.3.0<br>2026-07-10](https://github.com/comunica/comunica/releases/tag/v5.3.0 "Released 2026-07-10")</td>
+    <td class="excl">{{ github_stars('comunica/comunica') }}</td>
+    <td class="excl">{{ github_latest_release('comunica/comunica') }}</td>
   </tr>
   <tr markdown="span">
     <th class="excl">[Apache Jena ARQ](https://jena.apache.org/documentation/query/cmds.html)</th>
@@ -108,7 +108,7 @@ flowchart LR
     <td class="excl hot">[SPARQL CLI](https://jena.apache.org/documentation/query/cmds.html "SPARQL on the command line; no HTTP endpoint")</td>
     <td class="excl">[:x:](https://jena.apache.org/documentation/query/cmds.html "YAML-LD input is not documented")</td>
     <td class="excl">[:x:](https://jena.apache.org/documentation/query/cmds.html "Markdown-LD input is not documented")</td>
-    <td class="excl">[1,398](https://github.com/apache/jena/stargazers "Observed 2026-08-07")</td>
+    <td class="excl">{{ github_stars('apache/jena') }}</td>
     <td class="excl">[6.1.0<br>2026-05-03](https://central.sonatype.com/artifact/org.apache.jena/jena-arq/6.1.0 "Released 2026-05-03")</td>
   </tr>
   <tr markdown="span">
@@ -118,8 +118,8 @@ flowchart LR
     <td class="excl hot">[SPARQL over JSON-RPC](https://github.com/fabio-rovai/open-ontologies "Serve is JSON-RPC over standard input and output")</td>
     <td class="excl">[:x:](https://github.com/fabio-rovai/open-ontologies "YAML-LD input is not documented")</td>
     <td class="excl">[:x:](https://github.com/fabio-rovai/open-ontologies "Markdown-LD input is not documented")</td>
-    <td class="excl">[353](https://github.com/fabio-rovai/open-ontologies/stargazers "Observed 2026-08-07")</td>
-    <td class="excl">[v1.1.1<br>2026-08-05](https://github.com/fabio-rovai/open-ontologies/releases/tag/v1.1.1 "Released 2026-08-05")</td>
+    <td class="excl">{{ github_stars('fabio-rovai/open-ontologies') }}</td>
+    <td class="excl">{{ github_latest_release('fabio-rovai/open-ontologies') }}</td>
   </tr>
   <tr markdown="span">
     <th class="excl">[:fontawesome-brands-github: `Volland/typedgraph`](https://github.com/Volland/typedgraph)</th>
@@ -128,8 +128,8 @@ flowchart LR
     <td class="excl hot">[openCypher](https://typedgraph.org/ "Read-only openCypher and MCP tools; not SPARQL Protocol")</td>
     <td class="excl hot">[:x:](https://typedgraph.org/ "Schema uses YAML frontmatter, not YAML-LD")</td>
     <td class="excl hot">[:x:](https://typedgraph.org/ "Typed note edges are not Markdown-LD")</td>
-    <td class="excl">[15](https://github.com/Volland/typedgraph/stargazers "Observed 2026-11-10")</td>
-    <td class="excl">[0.25.0<br>2026-11-09](https://github.com/Volland/typedgraph/releases/tag/0.25.0 "Released 2026-11-09")</td>
+    <td class="excl">{{ github_stars('Volland/typedgraph') }}</td>
+    <td class="excl">{{ github_latest_release('Volland/typedgraph') }}</td>
   </tr>
   <tr markdown="span">
     <th class="excl">[Vault-LD reference exporter](vault-ld.md)</th>
@@ -138,8 +138,18 @@ flowchart LR
     <td class="excl hot">[Turtle export](https://github.com/The-Knowledge-Graph-Guys/vault-ld/blob/main/scripts/EXPORT.md "Produces RDF files for a separate query engine")</td>
     <td class="excl">[:warning:](https://github.com/The-Knowledge-Graph-Guys/vault-ld/blob/025e71be8d810e387dc451c920e05472d1c47170/scripts/vault_to_rdf.py#L244-L282 "Incomplete JSON-LD implementation: ignores @vocab; wiki links need Vault-LD preprocessing")</td>
     <td class="excl">[:warning:](https://github.com/The-Knowledge-Graph-Guys/vault-ld/blob/025e71be8d810e387dc451c920e05472d1c47170/scripts/vault_to_rdf.py#L649-L654 "Frontmatter export inherits incomplete JSON-LD support; wiki links need Vault-LD preprocessing")</td>
-    <td class="excl">[254](https://github.com/The-Knowledge-Graph-Guys/vault-ld/stargazers "Observed 2026-11-17")</td>
-    <td class="excl">[v0.5.0<br>2026-07-14](https://github.com/The-Knowledge-Graph-Guys/vault-ld/releases/tag/v0.5.0 "Released 2026-07-14")</td>
+    <td class="excl">{{ github_stars('The-Knowledge-Graph-Guys/vault-ld') }}</td>
+    <td class="excl">{{ github_latest_release('The-Knowledge-Graph-Guys/vault-ld') }}</td>
+  </tr>
+  <tr markdown="span">
+    <th class="excl">[DOT-LD](https://github.com/aws-samples/sample-dot-ld-knowledge-graph-syntax#what-is-dot-ld)</th>
+    <td class="excl">[:white_check_mark:](https://github.com/aws-samples/sample-dot-ld-knowledge-graph-syntax/blob/f82e91370fbd0d5c7fb11ce6259ae00d7bc7da9a/dot-ld_vs_code_extension/src/extension.ts#L53-L73 "Reads the open Markdown document in VS Code")</td>
+    <td class="excl">[:warning:](https://github.com/aws-samples/sample-dot-ld-knowledge-graph-syntax/blob/f82e91370fbd0d5c7fb11ce6259ae00d7bc7da9a/dot-ld_vs_code_extension/src/extension.ts#L95-L110 "Updates the graph preview as you edit the active document")</td>
+    <td class="excl hot">[Graph preview](https://github.com/aws-samples/sample-dot-ld-knowledge-graph-syntax/blob/main/dot-ld_vs_code_extension/README.md#features "No documented programmatic query interface in the VS Code extension")</td>
+    <td class="excl">[:x:](https://github.com/aws-samples/sample-dot-ld-knowledge-graph-syntax/blob/main/docs/syntax-specification.md#22-syntax-elements "Uses DOT-LD configuration blocks")</td>
+    <td class="excl">[:x:](https://github.com/aws-samples/sample-dot-ld-knowledge-graph-syntax/blob/main/docs/syntax-specification.md#22-syntax-elements "Uses inline DOT-LD notation in the Markdown body")</td>
+    <td class="excl">{{ github_stars('aws-samples/sample-dot-ld-knowledge-graph-syntax') }}</td>
+    <td class="excl">{{ github_latest_release('aws-samples/sample-dot-ld-knowledge-graph-syntax') }}</td>
   </tr>
 </table>
 
