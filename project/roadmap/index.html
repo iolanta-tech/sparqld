@@ -1860,6 +1860,10 @@
       
         
       
+        
+      
+        
+      
     
     
     
@@ -1959,7 +1963,7 @@
   <span class="md-ellipsis">
     
   
-    Users can declare reproducible project settings with documented command-line precedence
+    Users can configure projects with sparqld.toml and command-line precedence
   
 
     
@@ -2120,6 +2124,34 @@
   
   
     <li class="md-nav__item">
+      <a href="performance-benchmark/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Measure startup time, memory use, and query performance at scale
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="python/" class="md-nav__link">
         
   
@@ -2128,6 +2160,34 @@
     
   
     MkDocs projects on Python 3.11 and 3.12 can install the pluglet
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="query/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Run a single query from the command line
   
 
     
@@ -2299,10 +2359,10 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_3_14" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_3_16" >
         
           
-          <label class="md-nav__link" for="__nav_3_3_14" id="__nav_3_3_14_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_3_3_16" id="__nav_3_3_16_label" tabindex="0">
             
   
   
@@ -2320,8 +2380,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_3_3_14_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_3_3_14">
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_3_3_16_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_3_16">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -3862,14 +3922,16 @@ marks status. Open bugs are red. Tasks are open by default.</p>
         node_98403bac35d49036cb02dc6ec5455ef76a80b02210e4b7aea8b06de9996b2731 ~~~ node_d82de703118ada020429a2f8fced73a15a7a15f0619b52ba3629c458ceba11d7
     end
     node_48ddc5d781dc11a7a9526c3ca9ceaca93430026fed19910e983314ccc78f28f3("MkDocs authors can render ASK answers as SPARQL true and false")
-    node_ef01fedceda949a363a366465bdb17af91a21b1e464ec33025a99cc8d9326042("Users can declare reproducible project settings with documented command#45;line precedence")
+    node_ef01fedceda949a363a366465bdb17af91a21b1e464ec33025a99cc8d9326042("Users can configure projects with sparqld#46;toml and command#45;line precedence")
     node_55e130e17d676573462cfc2864c6d762399f5d40fefde2ab7daa57fb625d0b8e("MkDocs users can reproduce the sparql#40;#41; demo against documented example data")
     node_52c428ad438e05e140cce42b86283dff9b157a8fd3f7377a28fbdc3905129667("Standards#45;aware clients can discover sparqld#39;s query service from its endpoint")
     node_5fe241d35262bd5da1ef3d8480fe279d9d220f6cf53333733fc571ec8387ad3c("Embedded graph IRIs containing fragments fail to load")
     node_d9e439e927f253801d4c774bf3922d43a2527ed47db9c7193f041425857aee98("Continuously improve the experience of people and agents querying local Linked Data with sparqld")
     node_c342ff3eff799ddaef63d7104cc47836d041e273b33f6b39545932f20440a2e7("Users can run SPARQL against a watched directory from an Obsidian plugin")
     node_0966393ab46a537269a71715f62f470ece8ee1af708d3fe4b648009f82a66d26(["An Oxigraph release includes the shared#45;triple deduplication fix"])
+    node_35fa1e9c71ad7b21b449f2c0434cd02bc8aa5b8beb06572549074eb8cd1cb981("Measure startup time#44; memory use#44; and query performance at scale")
     node_d462606274777e1134498da65ef02c603b133249c728322bfc3bf99083e656a9("MkDocs projects on Python 3#46;11 and 3#46;12 can install the pluglet")
+    node_b5d184b9818865029da8ead6b51fa63c4550a35e293afe8ee747b08410698378("Run a single query from the command line")
     node_bf0f3c95d35ea0e075bc5bad37b55cd71c2dda56b4178e29f72891b3e8d4cd99("Users can opt in to inferred statements while retaining asserted data unchanged")
     node_9370262f76cdb8ec2b5a71bc8c3938df3c08ad12949ab7dd5478e2fb79986bce("Users can query local data with cached Linked Data from explicitly approved remote hosts")
     node_e000e10a44f37bfd2d29d96e0cb8fc6bb910917ebe33254095fdb6ed5f999026("sparqld skill is not versioned")
@@ -3884,13 +3946,16 @@ marks status. Open bugs are red. Tasks are open by default.</p>
     node_3df93f622844c142667b9ba7df46d7ab77273a770b5683d9219458d1102194fa --&gt; node_d9e439e927f253801d4c774bf3922d43a2527ed47db9c7193f041425857aee98
     node_fcb6a38d46f8258a706eccb1a2ac3674608dfea322ddf59c745c65b349c6a9d4 --&gt; node_bf0f3c95d35ea0e075bc5bad37b55cd71c2dda56b4178e29f72891b3e8d4cd99
     node_48ddc5d781dc11a7a9526c3ca9ceaca93430026fed19910e983314ccc78f28f3 --&gt; node_d9e439e927f253801d4c774bf3922d43a2527ed47db9c7193f041425857aee98
+    node_ef01fedceda949a363a366465bdb17af91a21b1e464ec33025a99cc8d9326042 --&gt; node_35fa1e9c71ad7b21b449f2c0434cd02bc8aa5b8beb06572549074eb8cd1cb981
     node_ef01fedceda949a363a366465bdb17af91a21b1e464ec33025a99cc8d9326042 --&gt; node_9370262f76cdb8ec2b5a71bc8c3938df3c08ad12949ab7dd5478e2fb79986bce
     node_55e130e17d676573462cfc2864c6d762399f5d40fefde2ab7daa57fb625d0b8e --&gt; node_d9e439e927f253801d4c774bf3922d43a2527ed47db9c7193f041425857aee98
     node_52c428ad438e05e140cce42b86283dff9b157a8fd3f7377a28fbdc3905129667 --&gt; node_d9e439e927f253801d4c774bf3922d43a2527ed47db9c7193f041425857aee98
     node_5fe241d35262bd5da1ef3d8480fe279d9d220f6cf53333733fc571ec8387ad3c --&gt; node_d9e439e927f253801d4c774bf3922d43a2527ed47db9c7193f041425857aee98
     node_c342ff3eff799ddaef63d7104cc47836d041e273b33f6b39545932f20440a2e7 --&gt; node_d9e439e927f253801d4c774bf3922d43a2527ed47db9c7193f041425857aee98
     node_0966393ab46a537269a71715f62f470ece8ee1af708d3fe4b648009f82a66d26 --&gt; node_1d2310ae600180a4a864cd8505c0798bab13fe174b72427928befc458927343e
+    node_35fa1e9c71ad7b21b449f2c0434cd02bc8aa5b8beb06572549074eb8cd1cb981 --&gt; node_d9e439e927f253801d4c774bf3922d43a2527ed47db9c7193f041425857aee98
     node_d462606274777e1134498da65ef02c603b133249c728322bfc3bf99083e656a9 --&gt; node_d9e439e927f253801d4c774bf3922d43a2527ed47db9c7193f041425857aee98
+    node_b5d184b9818865029da8ead6b51fa63c4550a35e293afe8ee747b08410698378 --&gt; node_35fa1e9c71ad7b21b449f2c0434cd02bc8aa5b8beb06572549074eb8cd1cb981
     node_bf0f3c95d35ea0e075bc5bad37b55cd71c2dda56b4178e29f72891b3e8d4cd99 --&gt; node_d9e439e927f253801d4c774bf3922d43a2527ed47db9c7193f041425857aee98
     node_9370262f76cdb8ec2b5a71bc8c3938df3c08ad12949ab7dd5478e2fb79986bce --&gt; node_d9e439e927f253801d4c774bf3922d43a2527ed47db9c7193f041425857aee98
     node_e000e10a44f37bfd2d29d96e0cb8fc6bb910917ebe33254095fdb6ed5f999026 --&gt; node_d9e439e927f253801d4c774bf3922d43a2527ed47db9c7193f041425857aee98
@@ -3918,7 +3983,9 @@ marks status. Open bugs are red. Tasks are open by default.</p>
     class node_d9e439e927f253801d4c774bf3922d43a2527ed47db9c7193f041425857aee98 status_open
     class node_c342ff3eff799ddaef63d7104cc47836d041e273b33f6b39545932f20440a2e7 status_open
     class node_0966393ab46a537269a71715f62f470ece8ee1af708d3fe4b648009f82a66d26 status_unrecorded
+    class node_35fa1e9c71ad7b21b449f2c0434cd02bc8aa5b8beb06572549074eb8cd1cb981 status_open
     class node_d462606274777e1134498da65ef02c603b133249c728322bfc3bf99083e656a9 status_open
+    class node_b5d184b9818865029da8ead6b51fa63c4550a35e293afe8ee747b08410698378 status_open
     class node_bf0f3c95d35ea0e075bc5bad37b55cd71c2dda56b4178e29f72891b3e8d4cd99 status_open
     class node_9370262f76cdb8ec2b5a71bc8c3938df3c08ad12949ab7dd5478e2fb79986bce status_open
     class node_e000e10a44f37bfd2d29d96e0cb8fc6bb910917ebe33254095fdb6ed5f999026 status_open_bug

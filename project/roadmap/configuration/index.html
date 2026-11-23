@@ -23,7 +23,7 @@
     
     
       
-        <title>Users can declare reproducible project settings with documented command-line precedence - sparqld</title>
+        <title>Users can configure projects with sparqld.toml and command-line precedence - sparqld</title>
       
     
     
@@ -110,7 +110,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Users can declare reproducible project settings with documented command-line precedence
+              Users can configure projects with sparqld.toml and command-line precedence
             
           </span>
         </div>
@@ -1858,6 +1858,10 @@
       
         
       
+        
+      
+        
+      
     
     
     
@@ -1966,7 +1970,7 @@
   <span class="md-ellipsis">
     
   
-    Users can declare reproducible project settings with documented command-line precedence
+    Users can configure projects with sparqld.toml and command-line precedence
   
 
     
@@ -2128,6 +2132,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../performance-benchmark/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Measure startup time, memory use, and query performance at scale
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../python/" class="md-nav__link">
         
   
@@ -2136,6 +2168,34 @@
     
   
     MkDocs projects on Python 3.11 and 3.12 can install the pluglet
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../query/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Run a single query from the command line
   
 
     
@@ -2307,10 +2367,10 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_3_14" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_3_16" >
         
           
-          <label class="md-nav__link" for="__nav_3_3_14" id="__nav_3_3_14_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_3_3_16" id="__nav_3_3_16_label" tabindex="0">
             
   
   
@@ -2328,8 +2388,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_3_3_14_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_3_3_14">
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_3_3_16_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_3_16">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -3848,9 +3908,11 @@
 
 
 <h1 id="declare-reproducible-project-settings">Declare reproducible project settings</h1>
-<p>Define a project configuration contract that contributors can check into
+<p>Implement a <code>sparqld.toml</code> project configuration file that contributors can check into
 version control. Document how command-line arguments override project settings
-so a shared project produces predictable behavior across machines.</p>
+so a shared project produces predictable behavior across machines.
+Verify a configured setting and its override by a conflicting command-line
+argument.</p>
 <p>This outcome is a prerequisite for the <a href="../remote/">remote-data goal</a>, which
 needs an explicit policy for approved hosts.</p>
 

@@ -1,0 +1,12 @@
+SELECT DISTINCT ?repository
+WHERE {
+  GRAPH ?source {
+    { ?repository ?predicate ?object }
+    UNION { ?subject ?repository ?object }
+    UNION { ?subject ?predicate ?repository }
+  }
+  FILTER(!STRSTARTS(STR(?source), "sparqld:results/github/"))
+  FILTER(ISIRI(?repository))
+  FILTER(REGEX(STR(?repository), "^https?://(www[.])?github[.]com/[a-z0-9-]+/[a-z0-9_.-]+($|[/?#])", "i"))
+}
+ORDER BY ?repository

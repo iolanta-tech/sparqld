@@ -1,0 +1,29 @@
+"@context":
+  schema: https://schema.org/
+  xsd: http://www.w3.org/2001/XMLSchema#
+  github: "urn:sparqld:vocabulary:github:"
+  stars: github:stars
+  observedAt:
+    "@id": github:observedAt
+    "@type": xsd:dateTime
+  latestRelease: github:latestRelease
+  tag: schema:version
+  publishedAt:
+    "@id": schema:datePublished
+    "@type": xsd:dateTime
+  latestCommit: github:latestCommit
+  sha: schema:identifier
+  committedAt:
+    "@id": github:committedAt
+    "@type": xsd:dateTime
+  url:
+    "@id": schema:url
+    "@type": "@id"
+"@id": https://github.com/apache/jena
+"@type": schema:SoftwareSourceCode
+stars: 1510
+observedAt: "2026-11-19T16:58:48Z"
+latestCommit:
+  sha: 8e0829d16e9811872b84e1f8276b4b6e344e392d
+  url: https://github.com/apache/jena/commit/8e0829d16e9811872b84e1f8276b4b6e344e392d
+  committedAt: "2026-11-18T10:06:37Z"

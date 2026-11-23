@@ -1,0 +1,33 @@
+"@context":
+  schema: https://schema.org/
+  xsd: http://www.w3.org/2001/XMLSchema#
+  github: "urn:sparqld:vocabulary:github:"
+  stars: github:stars
+  observedAt:
+    "@id": github:observedAt
+    "@type": xsd:dateTime
+  latestRelease: github:latestRelease
+  tag: schema:version
+  publishedAt:
+    "@id": schema:datePublished
+    "@type": xsd:dateTime
+  latestCommit: github:latestCommit
+  sha: schema:identifier
+  committedAt:
+    "@id": github:committedAt
+    "@type": xsd:dateTime
+  url:
+    "@id": schema:url
+    "@type": "@id"
+"@id": https://github.com/SPARQL-Anything/sparql.anything
+"@type": schema:SoftwareSourceCode
+stars: 312
+observedAt: "2026-11-19T16:58:58Z"
+latestRelease:
+  tag: v1.3.0
+  url: https://github.com/SPARQL-Anything/sparql.anything/releases/tag/v1.3.0
+  publishedAt: "2026-10-19T17:16:07Z"
+latestCommit:
+  sha: d0395728d43b92576b1c8f13e9e51735dc98f93f
+  url: https://github.com/SPARQL-Anything/sparql.anything/commit/d0395728d43b92576b1c8f13e9e51735dc98f93f
+  committedAt: "2026-11-11T16:12:45Z"
