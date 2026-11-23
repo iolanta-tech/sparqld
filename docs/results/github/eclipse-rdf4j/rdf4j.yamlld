@@ -1,0 +1,33 @@
+"@context":
+  schema: https://schema.org/
+  xsd: http://www.w3.org/2001/XMLSchema#
+  github: "urn:sparqld:vocabulary:github:"
+  stars: github:stars
+  observedAt:
+    "@id": github:observedAt
+    "@type": xsd:dateTime
+  latestRelease: github:latestRelease
+  tag: schema:version
+  publishedAt:
+    "@id": schema:datePublished
+    "@type": xsd:dateTime
+  latestCommit: github:latestCommit
+  sha: schema:identifier
+  committedAt:
+    "@id": github:committedAt
+    "@type": xsd:dateTime
+  url:
+    "@id": schema:url
+    "@type": "@id"
+"@id": https://github.com/eclipse-rdf4j/rdf4j
+"@type": schema:SoftwareSourceCode
+stars: 427
+observedAt: "2026-11-19T16:58:52Z"
+latestRelease:
+  tag: 6.0.0
+  url: https://github.com/eclipse-rdf4j/rdf4j/releases/tag/6.0.0
+  publishedAt: "2026-08-10T09:36:22Z"
+latestCommit:
+  sha: df1543bba0d4c7d997b91c2a4b418a2f3f527c57
+  url: https://github.com/eclipse-rdf4j/rdf4j/commit/df1543bba0d4c7d997b91c2a4b418a2f3f527c57
+  committedAt: "2026-11-19T15:03:23Z"

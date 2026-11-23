@@ -1,0 +1,17 @@
+"@context":
+  schema: https://schema.org/
+  mentions:
+    "@id": schema:mentions
+    "@type": "@id"
+$id: urn:sparqld:decision:live-file-backed-sparql-access
+mentions:
+- https://github.com/iolanta-tech/sparqld
+- https://github.com/SPARQL-Anything/sparql.anything
+- https://github.com/apache/jena
+- https://github.com/oxigraph/oxigraph
+- https://github.com/eclipse-rdf4j/rdf4j
+- https://github.com/comunica/comunica
+- https://github.com/fabio-rovai/open-ontologies
+- https://github.com/Volland/typedgraph
+- https://github.com/The-Knowledge-Graph-Guys/vault-ld
+- https://github.com/aws-samples/sample-dot-ld-knowledge-graph-syntax

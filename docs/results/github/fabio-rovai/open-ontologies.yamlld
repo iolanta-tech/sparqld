@@ -1,0 +1,33 @@
+"@context":
+  schema: https://schema.org/
+  xsd: http://www.w3.org/2001/XMLSchema#
+  github: "urn:sparqld:vocabulary:github:"
+  stars: github:stars
+  observedAt:
+    "@id": github:observedAt
+    "@type": xsd:dateTime
+  latestRelease: github:latestRelease
+  tag: schema:version
+  publishedAt:
+    "@id": schema:datePublished
+    "@type": xsd:dateTime
+  latestCommit: github:latestCommit
+  sha: schema:identifier
+  committedAt:
+    "@id": github:committedAt
+    "@type": xsd:dateTime
+  url:
+    "@id": schema:url
+    "@type": "@id"
+"@id": https://github.com/fabio-rovai/open-ontologies
+"@type": schema:SoftwareSourceCode
+stars: 2932
+observedAt: "2026-11-19T16:58:54Z"
+latestRelease:
+  tag: v2.1.0
+  url: https://github.com/fabio-rovai/open-ontologies/releases/tag/v2.1.0
+  publishedAt: "2026-10-23T22:38:07Z"
+latestCommit:
+  sha: 1ed99ac1e20450faf5ad52c824232b054778e5e0
+  url: https://github.com/fabio-rovai/open-ontologies/commit/1ed99ac1e20450faf5ad52c824232b054778e5e0
+  committedAt: "2026-11-16T12:38:18Z"

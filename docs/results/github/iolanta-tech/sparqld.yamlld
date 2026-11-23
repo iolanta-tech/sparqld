@@ -1,0 +1,29 @@
+"@context":
+  schema: https://schema.org/
+  xsd: http://www.w3.org/2001/XMLSchema#
+  github: "urn:sparqld:vocabulary:github:"
+  stars: github:stars
+  observedAt:
+    "@id": github:observedAt
+    "@type": xsd:dateTime
+  latestRelease: github:latestRelease
+  tag: schema:version
+  publishedAt:
+    "@id": schema:datePublished
+    "@type": xsd:dateTime
+  latestCommit: github:latestCommit
+  sha: schema:identifier
+  committedAt:
+    "@id": github:committedAt
+    "@type": xsd:dateTime
+  url:
+    "@id": schema:url
+    "@type": "@id"
+"@id": https://github.com/iolanta-tech/sparqld
+"@type": schema:SoftwareSourceCode
+stars: 14
+observedAt: "2026-11-19T16:58:55Z"
+latestCommit:
+  sha: b5b24646e868e6840572b2739e832e965a586ae0
+  url: https://github.com/iolanta-tech/sparqld/commit/b5b24646e868e6840572b2739e832e965a586ae0
+  committedAt: "2026-11-18T16:14:54Z"

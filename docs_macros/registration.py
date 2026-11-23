@@ -7,6 +7,7 @@ from docs_macros.commands import command, shell
 from docs_macros.compatibility import client_compatibility
 from docs_macros.decisions import Decision, decision_log
 from docs_macros.environment import EnvironmentMacros, default_prefix_table
+from docs_macros.github import github_latest_release, github_stars
 from docs_macros.locations import CLIENT_COMPATIBILITY_PATH
 from docs_macros.roadmap import RoadmapMacro
 
@@ -36,6 +37,8 @@ def _register_source_macros(env: Any, macros: EnvironmentMacros) -> None:
     env.macro(example_code)
     env.macro(macros.result_data)
     env.macro(macros.client_data)
+    env.macro(github_stars)
+    env.macro(github_latest_release)
 
 
 def _register_page_macros(env: Any, macros: EnvironmentMacros) -> None:
