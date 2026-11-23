@@ -1,0 +1,33 @@
+"@context":
+  schema: https://schema.org/
+  xsd: http://www.w3.org/2001/XMLSchema#
+  github: "urn:sparqld:vocabulary:github:"
+  stars: github:stars
+  observedAt:
+    "@id": github:observedAt
+    "@type": xsd:dateTime
+  latestRelease: github:latestRelease
+  tag: schema:version
+  publishedAt:
+    "@id": schema:datePublished
+    "@type": xsd:dateTime
+  latestCommit: github:latestCommit
+  sha: schema:identifier
+  committedAt:
+    "@id": github:committedAt
+    "@type": xsd:dateTime
+  url:
+    "@id": schema:url
+    "@type": "@id"
+"@id": https://github.com/comunica/comunica
+"@type": schema:SoftwareSourceCode
+stars: 626
+observedAt: "2026-11-19T16:58:51Z"
+latestRelease:
+  tag: v5.4.1
+  url: https://github.com/comunica/comunica/releases/tag/v5.4.1
+  publishedAt: "2026-09-14T18:07:41Z"
+latestCommit:
+  sha: 57c668c39143e135c3c5cd077ec12804590ca649
+  url: https://github.com/comunica/comunica/commit/57c668c39143e135c3c5cd077ec12804590ca649
+  committedAt: "2026-11-17T15:22:48Z"
