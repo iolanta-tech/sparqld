@@ -7,6 +7,7 @@ from http import HTTPStatus
 from http.client import HTTPException
 from pathlib import Path
 from shutil import which
+from sys import maxsize
 from tempfile import NamedTemporaryFile, TemporaryDirectory
 from urllib.error import HTTPError
 
@@ -129,6 +130,7 @@ def _write_snapshot(path: Path, snapshot: dict) -> None:
     yaml = YAML()
     yaml.Emitter = _SnapshotEmitter
     yaml.default_flow_style = False
+    yaml.width = maxsize
     with NamedTemporaryFile(
         mode='w',
         encoding='utf-8',
