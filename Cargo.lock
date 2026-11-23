@@ -3178,7 +3178,7 @@ dependencies = [
 
 [[package]]
 name = "sparqld"
-version = "0.1.8"
+version = "0.1.9"
 dependencies = [
  "clap",
  "debtmap",
@@ -3198,6 +3198,7 @@ dependencies = [
  "tempfile",
  "tokio",
  "tokio-util",
+ "toml",
 ]
 
 [[package]]
