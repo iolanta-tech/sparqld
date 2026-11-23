@@ -208,6 +208,46 @@ async fn exposes_live_read_only_queries_over_stdio() {
     );
 }
 
+#[tokio::test]
+async fn mcp_discovers_configuration_and_watches_with_http_watch_disabled() {
+    let working_directory = tempfile::tempdir().unwrap();
+    let source_directory = working_directory.path().join("data");
+    fs::create_dir(&source_directory).unwrap();
+    fs::write(
+        working_directory.path().join("sparqld.toml"),
+        "directory = \"data\"\npatterns = [\"data.ttl\"]\n[http]\nwatch = false\n",
+    )
+    .unwrap();
+    let source = source_directory.join("data.ttl");
+    write_turtle_source(&source, "first");
+    write_turtle_source(&source_directory.join("skipped.ttl"), "skipped");
+    let transport = TokioChildProcess::new(
+        tokio::process::Command::new(env!("CARGO_BIN_EXE_sparqld")).configure(|command| {
+            command.arg("mcp").current_dir(working_directory.path());
+        }),
+    )
+    .unwrap();
+    let mut client = complete_within(().serve(transport)).await.unwrap();
+    let response = query(&client, "ASK { <urn:subject> <urn:predicate> \"first\" }").await;
+    assert_eq!(response.structured_content.unwrap()["boolean"], true);
+    let response = query(&client, "ASK { <urn:subject> <urn:predicate> \"skipped\" }").await;
+    assert_eq!(response.structured_content.unwrap()["boolean"], false);
+
+    write_turtle_source(&source, "second");
+    let deadline = Instant::now() + REQUEST_TIMEOUT;
+    loop {
+        let response = query(&client, "ASK { <urn:subject> <urn:predicate> \"second\" }").await;
+        if response.structured_content.unwrap()["boolean"] == true {
+            break;
+        }
+        assert!(Instant::now() < deadline, "the MCP dataset did not reload");
+        tokio::time::sleep(Duration::from_millis(100)).await;
+    }
+    complete_within(client.close_with_timeout(REQUEST_TIMEOUT))
+        .await
+        .unwrap();
+}
+
 fn assert_json_text_matches_structure(result: &rmcp::model::CallToolResult) {
     let text = &result.content[0].as_text().unwrap().text;
     let parsed: serde_json::Value = serde_json::from_str(text).unwrap();
