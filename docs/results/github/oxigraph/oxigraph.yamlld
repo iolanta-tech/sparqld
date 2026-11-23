@@ -1,0 +1,33 @@
+"@context":
+  schema: https://schema.org/
+  xsd: http://www.w3.org/2001/XMLSchema#
+  github: "urn:sparqld:vocabulary:github:"
+  stars: github:stars
+  observedAt:
+    "@id": github:observedAt
+    "@type": xsd:dateTime
+  latestRelease: github:latestRelease
+  tag: schema:version
+  publishedAt:
+    "@id": schema:datePublished
+    "@type": xsd:dateTime
+  latestCommit: github:latestCommit
+  sha: schema:identifier
+  committedAt:
+    "@id": github:committedAt
+    "@type": xsd:dateTime
+  url:
+    "@id": schema:url
+    "@type": "@id"
+"@id": https://github.com/oxigraph/oxigraph
+"@type": schema:SoftwareSourceCode
+stars: 2056
+observedAt: "2026-11-19T16:58:56Z"
+latestRelease:
+  tag: v0.5.13
+  url: https://github.com/oxigraph/oxigraph/releases/tag/v0.5.13
+  publishedAt: "2026-10-22T18:32:39Z"
+latestCommit:
+  sha: dfc21c78203af319b15b18c4ef6514f87d983b0c
+  url: https://github.com/oxigraph/oxigraph/commit/dfc21c78203af319b15b18c4ef6514f87d983b0c
+  committedAt: "2026-11-15T16:28:15Z"
