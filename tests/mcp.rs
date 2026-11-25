@@ -19,11 +19,20 @@ const REQUEST_TIMEOUT: Duration = Duration::from_secs(5);
 #[tokio::test]
 async fn exposes_live_read_only_queries_over_stdio() {
     let directory = tempfile::tempdir().unwrap();
+    fs::write(
+        directory.path().join("sparqld.toml"),
+        "directory = \"absent\"",
+    )
+    .unwrap();
     let source = directory.path().join("data.ttl");
     write_turtle_source(&source, "first");
     let transport = TokioChildProcess::new(
         tokio::process::Command::new(env!("CARGO_BIN_EXE_sparqld")).configure(|command| {
-            command.args(["mcp", directory.path().to_str().unwrap()]);
+            command
+                .arg("--directory")
+                .arg(directory.path())
+                .arg("mcp")
+                .current_dir(directory.path());
         }),
     )
     .unwrap();
@@ -209,13 +218,14 @@ async fn exposes_live_read_only_queries_over_stdio() {
 }
 
 #[tokio::test]
-async fn mcp_discovers_configuration_and_watches_with_http_watch_disabled() {
+async fn mcp_loads_selected_configuration_and_watches_with_http_watch_disabled() {
     let working_directory = tempfile::tempdir().unwrap();
-    let source_directory = working_directory.path().join("data");
-    fs::create_dir(&source_directory).unwrap();
+    let settings = working_directory.path().join("settings");
+    let source_directory = settings.join("data");
+    fs::create_dir_all(&source_directory).unwrap();
     fs::write(
-        working_directory.path().join("sparqld.toml"),
-        "directory = \"data\"\npatterns = [\"data.ttl\"]\n[http]\nwatch = false\n",
+        settings.join("custom.toml"),
+        "directory = \"data\"\npatterns = [\"skipped.ttl\"]\n[http]\nwatch = false\n",
     )
     .unwrap();
     let source = source_directory.join("data.ttl");
@@ -223,7 +233,9 @@ async fn mcp_discovers_configuration_and_watches_with_http_watch_disabled() {
     write_turtle_source(&source_directory.join("skipped.ttl"), "skipped");
     let transport = TokioChildProcess::new(
         tokio::process::Command::new(env!("CARGO_BIN_EXE_sparqld")).configure(|command| {
-            command.arg("mcp").current_dir(working_directory.path());
+            command
+                .args(["-c", "settings/custom.toml", "--pattern", "data.ttl", "mcp"])
+                .current_dir(working_directory.path());
         }),
     )
     .unwrap();
@@ -296,10 +308,11 @@ async fn times_out_slow_queries_and_recovers() {
     let transport = TokioChildProcess::new(
         tokio::process::Command::new(env!("CARGO_BIN_EXE_sparqld")).configure(|command| {
             command.args([
-                "mcp",
                 "--query-timeout",
                 "1",
+                "-d",
                 directory.path().to_str().unwrap(),
+                "mcp",
             ]);
         }),
     )
