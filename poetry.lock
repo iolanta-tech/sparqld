@@ -1907,7 +1907,7 @@ version = "2.4.0"
 description = "Python subprocess replacement"
 optional = false
 python-versions = "<4.0,>=3.10"
-groups = ["dev"]
+groups = ["main", "dev"]
 files = [
     {file = "sh-2.4.0-py3-none-any.whl", hash = "sha256:98eba32eeb5ecdd310668737d7461e668afc42b273550d0bc198a1c5c2b1ab36"},
     {file = "sh-2.4.0.tar.gz", hash = "sha256:a250aef68509ed93419c9a1d90b0647cd5cbe26107ba94d3717ef5b6d595ffd9"},
@@ -2179,4 +2179,4 @@ dev = ["doc8", "flake8", "flake8-import-order", "rstcheck[sphinx]", "ruff", "sph
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.13,<4.0"
-content-hash = "c55aed7b4c02670c6117793f2ff509da93fa098e2506cbfabbf1f34e2229b1ac"
+content-hash = "5b50d0604c877c27e63f9b3769493c03fc0fb0a3a9a80375633bc381a887db3b"
