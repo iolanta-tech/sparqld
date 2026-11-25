@@ -41,7 +41,7 @@ In your editor, create `data/alpha-centauri.md` and paste this source:
 
 Start `sparqld` in this terminal:
 
-{{ command('sparqld ./data') }}
+{{ command('sparqld --directory ./data http') }}
 
 Keep this terminal running. The endpoint is available at
 `http://127.0.0.1:7737/` and watches the directory for changes.
