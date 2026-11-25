@@ -20,7 +20,8 @@ the tool is already available. If the configuration cannot be verified or
 targets another directory, resolve that before querying.
 
 Do not fetch sparqld documentation from the network. Use this skill, the
-client-specific file below, `sparqld mcp --help`, and the live MCP tool schema.
+client-specific file below, `sparqld --help`, `sparqld mcp --help`, and the live
+MCP tool schema.
 
 ## Set up the binary
 
@@ -32,9 +33,8 @@ If the `query` tool is unavailable:
    sparqld mcp --help
    ```
 
-   Treat that help text as the source of truth for MCP flags such as
-   `--pattern` and `--query-timeout`. Pass any needed flags when registering
-   the server.
+   Use `sparqld --help` for `--directory`, `--config`, `--pattern`, and `--query-timeout`.
+   When registering the server, place any of these options before `mcp`.
 
    If `sparqld` is missing, ask permission to install it with:
 
@@ -64,7 +64,7 @@ If the `query` tool is unavailable:
 | OpenCode | [agents/opencode.md](agents/opencode.md) |
 
 If the client is not listed, find its MCP add or config mechanism and register
-`sparqld mcp <absolute-directory>` with any flags taken from `sparqld mcp --help`.
+`sparqld --directory <absolute-directory> mcp`.
 
 ## Query workflow
 
