@@ -3,10 +3,11 @@
 from __future__ import annotations
 
 import atexit
-import subprocess
 from dataclasses import dataclass, field
 from pathlib import Path
 from urllib.request import Request, urlopen
+
+import sh
 
 from mkdocs_macros_sparqld import process
 
@@ -63,13 +64,13 @@ class ServerState:
     project_directory: Path | None = None
     directory: Path | None = None
     binary: str | Path | None = None
-    servers: dict[Path, tuple[subprocess.Popen, str]] = field(default_factory=dict)
+    servers: dict[Path, tuple[sh.RunningCommand, str]] = field(default_factory=dict)
 
     def ensure_endpoint_for(self, directory: Path) -> str:
         """Start sparqld for `directory` if needed and return its endpoint URL."""
         resolved = directory.resolve()
         existing = self.servers.get(resolved)
-        if existing is not None and existing[0].poll() is None:
+        if existing is not None and existing[0].is_alive():
             return existing[1]
         if self.project_directory is None or self.binary is None:
             raise RuntimeError(
