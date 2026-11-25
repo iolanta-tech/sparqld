@@ -7,22 +7,22 @@ available across projects. Use the project file `.cursor/mcp.json` only when
 the user wants the server limited to one repository.
 
 Derive a server name from the knowledge-base directory basename, such as
-`sparqld-iolanta`.
+`sparqld-data`.
 
 Read the chosen file first. Reuse an existing entry only when its `command` and
 `args` launch `sparqld mcp` for the same absolute directory. If the name points
 elsewhere, ask the user to choose a distinct name.
 
 After explicit permission, merge a stdio entry. Keep `command` as `sparqld` and
-put the subcommand, absolute directory, and any flags in `args`. Add flags only
-when the user needs them; take names and shapes from `sparqld mcp --help`:
+put `--directory`, the absolute directory, and `mcp` in `args`. Put any shared
+`sparqld` options before `mcp` in `args`:
 
 ```json
 {
   "mcpServers": {
-    "sparqld-iolanta": {
+    "sparqld-data": {
       "command": "sparqld",
-      "args": ["mcp", "/absolute/path/to/data"]
+      "args": ["--directory", "/absolute/path/to/data", "mcp"]
     }
   }
 }
