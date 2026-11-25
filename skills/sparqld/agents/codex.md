@@ -1,24 +1,23 @@
 # Codex
 
 Derive a server name from the knowledge-base directory basename, such as
-`sparqld-iolanta`.
+`sparqld-data`.
 
 Check that name first:
 
 ```sh
-codex mcp get sparqld-iolanta
+codex mcp get sparqld-data
 ```
 
 Reuse it only when it launches `sparqld mcp` for the same absolute directory.
 A matching configuration under another name does not verify the selected tool.
 If it points elsewhere, ask the user to choose a distinct name.
 
-After explicit permission, add the configuration. Put `sparqld mcp` and its
-arguments after `--`. Add flags only when the user needs them; take names and
-shapes from `sparqld mcp --help`:
+After explicit permission, add the configuration. Put the full `sparqld`
+command after `--`. Put any shared `sparqld` options before `mcp`:
 
 ```sh
-codex mcp add sparqld-iolanta -- sparqld mcp /absolute/path/to/data
+codex mcp add sparqld-data -- sparqld --directory /absolute/path/to/data mcp
 ```
 
 Read the configuration back with `codex mcp get <server-name>` and confirm the
