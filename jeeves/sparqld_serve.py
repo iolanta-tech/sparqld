@@ -3,13 +3,14 @@
 from __future__ import annotations
 
 import socket
-import subprocess
 import time
 from collections.abc import Generator
-from contextlib import contextmanager
+from contextlib import contextmanager, suppress
 from pathlib import Path
 from urllib.error import URLError
 from urllib.request import Request, urlopen
+
+import sh
 
 WAIT_SECONDS = 10
 
@@ -17,7 +18,7 @@ WAIT_SECONDS = 10
 class Server:
     """A running sparqld process and the endpoint that reaches it."""
 
-    def __init__(self, endpoint: str, process: subprocess.Popen[str]) -> None:
+    def __init__(self, endpoint: str, process: sh.RunningCommand) -> None:
         self.endpoint = endpoint
         self.process = process
 
@@ -46,12 +47,20 @@ def serve(
         port = listener.getsockname()[1]
     endpoint = f'http://127.0.0.1:{port}/'
     with output_path.open('w+') as output:
-        process = subprocess.Popen(
-            [str(binary), str(directory), '--port', str(port)],
-            stdout=output,
-            stderr=output,
-            text=True,
-        )
+        try:
+            process = sh.Command(str(binary))(  # noqa: TID251 - Use the caller's exact binary path.
+                '--directory',
+                str(directory),
+                'http',
+                '--port',
+                str(port),
+                _bg=True,
+                _bg_exc=False,
+                _out=output,
+                _err_to_out=True,
+            )
+        except sh.CommandNotFound as error:
+            raise OSError(f'Cannot execute sparqld at {binary}') from error
         try:
             yield Server(endpoint, process)
         finally:
@@ -67,7 +76,7 @@ def wait_until_ready(
     deadline = time.monotonic() + WAIT_SECONDS
     last_failure = ''
     while time.monotonic() < deadline:
-        if server.process.poll() is not None:
+        if not server.process.is_alive():
             detail = log.read_text()
             raise RuntimeError(f'sparqld exited before answering queries:\n{detail}')
         try:
@@ -82,10 +91,15 @@ def wait_until_ready(
     raise RuntimeError(f'Timed out waiting for sparqld: {last_failure}\n{detail}')
 
 
-def _stop(process: subprocess.Popen[str]) -> None:
-    process.terminate()
-    try:
-        process.wait(timeout=5)
-    except subprocess.TimeoutExpired:
-        process.kill()
-        process.wait(timeout=5)
+def _stop(process: sh.RunningCommand) -> None:
+    if not process.is_alive():
+        return
+    with suppress(ProcessLookupError):
+        process.terminate()
+    with suppress(sh.ErrorReturnCode):
+        try:
+            process.wait(timeout=5)
+        except sh.TimeoutException:
+            with suppress(ProcessLookupError):
+                process.kill()
+            process.wait(timeout=5)
