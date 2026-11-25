@@ -15,7 +15,7 @@ the tool is already available. If the configuration cannot be verified or
 targets another directory, resolve that before querying.
 
 Do not fetch sparqld documentation from the network. Use this skill,
-`sparqld mcp --help`, and the live MCP tool schema.
+`sparqld --help`, `sparqld mcp --help`, and the live MCP tool schema.
 
 ## Set up the binary
 
@@ -27,9 +27,8 @@ If the `query` tool is unavailable:
    sparqld mcp --help
    ```
 
-   Treat that help text as the source of truth for MCP flags such as
-   `--pattern` and `--query-timeout`. Pass any needed flags when registering
-   the server.
+   Use `sparqld --help` for `--directory`, `--config`, `--pattern`, and `--query-timeout`.
+   When registering the server, place any of these options before `mcp`.
 
    If `sparqld` is missing, ask permission to install it with:
 
@@ -49,12 +48,12 @@ If the `query` tool is unavailable:
 
    Recheck the command before adding the MCP configuration.
 2. Ask permission before configuring Codex. Derive a server name from the
-   knowledge-base directory basename, such as `sparqld-iolanta`.
+   knowledge-base directory basename, such as `sparqld-data`.
 
    Check that name first:
 
    ```sh
-   codex mcp get sparqld-iolanta
+   codex mcp get sparqld-data
    ```
 
    Reuse it only when it launches `sparqld mcp` for the same absolute directory.
@@ -62,11 +61,10 @@ If the `query` tool is unavailable:
    tool. If it points elsewhere, ask the user to choose a distinct name.
 
    After explicit permission, add the configuration. Put `sparqld mcp` and its
-   arguments after `--`. Add flags only when the user needs them; take names
-   and shapes from `sparqld mcp --help`:
+   arguments after `--`:
 
    ```sh
-   codex mcp add sparqld-iolanta -- sparqld mcp /absolute/path/to/data
+   codex mcp add sparqld-data -- sparqld --directory /absolute/path/to/data mcp
    ```
 
    Read the configuration back with `codex mcp get <server-name>` and confirm
