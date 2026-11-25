@@ -83,7 +83,7 @@ Then ask:
 
 {{ command('cargo install sparqld') }}
 
-{{ command('sparqld /path/to/your/knowledge-base') }}
+{{ command('sparqld --directory /path/to/your/knowledge-base http') }}
 
 </div>
 
