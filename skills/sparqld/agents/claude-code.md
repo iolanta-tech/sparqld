@@ -1,7 +1,7 @@
 # Claude Code
 
 Derive a server name from the knowledge-base directory basename, such as
-`sparqld-iolanta`.
+`sparqld-data`.
 
 List configured servers and confirm whether that name already launches
 `sparqld mcp` for the same absolute directory:
@@ -15,13 +15,13 @@ elsewhere, ask the user to choose a distinct name. Inspect one server with
 `claude mcp get <server-name>` when more detail is needed.
 
 After explicit permission, add a stdio server. Put Claude Code options before
-`--` and `sparqld mcp` with its arguments after `--`. Add sparqld flags only
-when the user needs them; take names and shapes from `sparqld mcp --help`.
+`--` and the full `sparqld` command after `--`. Put any shared `sparqld`
+options before `mcp`.
 Choose `--scope user` when the knowledge base should be available outside the
 current project:
 
 ```sh
-claude mcp add --transport stdio --scope user sparqld-iolanta -- sparqld mcp /absolute/path/to/data
+claude mcp add --transport stdio --scope user sparqld-data -- sparqld --directory /absolute/path/to/data mcp
 ```
 
 Read the configuration back with `claude mcp get <server-name>` or
