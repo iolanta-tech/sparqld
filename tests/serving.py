@@ -77,7 +77,7 @@ def _serve(
         binary,
         output_path,
         port,
-        (str(directory), '--port', str(port), *arguments),
+        ('--directory', str(directory), *arguments, 'http', '--port', str(port)),
     ) as server:
         yield server
 
