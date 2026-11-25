@@ -13,8 +13,10 @@ Full documentation:
 pip install mkdocs-macros-sparqld
 ```
 
-Also install the [`sparqld`](https://crates.io/crates/sparqld) binary and keep it
-on `PATH`, unless you override `extra.sparqld.binary`.
+The pluglet requires a POSIX environment because it uses `sh` to start the
+server. Install [`sparqld`](https://crates.io/crates/sparqld) 0.1.9 or later on
+`PATH`, or point `extra.sparqld.binary` at the executable. Until 0.1.9 is
+released, build the binary from the sparqld source checkout.
 
 ## Configuration
 
