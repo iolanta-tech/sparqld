@@ -146,12 +146,18 @@ mod tests {
 
     #[test]
     fn parses_defaults() {
-        let cli = Cli::try_parse_from(["sparqld", "fixtures/data"]).unwrap();
+        let cli = Cli::try_parse_from(["sparqld", "http"]).unwrap();
 
-        assert_eq!(cli.directory, Some(PathBuf::from("fixtures/data")));
-        assert_eq!(cli.host, "127.0.0.1");
-        assert_eq!(cli.port, 7737);
-        assert!(!cli.no_watch);
+        assert!(cli.directory.is_none());
+        assert!(matches!(
+            cli.command,
+            Command::Http(HttpCli {
+                host: None,
+                port: None,
+                watch: false,
+                no_watch: false
+            })
+        ));
         assert!(cli.patterns.is_empty());
         assert!(cli.query_timeout.is_none());
     }
@@ -160,23 +166,27 @@ mod tests {
     fn parses_options() {
         let cli = Cli::try_parse_from([
             "sparqld",
+            "--pattern",
+            "**/*.ttl",
+            "--pattern",
+            "!archive/**",
+            "--directory",
+            "fixtures/data",
+            "http",
             "--host",
             "localhost",
             "--port",
             "8080",
             "--no-watch",
-            "--pattern",
-            "**/*.ttl",
-            "--pattern",
-            "!archive/**",
-            "fixtures/data",
         ])
         .unwrap();
 
         assert_eq!(cli.directory, Some(PathBuf::from("fixtures/data")));
-        assert_eq!(cli.host, "localhost");
-        assert_eq!(cli.port, 8080);
-        assert!(cli.no_watch);
+        assert!(matches!(
+            cli.command,
+            Command::Http(HttpCli { host: Some(host), port: Some(8080), no_watch: true, watch: false })
+                if host == "localhost"
+        ));
         assert_eq!(cli.patterns, ["**/*.ttl", "!archive/**"]);
     }
 
@@ -186,26 +196,25 @@ mod tests {
 
         assert_eq!(error.kind(), ErrorKind::DisplayHelp);
         let help = error.to_string();
-        assert!(help.contains("--host <HOST>"));
-        assert!(help.contains("--port <PORT>"));
-        assert!(help.contains("--no-watch"));
+        assert!(help.contains("-c, --config <PATH>"));
+        assert!(help.contains("-d, --directory <PATH>"));
         assert!(help.contains("--pattern <GLOB>"));
         assert!(help.contains("--query-timeout <SECONDS>"));
+        assert!(help.contains("http"));
         assert!(help.contains("mcp"));
+        assert!(!help.contains("--host"));
     }
 
     #[test]
     fn rejects_an_invalid_port() {
-        let error =
-            Cli::try_parse_from(["sparqld", "--port", "70000", "fixtures/data"]).unwrap_err();
+        let error = Cli::try_parse_from(["sparqld", "http", "--port", "70000"]).unwrap_err();
 
         assert_eq!(error.kind(), ErrorKind::ValueValidation);
     }
 
     #[test]
     fn rejects_an_invalid_pattern() {
-        let error =
-            Cli::try_parse_from(["sparqld", "--pattern", "!", "fixtures/data"]).unwrap_err();
+        let error = Cli::try_parse_from(["sparqld", "--pattern", "!"]).unwrap_err();
 
         assert_eq!(error.kind(), ErrorKind::ValueValidation);
         assert!(
@@ -217,83 +226,149 @@ mod tests {
 
     #[test]
     fn rejects_an_invalid_glob() {
-        let error =
-            Cli::try_parse_from(["sparqld", "--pattern", "[", "fixtures/data"]).unwrap_err();
+        let error = Cli::try_parse_from(["sparqld", "--pattern", "["]).unwrap_err();
 
         assert_eq!(error.kind(), ErrorKind::ValueValidation);
     }
 
     #[test]
-    fn parses_mcp_options() {
-        let Cli {
-            directory, command, ..
-        } = Cli::try_parse_from(["sparqld", "mcp", "--pattern", "**/*.ttl", "fixtures/data"])
-            .unwrap();
-
-        assert!(directory.is_none());
-        assert!(matches!(
-            command,
-            Some(Command::Mcp(McpCli {
-                directory,
-                patterns,
-                query_timeout: None,
-            })) if directory.as_path() == std::path::Path::new("fixtures/data") && patterns == ["**/*.ttl"]
-        ));
+    fn parses_shared_options_before_mcp() {
+        let cli = Cli::try_parse_from([
+            "sparqld",
+            "--config",
+            "custom.toml",
+            "--pattern",
+            "**/*.ttl",
+            "--query-timeout",
+            "20",
+            "-d",
+            "fixtures/data",
+            "mcp",
+        ])
+        .unwrap();
+        assert_eq!(cli.directory.as_deref(), Some(Path::new("fixtures/data")));
+        assert_eq!(cli.config_path.as_deref(), Some(Path::new("custom.toml")));
+        assert_eq!(cli.patterns, ["**/*.ttl"]);
+        assert_eq!(cli.query_timeout, Some(Duration::from_secs(20)));
+        assert!(matches!(cli.command, Command::Mcp));
     }
 
     #[test]
     fn parses_a_query_timeout() {
-        let cli =
-            Cli::try_parse_from(["sparqld", "--query-timeout", "20", "fixtures/data"]).unwrap();
+        let cli = Cli::try_parse_from(["sparqld", "--query-timeout", "20", "http"]).unwrap();
         assert_eq!(cli.query_timeout, Some(Duration::from_secs(20)));
-
-        let Cli { command, .. } =
-            Cli::try_parse_from(["sparqld", "mcp", "--query-timeout", "20", "fixtures/data"])
-                .unwrap();
-        assert!(matches!(
-            command,
-            Some(Command::Mcp(McpCli {
-                query_timeout: Some(timeout),
-                ..
-            })) if timeout == Duration::from_secs(20)
-        ));
     }
 
     #[test]
     fn rejects_invalid_query_timeouts() {
         for value in ["0", "-1", "abc", "1.5", "20s", &u64::MAX.to_string()] {
-            let error = Cli::try_parse_from(["sparqld", "--query-timeout", value, "fixtures/data"])
-                .unwrap_err();
+            let error = Cli::try_parse_from(["sparqld", "--query-timeout", value]).unwrap_err();
             assert_eq!(error.kind(), ErrorKind::ValueValidation, "{value}");
-
-            let error =
-                Cli::try_parse_from(["sparqld", "mcp", "--query-timeout", value, "fixtures/data"])
-                    .unwrap_err();
-            assert_eq!(error.kind(), ErrorKind::ValueValidation, "mcp {value}");
         }
     }
 
     #[test]
-    fn mcp_help_lists_query_timeout() {
+    fn mcp_help_shows_where_to_place_shared_options() {
         let error = Cli::try_parse_from(["sparqld", "mcp", "--help"]).unwrap_err();
 
         assert_eq!(error.kind(), ErrorKind::DisplayHelp);
-        assert!(error.to_string().contains("--query-timeout <SECONDS>"));
+        assert!(error.to_string().contains("sparqld [OPTIONS] mcp"));
     }
 
     #[test]
-    fn rejects_no_watch_for_mcp() {
-        let error =
-            Cli::try_parse_from(["sparqld", "mcp", "--no-watch", "fixtures/data"]).unwrap_err();
-
-        assert_eq!(error.kind(), clap::error::ErrorKind::UnknownArgument);
+    fn http_help_lists_http_options() {
+        let error = Cli::try_parse_from(["sparqld", "http", "--help"]).unwrap_err();
+        assert_eq!(error.kind(), ErrorKind::DisplayHelp);
+        let help = error.to_string();
+        assert!(help.contains("sparqld [OPTIONS] http"));
+        assert!(help.contains("--host <HOST>"));
+        assert!(help.contains("--port <PORT>"));
+        assert!(help.contains("--watch"));
+        assert!(help.contains("--no-watch"));
     }
 
     #[test]
-    fn rejects_http_options_for_mcp() {
-        let error = Cli::try_parse_from(["sparqld", "--host", "localhost", "mcp", "fixtures/data"])
-            .unwrap_err();
+    fn requires_a_service_subcommand() {
+        for arguments in [&["sparqld"][..], &["sparqld", "-d", "fixtures/data"]] {
+            let error = Cli::try_parse_from(arguments).unwrap_err();
+            assert!(matches!(
+                error.kind(),
+                ErrorKind::MissingSubcommand | ErrorKind::DisplayHelpOnMissingArgumentOrSubcommand
+            ));
+            assert_eq!(error.exit_code(), 2);
+        }
+    }
 
-        assert_eq!(error.kind(), clap::error::ErrorKind::ArgumentConflict);
+    #[test]
+    fn rejects_conflicting_http_watch_flags() {
+        let error = Cli::try_parse_from(["sparqld", "http", "--watch", "--no-watch"]).unwrap_err();
+
+        assert_eq!(error.kind(), ErrorKind::ArgumentConflict);
+    }
+
+    #[test]
+    fn rejects_http_options_outside_http() {
+        for arguments in [
+            &["--host", "localhost"][..],
+            &["--port", "7737"],
+            &["--watch"],
+            &["--no-watch"],
+        ] {
+            for prefix in [&["sparqld", "mcp"][..], &["sparqld"]] {
+                let args = prefix.iter().chain(arguments).copied();
+                let error = Cli::try_parse_from(args).unwrap_err();
+                assert_eq!(error.kind(), ErrorKind::UnknownArgument);
+            }
+        }
+    }
+
+    #[test]
+    fn rejects_shared_options_after_a_subcommand() {
+        for option in [
+            "--directory",
+            "-d",
+            "--config",
+            "-c",
+            "--pattern",
+            "--query-timeout",
+        ] {
+            for command in ["http", "mcp"] {
+                let error = Cli::try_parse_from(["sparqld", command, option, "10"]).unwrap_err();
+                assert_eq!(error.kind(), ErrorKind::UnknownArgument);
+            }
+        }
+    }
+
+    #[test]
+    fn accepts_option_values_named_like_subcommands() {
+        let cli = Cli::try_parse_from(["sparqld", "--config", "mcp", "--pattern", "help", "mcp"])
+            .unwrap();
+
+        assert_eq!(cli.config_path.as_deref(), Some(Path::new("mcp")));
+        assert_eq!(cli.patterns, ["help"]);
+        assert!(matches!(cli.command, Command::Mcp));
+    }
+
+    #[test]
+    fn parses_a_directory_named_mcp() {
+        let cli = Cli::try_parse_from(["sparqld", "--directory", "mcp", "http"]).unwrap();
+
+        assert!(matches!(cli.command, Command::Http(_)));
+        assert_eq!(cli.directory.as_deref(), Some(Path::new("mcp")));
+    }
+
+    #[test]
+    fn rejects_positional_directories() {
+        for arguments in [
+            &["sparqld", "fixtures/data"][..],
+            &["sparqld", "http", "fixtures/data"],
+            &["sparqld", "mcp", "fixtures/data"],
+        ] {
+            let error = Cli::try_parse_from(arguments).unwrap_err();
+            assert!(matches!(
+                error.kind(),
+                ErrorKind::InvalidSubcommand | ErrorKind::UnknownArgument
+            ));
+        }
     }
 }
