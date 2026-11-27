@@ -1,9 +1,13 @@
 //! Parse command-line options and start the HTTP or stdio MCP service.
 
-use std::path::PathBuf;
+mod config;
+
+use std::path::{Path, PathBuf};
 use std::time::Duration;
 
 use clap::{Args, Parser, Subcommand, ValueHint};
+use config::{Config, HttpConfig};
+use sparqld::HttpOptions;
 
 // @todo(extractor-registration): Register self-describing extractor executables.
 // description: >
@@ -16,36 +20,23 @@ use clap::{Args, Parser, Subcommand, ValueHint};
 //   least one positive glob. Reject unavailable executables, failed describe
 //   invocations, invalid descriptors, unknown protocol versions, and duplicate
 //   extractor identities with actionable startup errors. Preserve the existing
-//   positional served directory and native `--pattern` behavior.
+//   served directory option and native `--pattern` behavior.
 // acceptance:
 //   - Unit-test repeated flags, PATH and explicit-path resolution, descriptor
 //     validation, and every declared startup rejection.
 // blocked-by:
 //   - riddles-cli
-/// Command-line settings for the HTTP service and its subcommands.
+/// Shared command-line settings and the selected service.
 #[derive(Debug, Parser)]
-#[command(
-    version,
-    about = "Expose a directory via SPARQL.",
-    subcommand_negates_reqs = true,
-    args_conflicts_with_subcommands = true
-)]
+#[command(version, about = "Expose a directory via SPARQL.")]
 struct Cli {
-    /// Directory to serve
-    #[arg(value_hint = ValueHint::DirPath, required = true)]
+    /// Directory to serve (overrides the configuration file)
+    #[arg(short, long, value_name = "PATH", value_hint = ValueHint::DirPath)]
     directory: Option<PathBuf>,
 
-    /// Host address on which to serve
-    #[arg(long, default_value = "127.0.0.1")]
-    host: String,
-
-    /// Port on which to serve
-    #[arg(long, default_value_t = 7737)]
-    port: u16,
-
-    /// Load the directory once instead of watching it for changes
-    #[arg(long)]
-    no_watch: bool,
+    /// Read startup settings from this file (defaults to ./sparqld.toml)
+    #[arg(short = 'c', long = "config", value_name = "PATH", value_hint = ValueHint::FilePath)]
+    config_path: Option<PathBuf>,
 
     /// Include or exclude source paths with a glob; prefix exclusions with !
     #[arg(
@@ -64,42 +55,63 @@ struct Cli {
     )]
     query_timeout: Option<Duration>,
 
-    /// Optional stdio MCP service command.
+    /// Service to start.
     #[command(subcommand)]
-    command: Option<Command>,
+    command: Command,
 }
 
 /// Alternate service interfaces selected from the command line.
 #[derive(Debug, Subcommand)]
 enum Command {
+    /// Expose a directory as a SPARQL endpoint over HTTP
+    #[command(after_help = "Use sparqld [OPTIONS] http to set shared options. See sparqld --help.")]
+    Http(HttpCli),
     /// Expose a directory to MCP clients over standard input and output
-    Mcp(McpCli),
+    #[command(after_help = "Use sparqld [OPTIONS] mcp to set shared options. See sparqld --help.")]
+    Mcp,
 }
 
-/// Directory selection and query limits for the stdio MCP service.
+/// Options that apply to the HTTP service.
 #[derive(Args, Debug)]
-#[command(about = "Expose a directory to MCP clients over standard input and output")]
-struct McpCli {
-    /// Directory to watch and expose
-    #[arg(value_hint = ValueHint::DirPath)]
-    directory: PathBuf,
+struct HttpCli {
+    /// Host address on which to serve (defaults to 127.0.0.1)
+    #[arg(long)]
+    host: Option<String>,
 
-    /// Include or exclude source paths with a glob; prefix exclusions with !
-    #[arg(
-        long = "pattern",
-        value_name = "GLOB",
-        value_parser = sparqld::patterns::validate_pattern
-    )]
-    patterns: Vec<String>,
+    /// Port on which to serve (defaults to 7737)
+    #[arg(long)]
+    port: Option<u16>,
 
-    /// Stop queries that run longer than this many seconds
-    #[arg(
-        long = "query-timeout",
-        value_name = "SECONDS",
-        allow_hyphen_values = true,
-        value_parser = sparqld::parse_query_timeout
-    )]
-    query_timeout: Option<Duration>,
+    /// Watch the directory for changes
+    #[arg(long, conflicts_with = "no_watch")]
+    watch: bool,
+
+    /// Load the directory once instead of watching it for changes
+    #[arg(long)]
+    no_watch: bool,
+}
+
+impl HttpCli {
+    /// Convert the mutually exclusive flags to an optional watch override.
+    fn watch_override(&self) -> Option<bool> {
+        self.watch
+            .then_some(true)
+            .or(self.no_watch.then_some(false))
+    }
+
+    /// Resolve HTTP settings in order of CLI, file, and runtime defaults.
+    fn resolve(self, config: HttpConfig) -> HttpOptions {
+        let defaults = HttpOptions::default();
+        let watch = self
+            .watch_override()
+            .or(config.watch)
+            .unwrap_or(defaults.watch);
+        HttpOptions {
+            host: self.host.or(config.host).unwrap_or(defaults.host),
+            port: self.port.or(config.port).unwrap_or(defaults.port),
+            watch,
+        }
+    }
 }
 
 /// Initialize logging and run the service selected by the command-line arguments.
@@ -113,29 +125,16 @@ fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
 
     let Cli {
         directory,
-        host,
-        port,
-        no_watch,
+        config_path,
         patterns,
         query_timeout,
         command,
     } = Cli::parse();
+    let config = Config::load(Path::new("."), config_path.as_deref())?;
+    let (options, http) = config.sources(directory, patterns, query_timeout)?;
     match command {
-        Some(Command::Mcp(McpCli {
-            directory,
-            patterns,
-            query_timeout,
-        })) => sparqld::serve_mcp(directory, patterns, query_timeout),
-        None => sparqld::serve_at_with_options(
-            directory.expect("Clap requires a directory when no subcommand is given"),
-            &host,
-            port,
-            sparqld::ServeOptions {
-                watch: !no_watch,
-                patterns,
-                query_timeout,
-            },
-        ),
+        Command::Http(cli) => sparqld::serve_http(options, cli.resolve(http)),
+        Command::Mcp => sparqld::serve_mcp(options),
     }
 }
 
@@ -149,15 +148,13 @@ mod tests {
         let cli = Cli::try_parse_from(["sparqld", "http"]).unwrap();
 
         assert!(cli.directory.is_none());
-        assert!(matches!(
-            cli.command,
-            Command::Http(HttpCli {
-                host: None,
-                port: None,
-                watch: false,
-                no_watch: false
-            })
-        ));
+        let Command::Http(http) = cli.command else {
+            panic!("expected http");
+        };
+        let http = http.resolve(HttpConfig::default());
+        assert_eq!(http.host, "127.0.0.1");
+        assert_eq!(http.port, 7737);
+        assert!(http.watch);
         assert!(cli.patterns.is_empty());
         assert!(cli.query_timeout.is_none());
     }
@@ -182,11 +179,16 @@ mod tests {
         .unwrap();
 
         assert_eq!(cli.directory, Some(PathBuf::from("fixtures/data")));
-        assert!(matches!(
-            cli.command,
-            Command::Http(HttpCli { host: Some(host), port: Some(8080), no_watch: true, watch: false })
-                if host == "localhost"
-        ));
+        let Command::Http(http) = cli.command else {
+            panic!("expected http");
+        };
+        let http = http.resolve(HttpConfig {
+            watch: Some(true),
+            ..HttpConfig::default()
+        });
+        assert_eq!(http.host, "localhost");
+        assert_eq!(http.port, 8080);
+        assert!(!http.watch);
         assert_eq!(cli.patterns, ["**/*.ttl", "!archive/**"]);
     }
 
@@ -304,6 +306,24 @@ mod tests {
         let error = Cli::try_parse_from(["sparqld", "http", "--watch", "--no-watch"]).unwrap_err();
 
         assert_eq!(error.kind(), ErrorKind::ArgumentConflict);
+    }
+
+    #[test]
+    fn enables_watching_over_a_disabled_configuration() {
+        for (arguments, expected_watch) in [
+            (&["sparqld", "http"][..], false),
+            (&["sparqld", "http", "--watch"][..], true),
+        ] {
+            let cli = Cli::try_parse_from(arguments).unwrap();
+            let Command::Http(http) = cli.command else {
+                panic!("expected http");
+            };
+            let http = http.resolve(HttpConfig {
+                watch: Some(false),
+                ..HttpConfig::default()
+            });
+            assert_eq!(http.watch, expected_watch);
+        }
     }
 
     #[test]
