@@ -64,11 +64,13 @@ class ServerState:
     project_directory: Path | None = None
     directory: Path | None = None
     binary: str | Path | None = None
-    servers: dict[Path, tuple[sh.RunningCommand, str]] = field(default_factory=dict)
+    servers: dict[Path | None, tuple[sh.RunningCommand, str]] = field(
+        default_factory=dict,
+    )
 
-    def ensure_endpoint_for(self, directory: Path) -> str:
+    def ensure_endpoint_for(self, directory: Path | None) -> str:
         """Start sparqld for `directory` if needed and return its endpoint URL."""
-        resolved = directory.resolve()
+        resolved = None if directory is None else directory.resolve()
         existing = self.servers.get(resolved)
         if existing is not None and existing[0].is_alive():
             return existing[1]
@@ -76,7 +78,7 @@ class ServerState:
             raise RuntimeError(
                 'mkdocs_macros_sparqld is not configured. Ensure the pluglet is listed under macros.modules.',
             )
-        if not resolved.is_dir():
+        if resolved is not None and not resolved.is_dir():
             raise RuntimeError(f'sparqld directory does not exist: {resolved}')
         binary = process.resolve_binary(self.project_directory, self.binary)
         started = process.start_sparqld(
@@ -94,10 +96,6 @@ class ServerState:
 
     def ensure_endpoint(self) -> str:
         """Start sparqld for the configured docs directory if needed."""
-        if self.directory is None:
-            raise RuntimeError(
-                'mkdocs_macros_sparqld is not configured. Ensure the pluglet is listed under macros.modules.',
-            )
         return self.ensure_endpoint_for(self.directory)
 
     def stop_all(self) -> None:
@@ -115,7 +113,7 @@ class ServerState:
         with urlopen(request, timeout=10) as response:
             return response.headers.get_content_type(), response.read().decode()
 
-    def stop_directory(self, directory: Path) -> None:
+    def stop_directory(self, directory: Path | None) -> None:
         running = self.servers.pop(directory, None)
         if running is not None:
             process.stop_process(running[0])
@@ -124,8 +122,10 @@ class ServerState:
 server_state = ServerState()
 
 
-def configure(*, project_dir: Path, directory: Path, binary: str | Path) -> None:
+def configure(*, project_dir: Path, directory: Path | None, binary: str | Path) -> None:
     """Store paths used to launch sparqld for this MkDocs project."""
+    if server_state.project_directory != project_dir or server_state.binary != binary:
+        server_state.stop_all()
     server_state.project_directory = project_dir
     server_state.directory = directory
     server_state.binary = binary
