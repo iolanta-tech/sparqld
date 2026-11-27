@@ -10,6 +10,7 @@ Datalog
 dicts
 frontmatter
 goRDFlib
+http
 interop
 IRIs
 jsonld
