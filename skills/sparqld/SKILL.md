@@ -1,6 +1,6 @@
 ---
 name: sparqld
-description: Query a local sparqld knowledge base or write or review its YAML-LD data using sparqld MCP.
+description: Configure or query a local sparqld knowledge base or write or review its YAML-LD data using sparqld MCP.
 ---
 
 # `sparqld`
@@ -13,15 +13,48 @@ workflow to assess YAML-LD, including Markdown frontmatter. Use the write
 workflow for `sparqld write` or requests to create or edit YAML-LD for a
 sparqld knowledge base. MCP queries are read-only; write files locally.
 
-Before any query, establish the intended knowledge-base directory; ask for its
-absolute path if unclear. Verify that the configuration of the server backing
-the selected tool launches `sparqld mcp` for that absolute directory, even when
-the tool is already available. If the configuration cannot be verified or
-targets another directory, resolve that before querying.
+Before any query, identify the intended knowledge-base directory and source
+patterns. Ask for the absolute directory if unclear. Inspect the MCP entry for
+the selected tool, even when the tool is already available. Resolve the config
+path, served directory, and effective patterns as described below. Resolve any
+mismatch before querying.
 
 Do not fetch sparqld documentation from the network. Use this skill, the
 client-specific file below, `sparqld --help`, `sparqld mcp --help`, and the live
 MCP tool schema.
+
+## Configure a knowledge base
+
+1. Look for an existing `sparqld.toml` in the intended project. Reuse it if it
+   selects the intended directory and patterns. When asked to set up a project
+   with no file, create one at its root. Preserve unrelated settings when
+   updating an existing file.
+
+   For example, to serve Turtle files under `data/` and skip `data/archive/`:
+
+   ```toml
+   directory = "data"
+   patterns = ["**/*.ttl", "!archive/**"]
+   ```
+
+   Use the project's actual directory and requested patterns. Omit `patterns`
+   when no filtering is needed. Paths in `patterns` are relative to the served
+   directory. Prefix exclusions with `!`. An exclusion wins over an inclusion.
+
+2. If the client lets you set the server's working directory, set it to the
+   directory containing `sparqld.toml` and launch `sparqld mcp`. For a file
+   with a different name or a client without that setting, launch
+   `sparqld --config /absolute/path/to/project/sparqld.toml mcp`. A relative
+   `--config` path resolves from the server's working directory. A relative
+   `directory` in TOML resolves from the config file's parent.
+
+3. Read back the selected MCP entry. Check its `cwd`, command, and arguments
+   against the TOML file when present. An explicit `--directory` overrides the file and
+   resolves from the server's working directory when relative. Any
+   `--pattern` flags replace the entire TOML pattern list. Omit those flags
+   when the file supplies the intended settings. Reload or restart the server
+   after changing its settings. Query a known source graph to confirm it
+   loads, and check a known excluded source if filtering matters.
 
 ## Set up the binary
 
@@ -33,8 +66,7 @@ If the `query` tool is unavailable:
    sparqld mcp --help
    ```
 
-   Use `sparqld --help` for `--directory`, `--config`, `--pattern`, and `--query-timeout`.
-   When registering the server, place any of these options before `mcp`.
+   Check that `sparqld --help` lists `--config`. Place it before `mcp`.
 
    If `sparqld` is missing, ask permission to install it with:
 
@@ -46,15 +78,15 @@ If the `query` tool is unavailable:
    first and ask permission to install them with Rustup. Recheck
    `sparqld mcp --help` after installation.
 
-   If `sparqld` does not recognize `mcp`, ask permission to update it with:
+   If `sparqld` lacks `mcp` or `--config`, ask permission to update it with:
 
    ```sh
    cargo install sparqld --force
    ```
 
    Recheck the command before adding the MCP configuration.
-2. Identify the MCP client and follow the matching file. Ask permission before
-   any configuration change.
+2. Prepare the project config as described above. Follow the guide for the MCP
+   client. Ask permission before changing the client registration.
 
 | Client | File |
 | --- | --- |
@@ -64,7 +96,7 @@ If the `query` tool is unavailable:
 | OpenCode | [agents/opencode.md](agents/opencode.md) |
 
 If the client is not listed, find its MCP add or config mechanism and register
-`sparqld --directory <absolute-directory> mcp`.
+`sparqld --config /absolute/path/to/project/sparqld.toml mcp`.
 
 ## Query workflow
 
