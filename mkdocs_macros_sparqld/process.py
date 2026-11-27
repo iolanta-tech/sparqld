@@ -91,22 +91,22 @@ def wait_until_ready(
 def start_sparqld(
     *,
     binary: str,
-    directory: Path,
+    directory: Path | None,
     project_directory: Path,
     port: int,
 ) -> tuple[sh.RunningCommand, str]:
     endpoint = f'http://127.0.0.1:{port}/'
+    source = () if directory is None else ('--directory', str(directory))
     try:
         process = sh.Command(binary)(  # noqa: TID251 - Use the resolved executable path.
-            '--directory',
-            str(directory),
+            *source,
             'http',
             '--host',
             '127.0.0.1',
             '--port',
             str(port),
             '--no-watch',
-            _cwd=project_directory,
+            _cwd=str(project_directory),
             _bg=True,
             _bg_exc=False,
             _tty_out=False,
