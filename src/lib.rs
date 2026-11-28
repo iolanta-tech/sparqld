@@ -52,49 +52,47 @@ pub(crate) struct DatasetStats {
     triples: usize,
 }
 
-/// Controls how a directory is served.
+/// Dataset and query settings shared by HTTP and MCP.
 #[derive(Clone, Debug)]
-pub struct ServeOptions {
-    /// Reload the dataset when the directory changes.
-    pub watch: bool,
+pub struct SparqldOptions {
+    /// Directory containing the dataset sources.
+    pub directory: PathBuf,
     /// Glob patterns selecting source files relative to the served directory.
     pub patterns: Vec<String>,
     /// Stop a query that runs longer than this budget. `None` is unlimited.
     pub query_timeout: Option<Duration>,
 }
 
-impl Default for ServeOptions {
+/// Settings specific to the HTTP service.
+#[derive(Clone, Debug)]
+pub struct HttpOptions {
+    /// Address on which to listen.
+    pub host: String,
+    /// Port on which to listen.
+    pub port: u16,
+    /// Reload the dataset when the directory changes.
+    pub watch: bool,
+}
+
+impl Default for HttpOptions {
     fn default() -> Self {
         Self {
+            host: DEFAULT_HOST.into(),
+            port: DEFAULT_PORT,
             watch: true,
-            patterns: Vec::new(),
-            query_timeout: None,
         }
     }
 }
 
-/// Serves the RDF dataset built from `directory` on the default address.
-pub fn serve(directory: impl AsRef<Path>) -> SparqldResult<()> {
-    serve_at(directory, DEFAULT_HOST, DEFAULT_PORT)
-}
-
-/// Serves the RDF dataset built from `directory` on `host` and `port`.
-pub fn serve_at(directory: impl AsRef<Path>, host: &str, port: u16) -> SparqldResult<()> {
-    serve_at_with_options(directory, host, port, ServeOptions::default())
-}
-
-/// Serves the RDF dataset with explicit runtime options.
-pub fn serve_at_with_options(
-    directory: impl AsRef<Path>,
-    host: &str,
-    port: u16,
-    options: ServeOptions,
-) -> SparqldResult<()> {
-    let requested_directory = directory.as_ref();
+/// Serves the RDF dataset through an HTTP SPARQL endpoint.
+pub fn serve_http(options: SparqldOptions, http: HttpOptions) -> SparqldResult<()> {
+    let requested_directory = options.directory;
     let directory = requested_directory.canonicalize()?;
     let source_patterns =
         patterns::SourcePatterns::compile(&options.patterns).map_err(io::Error::other)?;
-    let addresses = (host, port).to_socket_addrs()?.collect::<Vec<_>>();
+    let addresses = (http.host.as_str(), http.port)
+        .to_socket_addrs()?
+        .collect::<Vec<_>>();
     if addresses.is_empty() {
         return Err(io::Error::new(
             io::ErrorKind::AddrNotAvailable,
@@ -109,10 +107,8 @@ pub fn serve_at_with_options(
     let listening_server = server::start(dataset.clone(), startup.clone(), policy, addresses)?;
     start_initialization(
         directory,
-        requested_directory.to_owned(),
-        host.to_owned(),
-        port,
-        options.watch,
+        requested_directory,
+        http,
         dataset,
         source_patterns,
         startup,
@@ -122,31 +118,25 @@ pub fn serve_at_with_options(
 }
 
 /// Serves the RDF dataset through a local stdio MCP server.
-pub fn serve_mcp(
-    directory: impl AsRef<Path>,
-    patterns: Vec<String>,
-    query_timeout: Option<Duration>,
-) -> SparqldResult<()> {
-    let directory = directory.as_ref().canonicalize()?;
-    let source_patterns = patterns::SourcePatterns::compile(&patterns).map_err(io::Error::other)?;
+pub fn serve_mcp(options: SparqldOptions) -> SparqldResult<()> {
+    let directory = options.directory.canonicalize()?;
+    let source_patterns =
+        patterns::SourcePatterns::compile(&options.patterns).map_err(io::Error::other)?;
     let dataset = new_dataset()?;
     mcp::serve(
         dataset,
         directory,
         source_patterns,
         server::StartupGate::new(),
-        query::QueryPolicy::new(query_timeout),
+        query::QueryPolicy::new(options.query_timeout),
     )
 }
 
-#[allow(clippy::too_many_arguments)]
 /// Load the directory in a worker, release waiting requests, and keep its watcher alive.
 fn start_initialization(
     directory: PathBuf,
     requested_directory: PathBuf,
-    host: String,
-    port: u16,
-    watch: bool,
+    http: HttpOptions,
     dataset: Store,
     source_patterns: patterns::SourcePatterns,
     startup: server::StartupGate,
@@ -154,7 +144,7 @@ fn start_initialization(
     thread::Builder::new()
         .name("sparqld-initializer".into())
         .spawn(move || {
-            let initialized = if watch {
+            let initialized = if http.watch {
                 watcher::DirectoryWatcher::start_with_patterns(directory, dataset, source_patterns)
                     .map(|(watcher, stats)| (Some(watcher), stats))
             } else {
@@ -165,7 +155,7 @@ fn start_initialization(
             match initialized {
                 Ok((watcher, stats)) => {
                     startup.mark_ready();
-                    log_serving(&requested_directory, &host, port);
+                    log_serving(&requested_directory, &http.host, http.port);
                     log::info!("{}", dataset_summary(stats));
                     if let Some(_watcher) = watcher {
                         loop {

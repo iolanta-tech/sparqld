@@ -15,16 +15,24 @@ description: Command-line arguments and options for sparqld.
 # :material-console-line: Command reference
 
 ```console
-sparqld [OPTIONS] <DIRECTORY>
+sparqld [SHARED OPTIONS] http [HTTP OPTIONS]
 ```
+
+Place `--directory`, `--config`, `--pattern` & `--query-timeout` before
+`http` or `mcp`. Place `--host`, `--port`, `--watch` & `--no-watch` after `http`.
 
 <div class="grid cards" markdown>
 
--   :material-folder-outline:{ .lg .middle } **`<DIRECTORY>`**
+-   :material-folder-outline:{ .lg .middle } **`-d`, `--directory <DIRECTORY>`**
 
     ---
 
-    **Required** · Directory to serve
+    Directory to serve · Required unless set in the [configuration file](#configuration-file)
+
+-   :material-file-cog-outline:{ .lg .middle } **`-c`, `--config <PATH>`**
+
+    ---
+    Select a [configuration file](#configuration-file)
 
 -   :material-ip-network-outline:{ .lg .middle } **`--host <HOST>`**
 
@@ -38,11 +46,11 @@ sparqld [OPTIONS] <DIRECTORY>
 
     Listening port · Default `7737`
 
--   :material-eye-off-outline:{ .lg .middle } **`--no-watch`**
+-   :material-eye-outline:{ .lg .middle } **`--watch`, `--no-watch`**
 
     ---
 
-    Load once without watching for file changes
+    Enable or disable watching for file changes · Default enabled
 
 -   :material-filter-outline:{ .lg .middle } **`--pattern <GLOB>`**
 
@@ -73,29 +81,41 @@ sparqld [OPTIONS] <DIRECTORY>
 ## :simple-modelcontextprotocol: MCP server
 
 ```console
-sparqld mcp [--pattern <GLOB>]... [--query-timeout <SECONDS>] <DIRECTORY>
+sparqld [--directory <DIRECTORY>] [--config <PATH>] [--pattern <GLOB>]... [--query-timeout <SECONDS>] mcp
 ```
 
-`mcp` exposes the directory to an MCP client over standard input and output and
-always watches it for source changes.
+`mcp` exposes the directory to a [Model Context Protocol client](agents/mcp.md)
+over standard input & output. It always watches for source changes.
 
-- `<DIRECTORY>` is required.
-- Repeat `--pattern <GLOB>` to include or exclude source paths, using the same
-  pattern rules as the HTTP server.
-- `--query-timeout <SECONDS>` works the same as for the HTTP server.
-- `--host`, `--port`, and `--no-watch` apply only to the HTTP server; `mcp`
-  does not accept them.
+## :material-file-cog-outline: Configuration file
+
+Both server modes look for `sparqld.toml` in the working directory at startup.
+Pass `--config <PATH>` to use a different file without loading `sparqld.toml`
+from the working directory. The specified file must exist.
+A relative `directory` setting resolves from the directory containing the
+configuration file. A relative `--directory` value resolves from the working
+directory.
+
+For example, create the file below in a directory with a `data/`
+subdirectory that contains your Turtle files. Run `sparqld http` from the directory
+that contains the file to start the HTTP server on port `8080`.
+
+{{ example_data('configuration/sparqld.toml', title='Configuration') }}
+
+Values you supply on the command line override the corresponding file settings.
+Repeat `--pattern` to supply a complete replacement for `patterns`.
+On the HTTP server, use either `--watch` or `--no-watch` to override `http.watch`.
 
 ## :material-tune-variant: Combine options
 
-Options can be composed in any order:
+To serve a directory on port `8080` and load it once:
 
-{{ command('sparqld ./examples --host 0.0.0.0 --port 8080 --no-watch') }}
+{{ command('sparqld --directory ./examples http --host 0.0.0.0 --port 8080 --no-watch') }}
 
 ## :material-timer-outline: Limit query time
 
-`--query-timeout` takes a positive whole number of seconds. Leaving it unset
-keeps query execution unlimited.
+`--query-timeout` and `query-timeout` take a positive whole number of seconds.
+Leaving both unset keeps query execution unlimited.
 
 The budget covers parsing, evaluation, reading every result, and building the
 response. It excludes waiting for the first dataset, reading the request, and
@@ -106,7 +126,7 @@ Cancellation is cooperative: sorting, aggregation, and similar work between
 engine checkpoints can run past the deadline. `sparqld` does not stop the
 process.
 
-{{ command('sparqld ./examples --query-timeout 20') }}
+{{ command('sparqld --directory ./examples --query-timeout 20 http') }}
 
 ## :material-clock-start: Wait for the first dataset
 
@@ -125,7 +145,7 @@ set. A plain directory path matches that directory and everything below it.
 
 For example, serve Turtle files while leaving an archive outside the dataset:
 
-{{ command("sparqld ./data --pattern '**/*.ttl' --pattern '!archive'") }}
+{{ command("sparqld --directory ./data --pattern '**/*.ttl' --pattern '!archive' http") }}
 
 Patterns filter source files after `sparqld` recognizes their extensions. A
 matching file with an unsupported format remains ignored. Excluded files do not

@@ -15,7 +15,7 @@ tags: [decision]
 
 ## :material-text-box-outline: Context
 
-CI starts `sparqld --no-watch` over a directory of EARL Turtle reports and
+CI starts `sparqld http --no-watch` over a directory of EARL Turtle reports and
 then runs several queries against that one dataset. Today,
 [`serve_at_with_options`](https://github.com/iolanta-tech/sparqld/blob/f3b935f/src/lib.rs#L66-L100)
 loads the complete dataset before it resolves and binds the HTTP addresses, and

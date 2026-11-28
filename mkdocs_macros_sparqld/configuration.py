@@ -2,8 +2,12 @@
 
 from __future__ import annotations
 
+import json
+from contextlib import suppress
 from pathlib import Path
 from typing import Any
+
+import tomllib
 
 from mkdocs_macros_sparqld.server import configure as configure_server
 
@@ -23,15 +27,37 @@ def _project_dir(env: Any) -> Path:
     return Path(env.conf['docs_dir']).resolve().parent
 
 
+def _create_settings(path: Path, directory: str | Path) -> None:
+    quoted = json.dumps(str(directory), ensure_ascii=False).replace('\x7f', r'\u007f')
+    with (
+        suppress(FileExistsError),
+        path.open('x', encoding='utf-8') as settings,
+    ):
+        settings.write(f'directory = {quoted}\n')
+
+
+def _docs_fallback(path: Path) -> Path | None:
+    # Let sparqld report errors in the file.
+    with (
+        suppress(OSError, UnicodeError, tomllib.TOMLDecodeError),
+        path.open('rb') as settings,
+    ):
+        if 'directory' not in tomllib.load(settings):
+            return path.parent / 'docs'
+    return None
+
+
 def configure(env: Any) -> Path:
     """Read `extra.sparqld` and configure the shared sparqld server."""
-    project_dir = _project_dir(env)
+    project_dir = _project_dir(env).resolve()
     config = _extra_config(env)
-    directory = project_dir / config.get('directory', 'docs')
-    binary = config.get('binary', 'sparqld')
+    override = config.get('directory')
+    settings = project_dir / 'sparqld.toml'
+    _create_settings(settings, 'docs' if override is None else Path(override))
+    directory = _docs_fallback(settings) if override is None else project_dir / override
     configure_server(
         project_dir=project_dir,
-        directory=directory.resolve(),
-        binary=binary,
+        directory=directory,
+        binary=config.get('binary', 'sparqld'),
     )
-    return project_dir.resolve()
+    return project_dir

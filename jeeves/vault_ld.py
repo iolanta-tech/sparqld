@@ -1,7 +1,6 @@
 """Compare a pinned Vault-LD exporter with RDFLib JSON-LD on shared fixtures."""
 
 import json
-import subprocess
 import sys
 import tempfile
 from pathlib import Path
@@ -9,6 +8,7 @@ from typing import Annotated, Any
 from urllib.parse import urlsplit
 
 import rdflib
+import sh
 import typer
 from pydantic import BaseModel, Field
 from ruamel.yaml import YAML
@@ -138,10 +138,7 @@ def vault_ld(
             'Expected a Vault-LD checkout containing scripts/vault_to_rdf.py.',
             param_hint='--vault-ld',
         )
-    revision = subprocess.check_output(
-        ['git', '-C', str(vault_ld), 'rev-parse', 'HEAD'],
-        text=True,
-    ).strip()
+    revision = sh.git('-C', str(vault_ld), 'rev-parse', 'HEAD').strip()
     if revision != REVISION:
         raise typer.BadParameter(
             f'Expected Vault-LD revision {REVISION}, got {revision}.',
@@ -167,17 +164,13 @@ def vault_ld(
     results = []
     for scenario, project, baseline in prepared:
         with tempfile.TemporaryDirectory() as output:
-            process = subprocess.run(
-                [
-                    sys.executable,
-                    str(exporter),
-                    str(project),
-                    '--out-dir',
-                    output,
-                ],
-                check=True,
-                capture_output=True,
-                text=True,
+            process = sh.Command(sys.executable)(  # noqa: TID251 - Use the active interpreter.
+                str(exporter),
+                str(project),
+                '--out-dir',
+                output,
+                _return_cmd=True,
+                _tty_out=False,
             )
             exported = rdflib.Graph()
             for filename in ('schema.ttl', 'data.ttl'):
@@ -190,7 +183,7 @@ def vault_ld(
                 'vault_ld': rows(exported),
                 'json_ld': rows(baseline),
                 'same_triples': set(exported) == set(baseline),
-                'vault_ld_stderr': process.stderr.strip(),
+                'vault_ld_stderr': process.stderr.decode().strip(),
             }
         )
         artifacts = {

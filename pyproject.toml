@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "mkdocs-macros-sparqld"
-version = "0.2.0"
+version = "0.3.1"
 description = "mkdocs-macros pluglet for build-time sparqld queries"
 authors = ["Anatoly Scherbakov <anatoly@yeti.sh>"]
 license = "Apache-2.0 OR MIT"
@@ -34,6 +34,7 @@ exclude = [
   "CLAUDE.md",
   "docs_macros",
   "jeeves",
+  "mkdocs_macros_sparqld/ruff.toml",
   "mkdocs.yml",
   "package.json",
   "package-lock.json",
@@ -49,6 +50,7 @@ Repository = "https://github.com/iolanta-tech/sparqld"
 python = ">=3.13,<4.0"
 mkdocs-macros-plugin = ">=1.5.0"
 pydantic = ">=2,<3"
+sh = ">=2.4,<3"
 
 [tool.poetry.group.dev.dependencies]
 jeeves-shell = { version = "2.3.4", extras = ["all"] }

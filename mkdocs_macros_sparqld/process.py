@@ -1,14 +1,16 @@
-"""Subprocess helpers for build-time sparqld servers."""
+"""Process helpers for build-time sparqld servers."""
 
 from __future__ import annotations
 
 import shutil
 import socket
-import subprocess
 import time
 from collections.abc import Callable
+from contextlib import suppress
 from pathlib import Path
 from urllib.request import urlopen
+
+import sh
 
 _STARTUP_TIMEOUT_SECONDS = 30
 _PROBE_TIMEOUT_SECONDS = 0.25
@@ -41,34 +43,38 @@ def endpoint_ready(endpoint: str) -> bool:
         return response.status == _HTTP_OK
 
 
-def stop_process(process: subprocess.Popen) -> None:
-    if process.poll() is not None:
+def stop_process(process: sh.RunningCommand) -> None:
+    if not process.is_alive():
         return
-    process.terminate()
-    try:
-        process.communicate(timeout=5)
-    except subprocess.TimeoutExpired:
-        process.kill()
-        process.communicate()
+    with suppress(ProcessLookupError):
+        process.terminate()
+    with suppress(sh.ErrorReturnCode):
+        try:
+            process.wait(timeout=5)
+        except sh.TimeoutException:
+            with suppress(ProcessLookupError):
+                process.kill()
+            process.wait()
 
 
-def _startup_failure(process: subprocess.Popen) -> RuntimeError:
-    stdout, stderr = process.communicate()
+def _startup_failure(process: sh.RunningCommand) -> RuntimeError:
+    with suppress(sh.ErrorReturnCode):
+        process.wait()
     return RuntimeError(
         'Could not start sparqld for documentation macros.\n'
-        + (stderr.strip() or stdout.strip())
+        + (process.stderr.decode().strip() or process.stdout.decode().strip())
     )
 
 
 def wait_until_ready(
-    process: subprocess.Popen,
+    process: sh.RunningCommand,
     endpoint: str,
     *,
     on_failure: Callable[[], None],
 ) -> str:
     deadline = time.monotonic() + _STARTUP_TIMEOUT_SECONDS
     while time.monotonic() < deadline:
-        if process.poll() is not None:
+        if not process.is_alive():
             on_failure()
             raise _startup_failure(process)
         try:
@@ -85,24 +91,26 @@ def wait_until_ready(
 def start_sparqld(
     *,
     binary: str,
-    directory: Path,
+    directory: Path | None,
     project_directory: Path,
     port: int,
-) -> tuple[subprocess.Popen, str]:
+) -> tuple[sh.RunningCommand, str]:
     endpoint = f'http://127.0.0.1:{port}/'
-    process = subprocess.Popen(
-        [
-            binary,
-            str(directory),
+    source = () if directory is None else ('--directory', str(directory))
+    try:
+        process = sh.Command(binary)(  # noqa: TID251 - Use the resolved executable path.
+            *source,
+            'http',
             '--host',
             '127.0.0.1',
             '--port',
             str(port),
             '--no-watch',
-        ],
-        cwd=project_directory,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        text=True,
-    )
+            _cwd=str(project_directory),
+            _bg=True,
+            _bg_exc=False,
+            _tty_out=False,
+        )
+    except sh.CommandNotFound as error:
+        raise OSError(f'Cannot execute sparqld at {binary}') from error
     return process, endpoint

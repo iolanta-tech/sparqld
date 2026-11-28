@@ -29,7 +29,7 @@ cargo install sparqld
 Serve a directory of RDF files:
 
 ```console
-sparqld ./data
+sparqld --directory ./data http
 ```
 
 The endpoint listens locally at `http://127.0.0.1:7737/` and watches the
@@ -73,14 +73,14 @@ catalog, so ordinary SPARQL queries search the whole directory.
 
 When a file or its local context changes, `sparqld` parses the affected data
 before replacing it. A failed parse removes that source graph and records the
-error in the catalog. Pass `--no-watch` to load once without watching.
+error in the catalog. Pass `http --no-watch` to load once without watching.
 
 The endpoint is permanently read-only: modify RDF by editing files, never via
 SPARQL Update.
 
 ## Security
 
-By default, `sparqld` listens only on `127.0.0.1`. Using `--host 0.0.0.0`
+By default, `sparqld http` listens only on `127.0.0.1`. Using `http --host 0.0.0.0`
 makes its read-only endpoint reachable on the network; it provides neither
 authentication nor TLS. Put network-facing deployments behind appropriate
 access controls.

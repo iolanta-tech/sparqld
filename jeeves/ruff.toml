@@ -1,0 +1,7 @@
+extend = "../pyproject.toml"
+src = [".."]
+
+[lint.flake8-tidy-imports.banned-api]
+"yaml".msg = "Use ruamel.yaml. PyYAML safe_load follows YAML 1.1, so NO, yes, on, and off become booleans."
+"sh.Command".msg = "Call the program as `sh.<name>` when it is on PATH (direnv activates `.venv`)."
+"subprocess".msg = "Use sh to run external commands."

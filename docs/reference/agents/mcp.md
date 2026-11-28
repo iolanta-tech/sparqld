@@ -13,7 +13,8 @@ description: MCP tools, prompts, and structured SPARQL query responses.
 
 # :simple-modelcontextprotocol: MCP server
 
-Configure your MCP client to launch `sparqld mcp <DIRECTORY>` over stdio.
+Configure your MCP client to launch `sparqld --directory <DIRECTORY> mcp` over stdio.
+Place [shared options](../index.md#mcp-server) before `mcp`.
 See the [CLI reference](../index.md#mcp-server) for directory and pattern options,
 or [Agents](index.md) for skill-based setup.
 
